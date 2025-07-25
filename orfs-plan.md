@@ -175,7 +175,7 @@ def generate_api_endpoint():
     - Input Parameters: {params}
     - Response Format: {response_format}
     - Authentication: {auth_required}
-    
+
     Include error handling, input validation, and documentation.
     """
 
@@ -188,7 +188,7 @@ def generate_database_model():
     - Relationships: {relationships}
     - Constraints: {constraints}
     - Indexes: {indexes}
-    
+
     Include migration scripts and validation rules.
     """
 ```
@@ -205,7 +205,7 @@ def generate_readme():
     - Installation: {install_steps}
     - Usage Examples: {usage_examples}
     - Contributing Guidelines: {contributing}
-    
+
     Use clear formatting and include badges, diagrams, and code examples.
     """
 
@@ -218,7 +218,7 @@ def generate_api_docs():
     - Parameters: {parameters}
     - Response Examples: {responses}
     - Error Codes: {errors}
-    
+
     Format as OpenAPI 3.0 specification with examples.
     """
 ```
@@ -237,7 +237,7 @@ def generate_verilog_module():
     - Functionality: {description}
     - Clock Domain: {clock_domain}
     - Reset Strategy: {reset_type}
-    
+
     Include proper timing constraints and testbench template.
     """
 
@@ -251,7 +251,7 @@ def generate_testbench():
     - Input Stimuli: {stimuli}
     - Expected Outputs: {expected}
     - Coverage Points: {coverage}
-    
+
     Include assertions, coverage collection, and result checking.
     """
 ```
@@ -268,7 +268,7 @@ def generate_synthesis_script():
     - Area Constraints: {area_constraint}
     - Power Target: {power_target}
     - Optimization Focus: {optimization}
-    
+
     Include liberty files, constraints, and reporting commands.
     """
 
@@ -282,7 +282,7 @@ def generate_floorplan_tcl():
     - Macro Placement: {macros}
     - Power Planning: {power_plan}
     - Pin Assignment: {pin_assignment}
-    
+
     Include proper power grid and macro orientation.
     """
 ```
@@ -299,7 +299,7 @@ def generate_sdc_constraints():
     - False Paths: {false_paths}
     - Multi-cycle Paths: {multicycle}
     - Clock Groups: {clock_groups}
-    
+
     Include proper clock definitions and exceptions.
     """
 
@@ -313,7 +313,7 @@ def generate_upf_power():
     - Level Shifters: {level_shifters}
     - Isolation Cells: {isolation}
     - Retention Strategy: {retention}
-    
+
     Include proper power management and verification.
     """
 ```
@@ -332,7 +332,7 @@ def generate_makefile_flow():
     - Dependencies: {dependencies}
     - Parallel Jobs: {parallel}
     - Clean Targets: {clean_rules}
-    
+
     Include error handling and progress reporting.
     """
 
@@ -346,7 +346,7 @@ def generate_ci_pipeline():
     - Build Matrix: {build_matrix}
     - Artifact Management: {artifacts}
     - Notification: {notifications}
-    
+
     Include regression testing and quality gates.
     """
 ```
@@ -364,7 +364,7 @@ def generate_analysis_report():
     - Area Breakdown: {area_analysis}
     - Power Analysis: {power_analysis}
     - Timing Summary: {timing}
-    
+
     Include visualizations, trends, and recommendations.
     """
 
@@ -378,7 +378,7 @@ def generate_debug_guide():
     - Debug Steps: {debug_steps}
     - Tools Required: {tools}
     - Expected Results: {expected}
-    
+
     Include command examples and troubleshooting tips.
     """
 ```
