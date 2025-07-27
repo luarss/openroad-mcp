@@ -1,6 +1,8 @@
 import asyncio
+import atexit
 import json
 import logging
+import signal
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
@@ -231,6 +233,91 @@ class OpenROADManager:
 # Global manager instance
 manager = OpenROADManager()
 
+# Application lifecycle state
+_shutdown_initiated = False
+_startup_complete = False
+
+
+async def _startup_openroad() -> None:
+    """Automatically start OpenROAD process on application startup."""
+    global _startup_complete
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info("Starting OpenROAD process automatically...")
+
+        result = await manager.start_process()
+        if result["status"] == "started":
+            logger.info(f"OpenROAD process started with PID {result['pid']}")
+            _startup_complete = True
+        else:
+            logger.warning(f"Failed to start OpenROAD process: {result['message']}")
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error during automatic OpenROAD startup: {e}")
+
+
+async def _shutdown_openroad() -> None:
+    """Gracefully shutdown OpenROAD process."""
+    global _shutdown_initiated
+    if _shutdown_initiated:
+        return
+
+    _shutdown_initiated = True
+    logger = logging.getLogger(__name__)
+
+    try:
+        logger.info("Initiating graceful shutdown of OpenROAD process...")
+        result = await manager.stop_process()
+
+        if result["status"] in ["stopped", "already_stopped"]:
+            logger.info("OpenROAD process shutdown completed successfully")
+        else:
+            logger.warning(f"OpenROAD shutdown warning: {result['message']}")
+
+    except Exception as e:
+        logger.error(f"Error during OpenROAD shutdown: {e}")
+
+
+def _signal_handler(signum: int, _frame: Any) -> None:
+    """Handle shutdown signals."""
+    logger = logging.getLogger(__name__)
+    signal_name = signal.Signals(signum).name
+    logger.info(f"Received {signal_name} signal, initiating shutdown...")
+
+    # Create a new event loop if none exists
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # Schedule the shutdown
+    if loop.is_running():
+        loop.create_task(_shutdown_openroad())
+    else:
+        loop.run_until_complete(_shutdown_openroad())
+
+
+def _sync_shutdown() -> None:
+    """Synchronous shutdown for atexit handler."""
+    if not _shutdown_initiated:
+        logger = logging.getLogger(__name__)
+        logger.info("Executing atexit cleanup...")
+
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(_shutdown_openroad())
+            loop.close()
+        except Exception as e:
+            logger.error(f"Error in atexit cleanup: {e}")
+
+
+# Register signal handlers and cleanup
+signal.signal(signal.SIGTERM, _signal_handler)
+signal.signal(signal.SIGINT, _signal_handler)
+atexit.register(_sync_shutdown)
+
 
 @mcp.tool()
 async def start_openroad() -> str:
@@ -290,5 +377,27 @@ async def get_openroad_context() -> str:
     return json.dumps(context, indent=2)
 
 
+async def main() -> None:
+    """Main application entry point with lifecycle management."""
+    logger = logging.getLogger(__name__)
+    logger.info("Starting OpenROAD MCP server...")
+
+    try:
+        # Start OpenROAD process automatically
+        await _startup_openroad()
+
+        # Run the MCP server
+        await mcp.run_async(transport="stdio")
+
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt")
+    except Exception as e:
+        logger.error(f"Unexpected error in main: {e}")
+    finally:
+        # Ensure cleanup happens
+        await _shutdown_openroad()
+        logger.info("OpenROAD MCP server shutdown complete")
+
+
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    asyncio.run(main())
