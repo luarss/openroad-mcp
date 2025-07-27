@@ -1,7 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "openroad-mcp"
 version = "0.1.0"
-description = "Add your description here"
+authors = [
+    {name = "Precision Innovations", email="jluar@precisioninno.com"},
+]
+description = "The OpenROAD MCP server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -9,6 +16,9 @@ dependencies = [
     "mcp[cli]>=1.12.1",
     "pydantic>=2.11.7",
 ]
+
+[project.scripts]
+openroad-mcp = "openroad_mcp.main:main"
 
 [project.optional-dependencies]
 dev = [

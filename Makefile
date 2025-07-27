@@ -1,3 +1,6 @@
+MCP_SERVER_REQUEST_TIMEOUT:= 99999999999
+MCP_REQUEST_MAX_TOTAL_TIMEOUT:= 99999999999
+
 .PHONY: sync
 sync:
 	@uv sync --all-extras --inexact
@@ -24,4 +27,6 @@ check:
 # MCP inspector
 .PHONY: inspect
 inspect:
-	@npx @modelcontextprotocol/inspector@0.16.0 uv run main.py
+	@MCP_SERVER_REQUEST_TIMEOUT=$(MCP_SERVER_REQUEST_TIMEOUT) \
+		MCP_REQUEST_MAX_TOTAL_TIMEOUT=$(MCP_REQUEST_MAX_TOTAL_TIMEOUT) \
+		npx @modelcontextprotocol/inspector@0.16.0 uv run openroad-mcp
