@@ -31,22 +31,27 @@ class Settings(BaseModel):
         """Create settings from environment variables."""
         env_values = {}
 
-        # Map environment variables to settings
+        # Map environment variables to settings with type conversion
         env_mapping = {
-            "OPENROAD_BINARY": "OPENROAD_BINARY",
-            "COMMAND_TIMEOUT": "OPENROAD_COMMAND_TIMEOUT",
-            "SHUTDOWN_TIMEOUT": "OPENROAD_SHUTDOWN_TIMEOUT",
-            "OUTPUT_POLLING_INTERVAL": "OPENROAD_OUTPUT_POLLING_INTERVAL",
-            "COMMAND_COMPLETION_DELAY": "OPENROAD_COMMAND_COMPLETION_DELAY",
-            "MAX_BUFFER_SIZE": "OPENROAD_MAX_BUFFER_SIZE",
-            "LOG_LEVEL": "LOG_LEVEL",
-            "LOG_FORMAT": "LOG_FORMAT",
+            "OPENROAD_BINARY": ("OPENROAD_BINARY", str),
+            "COMMAND_TIMEOUT": ("OPENROAD_COMMAND_TIMEOUT", float),
+            "SHUTDOWN_TIMEOUT": ("OPENROAD_SHUTDOWN_TIMEOUT", float),
+            "OUTPUT_POLLING_INTERVAL": ("OPENROAD_OUTPUT_POLLING_INTERVAL", float),
+            "COMMAND_COMPLETION_DELAY": ("OPENROAD_COMMAND_COMPLETION_DELAY", float),
+            "MAX_BUFFER_SIZE": ("OPENROAD_MAX_BUFFER_SIZE", int),
+            "LOG_LEVEL": ("LOG_LEVEL", str),
+            "LOG_FORMAT": ("LOG_FORMAT", str),
         }
 
-        for setting_key, env_key in env_mapping.items():
+        for setting_key, (env_key, type_converter) in env_mapping.items():
             env_value = os.getenv(env_key)
             if env_value is not None:
-                env_values[setting_key] = env_value
+                try:
+                    env_values[setting_key] = type_converter(env_value)
+                except (ValueError, TypeError) as e:
+                    raise ValueError(
+                        f"Invalid value for {env_key}: {env_value}. Expected {type_converter.__name__}."
+                    ) from e
 
         return cls(**env_values)
 
