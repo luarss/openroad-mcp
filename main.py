@@ -320,13 +320,6 @@ atexit.register(_sync_shutdown)
 
 
 @mcp.tool()
-async def start_openroad() -> str:
-    """Start the OpenROAD interactive process in the background."""
-    result = await manager.start_process()
-    return json.dumps(result, indent=2)
-
-
-@mcp.tool()
 async def execute_openroad_command(command: str, timeout: float | None = None) -> str:
     """Execute a command in the OpenROAD interactive process and return the output."""
     result = await manager.execute_command(command, timeout)
@@ -337,13 +330,6 @@ async def execute_openroad_command(command: str, timeout: float | None = None) -
 async def get_openroad_status() -> str:
     """Get the current status of the OpenROAD process."""
     result = await manager.get_status()
-    return json.dumps(result, indent=2)
-
-
-@mcp.tool()
-async def stop_openroad() -> str:
-    """Stop the OpenROAD interactive process."""
-    result = await manager.stop_process()
     return json.dumps(result, indent=2)
 
 
