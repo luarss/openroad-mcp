@@ -39,7 +39,7 @@ class OpenROADManager:
             self.stdout_buffer: list[str] = []
             self.stderr_buffer: list[str] = []
             self.command_history: list[dict[str, Any]] = []
-            self.max_buffer_size = config.max_buffer_size
+            self.max_buffer_size = config.MAX_BUFFER_SIZE
             self.initialized = True
             self.logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class OpenROADManager:
         try:
             self.state = ProcessState.STARTING
             self.process = await asyncio.create_subprocess_exec(
-                config.openroad_binary,
+                config.OPENROAD_BINARY,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -82,7 +82,7 @@ class OpenROADManager:
 
         try:
             # Use config default timeout if not provided
-            actual_timeout = timeout or config.command_timeout
+            actual_timeout = timeout or config.COMMAND_TIMEOUT
 
             # Record command in history
             cmd_record = {"command": command, "timestamp": datetime.now().isoformat(), "id": len(self.command_history)}
@@ -102,7 +102,7 @@ class OpenROADManager:
             last_output_time = start_time
 
             while (asyncio.get_event_loop().time() - start_time) < actual_timeout:
-                await asyncio.sleep(config.output_polling_interval)
+                await asyncio.sleep(config.OUTPUT_POLLING_INTERVAL)
 
                 # Check if we got new output
                 current_stdout_count = len(self.stdout_buffer)
@@ -112,7 +112,7 @@ class OpenROADManager:
                     last_output_time = asyncio.get_event_loop().time()
 
                 # If no new output for 0.5 seconds, consider command complete
-                if (asyncio.get_event_loop().time() - last_output_time) > config.command_completion_delay:
+                if (asyncio.get_event_loop().time() - last_output_time) > config.COMMAND_COMPLETION_DELAY:
                     break
 
             # Capture new output since command was sent
@@ -179,7 +179,7 @@ class OpenROADManager:
 
             # Wait for graceful shutdown
             try:
-                await asyncio.wait_for(self.process.wait(), timeout=config.shutdown_timeout)
+                await asyncio.wait_for(self.process.wait(), timeout=config.SHUTDOWN_TIMEOUT)
             except TimeoutError:
                 self.process.terminate()
                 await asyncio.wait_for(self.process.wait(), timeout=2.0)
