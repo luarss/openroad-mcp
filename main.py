@@ -7,6 +7,10 @@ from typing import Any, Optional
 
 from fastmcp import FastMCP
 
+from core.config import config
+from core.logging_config import setup_logging
+
+setup_logging()
 mcp: FastMCP = FastMCP("openroad-mcp")
 
 
@@ -33,7 +37,7 @@ class OpenROADManager:
             self.stdout_buffer: list[str] = []
             self.stderr_buffer: list[str] = []
             self.command_history: list[dict[str, Any]] = []
-            self.max_buffer_size = 1000
+            self.max_buffer_size = config.max_buffer_size
             self.initialized = True
             self.logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ class OpenROADManager:
         try:
             self.state = ProcessState.STARTING
             self.process = await asyncio.create_subprocess_exec(
-                "openroad",
+                config.openroad_binary,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -70,11 +74,14 @@ class OpenROADManager:
             self.logger.error(error_msg)
             return {"status": "error", "message": error_msg}
 
-    async def execute_command(self, command: str, timeout: float = 5.0) -> dict[str, Any]:
+    async def execute_command(self, command: str, timeout: float | None = None) -> dict[str, Any]:
         if self.state != ProcessState.RUNNING or not self.process:
             return {"status": "error", "message": "OpenROAD process is not running"}
 
         try:
+            # Use config default timeout if not provided
+            actual_timeout = timeout or config.command_timeout
+
             # Record command in history
             cmd_record = {"command": command, "timestamp": datetime.now().isoformat(), "id": len(self.command_history)}
             self.command_history.append(cmd_record)
@@ -92,8 +99,8 @@ class OpenROADManager:
             start_time = asyncio.get_event_loop().time()
             last_output_time = start_time
 
-            while (asyncio.get_event_loop().time() - start_time) < timeout:
-                await asyncio.sleep(0.1)
+            while (asyncio.get_event_loop().time() - start_time) < actual_timeout:
+                await asyncio.sleep(config.output_polling_interval)
 
                 # Check if we got new output
                 current_stdout_count = len(self.stdout_buffer)
@@ -103,7 +110,7 @@ class OpenROADManager:
                     last_output_time = asyncio.get_event_loop().time()
 
                 # If no new output for 0.5 seconds, consider command complete
-                if (asyncio.get_event_loop().time() - last_output_time) > 0.5:
+                if (asyncio.get_event_loop().time() - last_output_time) > config.command_completion_delay:
                     break
 
             # Capture new output since command was sent
@@ -170,7 +177,7 @@ class OpenROADManager:
 
             # Wait for graceful shutdown
             try:
-                await asyncio.wait_for(self.process.wait(), timeout=5.0)
+                await asyncio.wait_for(self.process.wait(), timeout=config.shutdown_timeout)
             except TimeoutError:
                 self.process.terminate()
                 await asyncio.wait_for(self.process.wait(), timeout=2.0)
@@ -233,7 +240,7 @@ async def start_openroad() -> str:
 
 
 @mcp.tool()
-async def execute_openroad_command(command: str, timeout: float = 5.0) -> str:
+async def execute_openroad_command(command: str, timeout: float | None = None) -> str:
     """Execute a command in the OpenROAD interactive process and return the output."""
     result = await manager.execute_command(command, timeout)
     return json.dumps(result, indent=2)
