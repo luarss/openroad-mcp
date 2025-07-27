@@ -15,18 +15,18 @@ reqs:
 
 .PHONY: format
 format:
-	@ruff format .
-	@ruff check . --fix
+	@uv run ruff format .
+	@uv run ruff check . --fix
 
 .PHONY: check
 check:
-	@ruff check
-	@mypy .
-	@pre-commit run --all-files
+	@uv run ruff check
+	@uv run mypy .
+	@uv run pre-commit run --all-files
 
 .PHONY: test
 test:
-	@pytest
+	@uv run pytest
 
 # MCP inspector
 .PHONY: inspect
