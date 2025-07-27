@@ -18,11 +18,15 @@ format:
 	@ruff format .
 	@ruff check . --fix
 
-.PHONY:
+.PHONY: check
 check:
 	@ruff check
 	@mypy .
 	@pre-commit run --all-files
+
+.PHONY: test
+test:
+	@pytest
 
 # MCP inspector
 .PHONY: inspect
