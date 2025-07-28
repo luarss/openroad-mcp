@@ -2,6 +2,8 @@
 
 from fastmcp import FastMCP
 
+from openroad_mcp.config.cli import CLIConfig
+
 from .core.manager import OpenROADManager
 from .tools.context import GetCommandHistoryTool, GetContextTool
 from .tools.process import ExecuteCommandTool, GetStatusTool, RestartProcessTool
@@ -82,9 +84,9 @@ async def shutdown_openroad() -> None:
         logger.error(f"Error during OpenROAD shutdown: {e}")
 
 
-async def run_server() -> None:
+async def run_server(config: CLIConfig) -> None:
     """Main server entry point with lifecycle management."""
-    logger.info("Starting OpenROAD MCP server...")
+    logger.info(f"Starting OpenROAD MCP server in {config.transport.mode} mode...")
 
     try:
         # Register cleanup handlers
@@ -94,13 +96,26 @@ async def run_server() -> None:
         # Start OpenROAD process automatically
         await startup_openroad()
 
-        # Run the MCP server
-        await mcp.run_async(transport="stdio")
+        # Run the MCP server with the configured transport
+        if config.transport.mode == "stdio":
+            logger.info("Using stdio transport")
+            await mcp.run_async(transport="stdio")
+        elif config.transport.mode == "http":
+            logger.info(f"Using HTTP transport on {config.transport.host}:{config.transport.port}")
+            # TODO: Streamable-HTTP
+            raise NotImplementedError(
+                "Streamable HTTP transport is not yet implemented. "
+                "This argument structure is prepared for future implementation. "
+                "Please use --transport stdio (default) for now."
+            )
+        else:
+            raise ValueError(f"Unsupported transport mode: {config.transport.mode}")
 
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt")
     except Exception as e:
         logger.error(f"Unexpected error in server: {e}")
+        raise
     finally:
         # Ensure cleanup happens
         await shutdown_openroad()
