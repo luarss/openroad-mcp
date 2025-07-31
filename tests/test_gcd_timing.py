@@ -1,6 +1,8 @@
 """GCD timing checkpoint test suite using real OpenROAD GCD design."""
 
+import os
 import tempfile
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -27,10 +29,34 @@ def checkpoint_system(mock_manager):
 @pytest.fixture
 def gcd_design_files():
     """Paths to GCD design files in OpenROAD tree."""
+    # Try to get OpenROAD directory from environment or common locations
+    openroad_dir = os.environ.get("OPENROAD_DIR") or os.environ.get("OPENROAD_HOME")
+
+    if not openroad_dir:
+        # Try common installation locations
+        possible_dirs = [
+            "/usr/local/openroad",
+            "/opt/openroad",
+            os.path.expanduser("~/OpenROAD"),
+        ]
+
+        for dir_path in possible_dirs:
+            if Path(dir_path).exists():
+                openroad_dir = dir_path
+                break
+
+    # If still not found, use pytest configuration or skip
+    if not openroad_dir:
+        pytest.skip("OpenROAD installation not found. Set OPENROAD_DIR environment variable.")
+
+    openroad_path = Path(openroad_dir)
+
     return {
-        "verilog": "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.v",
-        "sdc": "/home/luars/OpenROAD/src/par/test/gcd_nangate45.sdc",
-        "def": "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.def",
+        "verilog": str(openroad_path / "src/gpl/test/design/nangate45/gcd/gcd.v"),
+        "sdc": str(openroad_path / "src/par/test/gcd_nangate45.sdc"),
+        "def": str(openroad_path / "src/gpl/test/design/nangate45/gcd/gcd.def"),
+        "lef": str(openroad_path / "test/Nangate45/Nangate45.lef"),
+        "lib": str(openroad_path / "test/Nangate45/Nangate45_typ.lib"),
     }
 
 
@@ -194,15 +220,18 @@ class TestGCDTimingCheckpoints:
         assert stats["compression_ratio"] < 0.5  # Should achieve >50% compression
         assert stats["storage_reduction_percent"] > 50.0
 
-    def test_gcd_tcl_commands(self):
+    def test_gcd_tcl_commands(self, gcd_design_files):
         """Test Tcl command generation for GCD timing analysis."""
+        # Get design files dynamically
+        design_files = gcd_design_files
+
         expected_commands = [
             # Design setup
-            'read_lef "Nangate45/Nangate45.lef"',
-            'read_liberty "Nangate45/Nangate45_typ.lib"',
-            'read_verilog "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.v"',
+            f'read_lef "{design_files["lef"]}"',
+            f'read_liberty "{design_files["lib"]}"',
+            f'read_verilog "{design_files["verilog"]}"',
             'link_design "gcd"',
-            'read_sdc "/home/luars/OpenROAD/src/par/test/gcd_nangate45.sdc"',
+            f'read_sdc "{design_files["sdc"]}"',
             # Timing analysis commands for checkpointing
             "report_checks -format full_clock_expanded -fields {input_pin net fanout capacitance slew delay arrival "
             "required}",
@@ -221,20 +250,20 @@ class TestGCDTimingCheckpoints:
             "report_checks -corner fast",
         ]
 
-        gcd_tcl_commands = self._generate_gcd_tcl_commands()
+        gcd_tcl_commands = self._generate_gcd_tcl_commands(design_files)
 
         for cmd in expected_commands:
             assert any(cmd in tcl_cmd for tcl_cmd in gcd_tcl_commands), f"Command not found: {cmd}"
 
-    def _generate_gcd_tcl_commands(self):
+    def _generate_gcd_tcl_commands(self, design_files):
         """Generate Tcl commands for GCD timing analysis."""
         return [
             # Design setup
-            'read_lef "Nangate45/Nangate45.lef"',
-            'read_liberty "Nangate45/Nangate45_typ.lib"',
-            'read_verilog "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.v"',
+            f'read_lef "{design_files["lef"]}"',
+            f'read_liberty "{design_files["lib"]}"',
+            f'read_verilog "{design_files["verilog"]}"',
             'link_design "gcd"',
-            'read_sdc "/home/luars/OpenROAD/src/par/test/gcd_nangate45.sdc"',
+            f'read_sdc "{design_files["sdc"]}"',
             # Comprehensive timing analysis
             "report_checks -format full_clock_expanded -fields {input_pin net fanout capacitance slew delay arrival "
             "required}",
@@ -265,7 +294,9 @@ class TestGCDTimingCheckpoints:
     @pytest.mark.asyncio
     async def test_execute_gcd_tcl_commands(self, checkpoint_system, mock_manager):
         """Test executing GCD Tcl commands through the manager."""
-        gcd_commands = self._generate_gcd_tcl_commands()
+        gcd_commands = self._generate_gcd_tcl_commands(
+            {"verilog": "/tmp/gcd.v", "sdc": "/tmp/gcd.sdc", "lef": "/tmp/tech.lef", "lib": "/tmp/tech.lib"}
+        )
 
         # Mock successful command execution
         mock_response = MagicMock()
@@ -323,19 +354,23 @@ class TestGCDTimingCheckpoints:
 # GCD Timing Checkpoint Test Script
 # This script tests the timing checkpoint system using the GCD design
 
-# Design setup
-read_lef "/home/luars/OpenROAD/test/Nangate45/Nangate45.lef"
-read_liberty "/home/luars/OpenROAD/test/Nangate45/Nangate45_typ.lib"
-read_verilog "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.v"
+# Design setup - paths will be dynamically determined
+read_lef "$OPENROAD_DIR/test/Nangate45/Nangate45.lef"
+read_liberty "$OPENROAD_DIR/test/Nangate45/Nangate45_typ.lib"
+read_verilog "$OPENROAD_DIR/src/gpl/test/design/nangate45/gcd/gcd.v"
 link_design "gcd"
-read_sdc "/home/luars/OpenROAD/src/par/test/gcd_nangate45.sdc"
+read_sdc "$OPENROAD_DIR/src/par/test/gcd_nangate45.sdc"
 
 # Initialize timing checkpoint system
 python_command "
 import sys
-sys.path.append('/home/luars/openroad-mcp/src')
+import os
+# Use environment variable or current working directory
+openroad_mcp_src = os.environ.get('OPENROAD_MCP_SRC', os.path.join(os.getcwd(), 'src'))
+sys.path.append(openroad_mcp_src)
 from openroad_mcp.timing.checkpoint import TimingCheckpointSystem
-checkpoint_system = TimingCheckpointSystem(openroad_manager, './gcd_checkpoints')
+checkpoint_dir = os.environ.get('CHECKPOINT_DIR', './gcd_checkpoints')
+checkpoint_system = TimingCheckpointSystem(openroad_manager, checkpoint_dir)
 "
 
 # Stage 1: Synthesis timing checkpoint

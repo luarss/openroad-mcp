@@ -4,7 +4,38 @@
 
 # Set up environment
 set script_dir [file dirname [file normalize [info script]]]
-set openroad_dir "/home/luars/OpenROAD"
+
+# Use environment variable or try to find OpenROAD installation
+if {[info exists ::env(OPENROAD_DIR)]} {
+    set openroad_dir $::env(OPENROAD_DIR)
+} elseif {[info exists ::env(OPENROAD_HOME)]} {
+    set openroad_dir $::env(OPENROAD_HOME)
+} else {
+    # Try common installation locations
+    set possible_dirs [list \
+        "/usr/local/openroad" \
+        "/opt/openroad" \
+        "$::env(HOME)/OpenROAD" \
+        [file normalize [file join $script_dir ".." ".." ".."]] \
+    ]
+
+    set openroad_dir ""
+    foreach dir $possible_dirs {
+        if {[file exists $dir] && [file isdirectory $dir]} {
+            set openroad_dir $dir
+            break
+        }
+    }
+
+    if {$openroad_dir eq ""} {
+        puts "ERROR: Could not find OpenROAD installation directory."
+        puts "Please set OPENROAD_DIR environment variable or install OpenROAD in a standard location."
+        puts "Tried locations: $possible_dirs"
+        exit 1
+    }
+}
+
+puts "Using OpenROAD directory: $openroad_dir"
 
 # Design files
 set gcd_verilog "$openroad_dir/src/gpl/test/design/nangate45/gcd/gcd.v"
