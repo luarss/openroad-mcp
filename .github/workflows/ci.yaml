@@ -32,20 +32,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
+    - name: Build Docker image
       run: |
-        make sync
+        docker build -t openroad-mcp:test .
 
-    - name: Install OpenROAD dependencies
+    - name: Run tests in Docker container
       run: |
-        make install-openroad
-
-    - name: Run tests
-      run: |
-        make test
+        docker run --rm \
+          -v ${{ github.workspace }}:/app \
+          -w /app \
+          openroad-mcp:test \
+          uv run pytest
       env:
         # Set high timeouts for MCP server tests
         MCP_SERVER_REQUEST_TIMEOUT: 99999999999
