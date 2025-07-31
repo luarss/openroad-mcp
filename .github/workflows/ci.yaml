@@ -42,7 +42,7 @@ jobs:
           -v ${{ github.workspace }}:/app \
           -w /app \
           openroad-mcp:test \
-          uv run pytest
+          /root/.cargo/bin/uv run pytest
       env:
         # Set high timeouts for MCP server tests
         MCP_SERVER_REQUEST_TIMEOUT: 99999999999
