@@ -39,6 +39,10 @@ jobs:
       run: |
         make sync
 
+    - name: Install OpenROAD dependencies
+      run: |
+        make install-openroad
+
     - name: Run tests
       run: |
         make test

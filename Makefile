@@ -5,6 +5,10 @@ MCP_REQUEST_MAX_TOTAL_TIMEOUT:= 99999999999
 sync:
 	@uv sync --all-extras --inexact
 
+.PHONY: install-openroad
+install-openroad:
+	@./install_openroad.sh
+
 .PHONY: reqs
 reqs:
 	@rm -f requirements.txt
