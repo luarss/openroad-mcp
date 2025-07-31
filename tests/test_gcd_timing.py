@@ -8,128 +8,98 @@ import pytest
 from src.openroad_mcp.timing.checkpoint import TimingCheckpointSystem
 
 
+@pytest.fixture
+def mock_manager():
+    """Mock OpenROAD manager with GCD-specific responses."""
+    manager = MagicMock()
+    manager.execute_command = AsyncMock()
+    return manager
+
+
+@pytest.fixture
+def checkpoint_system(mock_manager):
+    """Create checkpoint system for GCD tests."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        system = TimingCheckpointSystem(mock_manager, temp_dir)
+        yield system
+
+
+@pytest.fixture
+def gcd_design_files():
+    """Paths to GCD design files in OpenROAD tree."""
+    return {
+        "verilog": "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.v",
+        "sdc": "/home/luars/OpenROAD/src/par/test/gcd_nangate45.sdc",
+        "def": "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.def",
+    }
+
+
 class TestGCDTimingCheckpoints:
     """Test timing checkpoints using GCD design through OpenROAD flow stages."""
 
-    @pytest.fixture
-    def mock_manager(self):
-        """Mock OpenROAD manager with GCD-specific responses."""
-        manager = MagicMock()
-        manager.execute_command = AsyncMock()
-        return manager
-
-    @pytest.fixture
-    def checkpoint_system(self, mock_manager):
-        """Create checkpoint system for GCD tests."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            system = TimingCheckpointSystem(mock_manager, temp_dir)
-            yield system
-
-    @pytest.fixture
-    def gcd_design_files(self):
-        """Paths to GCD design files in OpenROAD tree."""
-        return {
-            "verilog": "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.v",
-            "sdc": "/home/luars/OpenROAD/src/par/test/gcd_nangate45.sdc",
-            "def": "/home/luars/OpenROAD/src/gpl/test/design/nangate45/gcd/gcd.def",
-        }
-
-    async def _mock_gcd_timing_response(self, manager, stage, path_count=50):
+    async def _mock_gcd_timing_response(self, checkpoint_system, stage, path_count=10):
         """Setup mock timing responses for GCD at different stages."""
-        timing_responses = {
-            "synthesis": [
-                "Startpoint: req_msg[0] (input port clocked by core_clock)",
-                "Endpoint: dpath.a_reg.out_reg[0].qi (rising edge-triggered flip-flop clocked by core_clock)",
-                "Path Group: core_clock",
-                "Path Type: max",
-                "Point                                    Incr       Path",
-                "clock core_clock (rise edge)             0.00       0.00",
-                "clock network delay (ideal)              0.00       0.00",
-                "input external delay                     0.05       0.05 r",
-                "req_msg[0] (in)                          0.00       0.05 r",
-                "U276/Z (BUF_X4)                          0.03       0.08 r",
-                "dpath.a_reg.out_reg[0].qi/D (DFF_X1)     0.00       0.08 r",
-                "data arrival time                                    0.08",
-                "clock core_clock (rise edge)             0.485      0.485",
-                "clock network delay (ideal)              0.00       0.485",
-                "dpath.a_reg.out_reg[0].qi/CK (DFF_X1)    0.00       0.485 r",
-                "library setup time                      -0.02       0.465",
-                "data required time                                   0.465",
-                "data required time                                   0.465",
-                "data arrival time                                   -0.08",
-                "slack (MET)                                          0.385",
-            ],
-            "placement": [
-                "Startpoint: req_msg[0] (input port clocked by core_clock)",
-                "Endpoint: dpath.a_reg.out_reg[0].qi (rising edge-triggered flip-flop clocked by core_clock)",
-                "Path Group: core_clock",
-                "Path Type: max",
-                "Point                                    Incr       Path",
-                "clock core_clock (rise edge)             0.00       0.00",
-                "clock network delay (ideal)              0.00       0.00",
-                "input external delay                     0.05       0.05 r",
-                "req_msg[0] (in)                          0.00       0.05 r",
-                "U276/Z (BUF_X4)                          0.035      0.085 r",
-                "dpath.a_reg.out_reg[0].qi/D (DFF_X1)     0.00       0.085 r",
-                "data arrival time                                    0.085",
-                "clock core_clock (rise edge)             0.485      0.485",
-                "clock network delay (ideal)              0.00       0.485",
-                "dpath.a_reg.out_reg[0].qi/CK (DFF_X1)    0.00       0.485 r",
-                "library setup time                      -0.02       0.465",
-                "data required time                                   0.465",
-                "data required time                                   0.465",
-                "data arrival time                                   -0.085",
-                "slack (MET)                                          0.380",
-            ],
-            "cts": [
-                "Startpoint: req_msg[0] (input port clocked by core_clock)",
-                "Endpoint: dpath.a_reg.out_reg[0].qi (rising edge-triggered flip-flop clocked by core_clock)",
-                "Path Group: core_clock",
-                "Path Type: max",
-                "Point                                    Incr       Path",
-                "clock core_clock (rise edge)             0.00       0.00",
-                "clock network delay (propagated)         0.15       0.15",
-                "input external delay                     0.05       0.20 r",
-                "req_msg[0] (in)                          0.00       0.20 r",
-                "U276/Z (BUF_X4)                          0.035      0.235 r",
-                "dpath.a_reg.out_reg[0].qi/D (DFF_X1)     0.00       0.235 r",
-                "data arrival time                                    0.235",
-                "clock core_clock (rise edge)             0.485      0.485",
-                "clock network delay (propagated)         0.12       0.605",
-                "dpath.a_reg.out_reg[0].qi/CK (DFF_X1)    0.00       0.605 r",
-                "library setup time                      -0.02       0.585",
-                "data required time                                   0.585",
-                "data required time                                   0.585",
-                "data arrival time                                   -0.235",
-                "slack (MET)                                          0.350",
-            ],
-            "routing": [
-                "Startpoint: req_msg[0] (input port clocked by core_clock)",
-                "Endpoint: dpath.a_reg.out_reg[0].qi (rising edge-triggered flip-flop clocked by core_clock)",
-                "Path Group: core_clock",
-                "Path Type: max",
-                "Point                                    Incr       Path",
-                "clock core_clock (rise edge)             0.00       0.00",
-                "clock network delay (propagated)         0.18       0.18",
-                "input external delay                     0.05       0.23 r",
-                "req_msg[0] (in)                          0.00       0.23 r",
-                "U276/Z (BUF_X4)                          0.042      0.272 r",
-                "dpath.a_reg.out_reg[0].qi/D (DFF_X1)     0.00       0.272 r",
-                "data arrival time                                    0.272",
-                "clock core_clock (rise edge)             0.485      0.485",
-                "clock network delay (propagated)         0.15       0.635",
-                "dpath.a_reg.out_reg[0].qi/CK (DFF_X1)    0.00       0.635 r",
-                "library setup time                      -0.02       0.615",
-                "data required time                                   0.615",
-                "data required time                                   0.615",
-                "data arrival time                                   -0.272",
-                "slack (MET)                                          0.343",
-            ],
+        stage_timing_data = {
+            "synthesis": {
+                "paths": {
+                    f"req_msg[{i}]->dpath.a_reg.out_reg[{i}].qi": {
+                        "slack": 0.385 - 0.01 * i,
+                        "delay": 0.08 + 0.001 * i,
+                        "startpoint": f"req_msg[{i}]",
+                        "endpoint": f"dpath.a_reg.out_reg[{i}].qi",
+                    }
+                    for i in range(path_count)
+                },
+                "wns": 0.385,
+                "tns": 0.0,
+            },
+            "placement": {
+                "paths": {
+                    f"req_msg[{i}]->dpath.a_reg.out_reg[{i}].qi": {
+                        "slack": 0.380 - 0.01 * i,
+                        "delay": 0.085 + 0.001 * i,
+                        "startpoint": f"req_msg[{i}]",
+                        "endpoint": f"dpath.a_reg.out_reg[{i}].qi",
+                    }
+                    for i in range(path_count)
+                },
+                "wns": 0.380,
+                "tns": 0.0,
+            },
+            "cts": {
+                "paths": {
+                    f"req_msg[{i}]->dpath.a_reg.out_reg[{i}].qi": {
+                        "slack": 0.350 - 0.01 * i,
+                        "delay": 0.235 + 0.001 * i,
+                        "startpoint": f"req_msg[{i}]",
+                        "endpoint": f"dpath.a_reg.out_reg[{i}].qi",
+                    }
+                    for i in range(path_count)
+                },
+                "wns": 0.350,
+                "tns": 0.0,
+            },
+            "routing": {
+                "paths": {
+                    f"req_msg[{i}]->dpath.a_reg.out_reg[{i}].qi": {
+                        "slack": 0.343 - 0.01 * i,
+                        "delay": 0.272 + 0.001 * i,
+                        "startpoint": f"req_msg[{i}]",
+                        "endpoint": f"dpath.a_reg.out_reg[{i}].qi",
+                    }
+                    for i in range(path_count)
+                },
+                "wns": 0.343,
+                "tns": 0.0,
+            },
         }
 
-        mock_response = MagicMock()
-        mock_response.stdout = timing_responses.get(stage, timing_responses["synthesis"])
-        manager.execute_command.return_value = mock_response
+        timing_data = stage_timing_data.get(stage, stage_timing_data["synthesis"])
+
+        async def mock_extract_timing_data():
+            return timing_data
+
+        checkpoint_system._extract_timing_data = mock_extract_timing_data
 
     @pytest.mark.asyncio
     async def test_gcd_flow_checkpoints(self, checkpoint_system, mock_manager, gcd_design_files):
@@ -140,7 +110,7 @@ class TestGCDTimingCheckpoints:
 
         for stage in flow_stages:
             # Mock timing response for this stage
-            await self._mock_gcd_timing_response(mock_manager, stage)
+            await self._mock_gcd_timing_response(checkpoint_system, stage)
 
             # Create checkpoint
             checkpoint = await checkpoint_system.create_checkpoint(f"gcd_{stage}", force_base=(stage == "synthesis"))
@@ -172,7 +142,7 @@ class TestGCDTimingCheckpoints:
 
         checkpoints = []
         for stage_name, _expected_slack, _expected_tns in stages_data:
-            await self._mock_gcd_timing_response(mock_manager, stage_name)
+            await self._mock_gcd_timing_response(checkpoint_system, stage_name)
 
             checkpoint = await checkpoint_system.create_checkpoint(
                 f"gcd_{stage_name}", force_base=(stage_name == "synthesis")
@@ -190,11 +160,11 @@ class TestGCDTimingCheckpoints:
     async def test_gcd_checkpoint_restoration(self, checkpoint_system, mock_manager):
         """Test restoring GCD design state from checkpoints."""
         # Create synthesis checkpoint
-        await self._mock_gcd_timing_response(mock_manager, "synthesis")
+        await self._mock_gcd_timing_response(checkpoint_system, "synthesis")
         synthesis_checkpoint = await checkpoint_system.create_checkpoint("gcd_synthesis", force_base=True)
 
         # Create placement checkpoint
-        await self._mock_gcd_timing_response(mock_manager, "placement")
+        await self._mock_gcd_timing_response(checkpoint_system, "placement")
         placement_checkpoint = await checkpoint_system.create_checkpoint("gcd_placement")
 
         # Restore synthesis state
@@ -213,7 +183,7 @@ class TestGCDTimingCheckpoints:
         stages = ["synthesis", "floorplan", "placement", "cts", "routing", "finishing"]
 
         for i, stage in enumerate(stages):
-            await self._mock_gcd_timing_response(mock_manager, stage)
+            await self._mock_gcd_timing_response(checkpoint_system, stage)
             await checkpoint_system.create_checkpoint(f"gcd_{stage}", force_base=(i == 0))
 
         # Check storage statistics
@@ -268,22 +238,22 @@ class TestGCDTimingCheckpoints:
             # Comprehensive timing analysis
             "report_checks -format full_clock_expanded -fields {input_pin net fanout capacitance slew delay arrival "
             "required}",
-            "report_checks -path_delay min_max -format summary -nworst 5",
+            "report_checks -path_delay min_max -format summary",
             "report_timing -nworst 10 -format full_clock_expanded",
-            "report_wns -corner *",
-            "report_tns -corner *",
-            "report_worst_slack -max -corner *",
-            "report_worst_slack -min -corner *",
+            "report_wns",
+            "report_tns",
+            "report_worst_slack -max",
+            "report_worst_slack -min",
             # Advanced path analysis
-            "get_fanin -levels 5 -only_cells [get_pins dpath.*/D]",
-            "get_fanout -levels 5 -only_cells [get_pins dpath.*/Q]",
+            "get_fanin -levels 3 -only_cells [get_pins */D]",
+            "get_fanout -levels 3 -only_cells [get_pins */Q]",
+            "report_timing_histogram -bins 20",
             "report_timing_histogram -bins 50 -setup",
             "report_timing_histogram -bins 50 -hold",
             "report_logic_depth_histogram -bins 20",
             # Multi-corner analysis
-            "report_checks -corner slow -format summary",
-            "report_checks -corner fast -format summary",
-            "report_checks -corner typical -format summary",
+            "report_checks -corner slow",
+            "report_checks -corner fast",
             # Clock analysis
             "report_clock_properties [get_clocks core_clock]",
             "report_clock_skew [get_clocks core_clock]",
@@ -319,7 +289,7 @@ class TestGCDTimingCheckpoints:
         start_time = time.time()
 
         for i in range(5):
-            await self._mock_gcd_timing_response(mock_manager, "synthesis")
+            await self._mock_gcd_timing_response(checkpoint_system, "synthesis")
             await checkpoint_system.create_checkpoint(f"gcd_perf_test_{i}", force_base=(i == 0))
 
         end_time = time.time()

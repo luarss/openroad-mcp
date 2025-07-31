@@ -1,4 +1,6 @@
-"""Test GCD timing checkpoints through MCP integration."""
+"""Test GCD timing checkpoints through MCP integration.
+
+TODO: shift this into integration/ directory."""
 
 import tempfile
 from pathlib import Path

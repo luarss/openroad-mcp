@@ -1,5 +1,6 @@
 """Data models for timing analysis and checkpointing."""
 
+import base64
 import hashlib
 import zlib
 from datetime import datetime
@@ -7,7 +8,7 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class CompressionType(str, Enum):
@@ -46,6 +47,25 @@ class CompressedDelta(BaseModel):
     compressed_size: int = 0
     compression_ratio: float = 0.0
     checksum: str = Field(default="", description="SHA256 checksum for integrity")
+
+    @field_serializer("compressed_data")
+    def serialize_compressed_data(self, value: bytes | None) -> str | None:
+        """Serialize bytes to base64 string for JSON compatibility."""
+        if value is None:
+            return None
+        return base64.b64encode(value).decode("utf-8")
+
+    @field_validator("compressed_data", mode="before")
+    @classmethod
+    def validate_compressed_data(cls, value: Any) -> bytes | None:
+        """Validate and convert base64 string back to bytes."""
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value
+        if isinstance(value, str):
+            return base64.b64decode(value)
+        raise ValueError(f"compressed_data must be bytes, str, or None, got {type(value)}")
 
     def compress(self) -> None:
         """Compress the changes data."""
@@ -142,7 +162,8 @@ class TimingStage(BaseModel):
 
         # Compare with previous stage data (simplified example)
         # In practice, this would compare actual OpenDB timing data
-        for path_id, path_data in timing_data.items():
+        paths_data = timing_data.get("paths", timing_data)
+        for path_id, path_data in paths_data.items():
             # This is a simplified example - real implementation would
             # extract timing data from OpenDB and compare
             change = TimingDataChange(path=path_id, change_type=ChangeType.MODIFY, new_value=path_data)

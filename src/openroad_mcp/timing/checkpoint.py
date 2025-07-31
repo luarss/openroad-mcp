@@ -39,8 +39,7 @@ class TimingCheckpointSystem:
 
             if not is_base and self.checkpoint_manager.checkpoints:
                 # Create delta from most recent checkpoint
-                latest_stage_id = max(self.checkpoint_manager.checkpoints.keys())
-                latest_stage = self.checkpoint_manager.checkpoints[latest_stage_id]
+                latest_stage = max(self.checkpoint_manager.checkpoints.values(), key=lambda s: s.timestamp)
                 stage.create_delta_from_previous(latest_stage, timing_data)
             else:
                 # Create base checkpoint with full data
@@ -92,8 +91,15 @@ class TimingCheckpointSystem:
             # Apply timing data to OpenROAD (simplified - would use actual OpenDB APIs)
             await self._apply_timing_data(timing_data)
 
+            # Get the restored stage for metrics
+            restored_stage = self.checkpoint_manager.checkpoints[stage_id]
+
             self.logger.info(f"Successfully restored checkpoint {stage_id}")
-            return timing_data
+            return {
+                "paths": timing_data,
+                "wns": restored_stage.wns,
+                "tns": restored_stage.tns,
+            }
 
         except Exception as e:
             self.logger.error(f"Failed to restore checkpoint {stage_id}: {e}")
