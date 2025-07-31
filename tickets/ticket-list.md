@@ -15,10 +15,10 @@ This file maintains a centralized list of all tickets in the project. Update thi
 ## Active Tickets
 
 ### High Priority
-- 🔴 [TICKET-001](./TICKET-001-delta-checkpoint-system.md) - Delta-Compressed Checkpoint System
-- 🔴 [TICKET-002](./TICKET-002-spatial-indexing.md) - Spatial Indexing Implementation
-- 🔴 [TICKET-003](./TICKET-003-streaming-query-engine.md) - Streaming Query Engine
-- 🔴 [TICKET-004](./TICKET-004-multi-tier-caching.md) - Multi-Tier Caching System
+- 🔴 [TICKET-001](./TICKET-001-delta-checkpoint-system.md) - Delta-Compressed Checkpoint System with OpenSTA Integration
+- 🔴 [TICKET-002](./TICKET-002-spatial-indexing.md) - Spatial Indexing for OpenSTA Timing Paths
+- 🔴 [TICKET-003](./TICKET-003-streaming-query-engine.md) - Streaming Query Engine for OpenSTA Commands
+- 🔴 [TICKET-004](./TICKET-004-multi-tier-caching.md) - Multi-Tier Caching System for OpenSTA Queries
 
 ### Medium Priority
 _No medium priority tickets yet_
