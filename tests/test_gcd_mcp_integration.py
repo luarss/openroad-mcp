@@ -39,7 +39,7 @@ class TestGCDMCPIntegration:
 
             # Check that the script executed successfully
             assert result.returncode == 0
-            assert "GCD Timing Checkpoint Test COMPLETED" in "\n".join(result.stdout)
+            assert "GCD Timing Checkpoint Test COMPLETED" in "\n".join(result.stdout or [])
 
         except Exception as e:
             pytest.skip(f"OpenROAD execution failed: {e}")

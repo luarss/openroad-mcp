@@ -1,5 +1,6 @@
 """Delta-compressed checkpoint system implementation."""
 
+import base64
 import json
 from pathlib import Path
 from typing import Any
@@ -40,7 +41,7 @@ class TimingCheckpointSystem:
             if not is_base and self.checkpoint_manager.checkpoints:
                 # Create delta from most recent checkpoint
                 latest_stage = max(self.checkpoint_manager.checkpoints.values(), key=lambda s: s.timestamp)
-                stage.create_delta_from_previous(latest_stage, timing_data)
+                stage.create_delta_from_previous(latest_stage, timing_data, self.checkpoint_manager)
             else:
                 # Create base checkpoint with full data
                 changes = [
@@ -150,8 +151,6 @@ class TimingCheckpointSystem:
 
         with open(checkpoint_file, "w") as f:
             # Convert bytes to base64 for JSON serialization
-            import base64
-
             stage_dict = stage.model_dump()
             if stage.delta_changes.compressed_data:
                 stage_dict["delta_changes"]["compressed_data"] = base64.b64encode(
@@ -169,10 +168,6 @@ class TimingCheckpointSystem:
 
         with open(checkpoint_file) as f:
             stage_dict = json.load(f)
-
-            # Convert base64 back to bytes
-            import base64
-
             if stage_dict.get("delta_changes", {}).get("compressed_data"):
                 stage_dict["delta_changes"]["compressed_data"] = base64.b64decode(
                     stage_dict["delta_changes"]["compressed_data"]

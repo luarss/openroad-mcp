@@ -156,22 +156,115 @@ class TimingStage(BaseModel):
     wns: float | None = None  # Worst Negative Slack
     tns: float | None = None  # Total Negative Slack
 
-    def create_delta_from_previous(self, previous_stage: "TimingStage", timing_data: dict[str, Any]) -> None:
-        """Create delta changes from previous stage."""
+    def create_delta_from_previous(
+        self,
+        previous_stage: "TimingStage",
+        timing_data: dict[str, Any],
+        checkpoint_manager: "CheckpointManager | None" = None,
+    ) -> None:
+        """Create delta changes from previous stage by comparing timing data."""
         changes = []
 
-        # Compare with previous stage data (simplified example)
-        # In practice, this would compare actual OpenDB timing data
-        paths_data = timing_data.get("paths", timing_data)
-        for path_id, path_data in paths_data.items():
-            # This is a simplified example - real implementation would
-            # extract timing data from OpenDB and compare
-            change = TimingDataChange(path=path_id, change_type=ChangeType.MODIFY, new_value=path_data)
-            changes.append(change)
+        # First, reconstruct the previous stage's timing data for comparison
+        previous_timing_data = self._reconstruct_timing_data(previous_stage, checkpoint_manager)
+        current_paths = timing_data.get("paths", {})
+        previous_paths = previous_timing_data.get("paths", {})
 
+        # Find all unique path IDs from both datasets
+        all_paths = set(current_paths.keys()) | set(previous_paths.keys())
+
+        for path_id in all_paths:
+            current_path = current_paths.get(path_id)
+            previous_path = previous_paths.get(path_id)
+
+            if previous_path is None and current_path is not None:
+                # New path added
+                changes.append(
+                    TimingDataChange(path=path_id, change_type=ChangeType.ADD, old_value=None, new_value=current_path)
+                )
+
+            elif previous_path is not None and current_path is None:
+                # Path deleted
+                changes.append(
+                    TimingDataChange(
+                        path=path_id, change_type=ChangeType.DELETE, old_value=previous_path, new_value=None
+                    )
+                )
+
+            elif previous_path is not None and current_path is not None:
+                # Path exists in both - check if modified
+                if self._timing_data_differs(previous_path, current_path):
+                    changes.append(
+                        TimingDataChange(
+                            path=path_id, change_type=ChangeType.MODIFY, old_value=previous_path, new_value=current_path
+                        )
+                    )
+
+        # Set up delta compression
         self.delta_changes = CompressedDelta(changes=changes)
         self.delta_changes.compress()
         self.base_checkpoint_ref = previous_stage.stage_id
+
+    def _reconstruct_timing_data(
+        self, stage: "TimingStage", checkpoint_manager: "CheckpointManager | None" = None
+    ) -> dict[str, Any]:
+        """Reconstruct timing data from a stage and its delta chain."""
+        timing_data: dict[str, Any] = {"paths": {}}
+
+        # Build the reconstruction chain - we need to get all stages back to base
+        reconstruction_chain: list[TimingStage] = []
+        current_stage: TimingStage | None = stage
+
+        while current_stage is not None:
+            reconstruction_chain.insert(0, current_stage)  # Insert at beginning for correct order
+
+            if current_stage.is_base_checkpoint or not current_stage.base_checkpoint_ref:
+                break
+
+            # If we have access to checkpoint manager, follow the chain
+            if checkpoint_manager and current_stage.base_checkpoint_ref:
+                current_stage = checkpoint_manager.checkpoints.get(current_stage.base_checkpoint_ref)
+            else:
+                # Without checkpoint manager, we can only work with the current stage
+                break
+
+        # Apply deltas in order to reconstruct the timing data
+        for stage_in_chain in reconstruction_chain:
+            deltas = stage_in_chain.delta_changes.decompress()
+
+            for change in deltas:
+                if change.change_type == ChangeType.ADD and change.new_value is not None:
+                    timing_data["paths"][change.path] = change.new_value
+                elif change.change_type == ChangeType.MODIFY and change.new_value is not None:
+                    timing_data["paths"][change.path] = change.new_value
+                elif change.change_type == ChangeType.DELETE:
+                    timing_data["paths"].pop(change.path, None)
+
+        return timing_data
+
+    def _timing_data_differs(self, data1: dict[str, Any], data2: dict[str, Any]) -> bool:
+        """Compare two timing data dictionaries to detect changes."""
+        # Define comparison tolerance for floating point values
+        TOLERANCE = 1e-9
+
+        # Check if keys are different
+        if set(data1.keys()) != set(data2.keys()):
+            return True
+
+        # Compare each field
+        for key in data1.keys():
+            val1 = data1[key]
+            val2 = data2[key]
+
+            # Handle numeric comparisons with tolerance
+            if isinstance(val1, (int | float)) and isinstance(val2, (int | float)):
+                if abs(val1 - val2) > TOLERANCE:
+                    return True
+            # Handle string and other type comparisons
+            elif val1 != val2:
+                return True
+
+        return False
 
     def estimate_storage_size(self) -> dict[str, int]:
         """Estimate storage requirements."""

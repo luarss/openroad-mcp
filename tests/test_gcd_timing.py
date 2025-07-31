@@ -253,7 +253,11 @@ class TestGCDTimingCheckpoints:
         gcd_tcl_commands = self._generate_gcd_tcl_commands(design_files)
 
         for cmd in expected_commands:
-            assert any(cmd in tcl_cmd for tcl_cmd in gcd_tcl_commands), f"Command not found: {cmd}"
+            # Normalize whitespace for comparison
+            normalized_cmd = " ".join(cmd.split())
+            assert any(normalized_cmd in " ".join(tcl_cmd.split()) for tcl_cmd in gcd_tcl_commands), (
+                f"Command not found: {cmd}"
+            )
 
     def _generate_gcd_tcl_commands(self, design_files):
         """Generate Tcl commands for GCD timing analysis."""

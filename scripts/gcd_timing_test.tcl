@@ -93,7 +93,7 @@ puts $checkpoint_file "\{"
 puts $checkpoint_file "  \"checkpoints\": \["
 
 # Function to create timing checkpoint
-proc create_timing_checkpoint {stage_name checkpoint_file} {
+proc create_timing_checkpoint {stage_name checkpoint_file {is_last false}} {
     global checkpoint_dir
 
     puts "\n=== Creating Checkpoint: $stage_name ==="
@@ -121,18 +121,28 @@ proc create_timing_checkpoint {stage_name checkpoint_file} {
         set path_count [regexp -all "Path Group:" $timing_paths]
     }
 
+    # Escape JSON special characters
+    proc json_escape {str} {
+        set str [string map {"\\" "\\\\" "\"" "\\\"" "\n" "\\n" "\r" "\\r" "\t" "\\t"} $str]
+        return $str
+    }
+
     # Write checkpoint JSON entry
     puts $checkpoint_file "    \{"
-    puts $checkpoint_file "      \"stage_name\": \"$stage_name\","
-    puts $checkpoint_file "      \"timestamp\": \"$timestamp\","
+    puts $checkpoint_file "      \"stage_name\": \"[json_escape $stage_name]\","
+    puts $checkpoint_file "      \"timestamp\": \"[json_escape $timestamp]\","
     puts $checkpoint_file "      \"path_count\": $path_count,"
-    puts $checkpoint_file "      \"wns\": \"[string trim $wns_output]\","
-    puts $checkpoint_file "      \"tns\": \"[string trim $tns_output]\","
+    puts $checkpoint_file "      \"wns\": \"[json_escape [string trim $wns_output]]\","
+    puts $checkpoint_file "      \"tns\": \"[json_escape [string trim $tns_output]]\","
     puts $checkpoint_file "      \"reports\": \{"
-    puts $checkpoint_file "        \"timing\": \"${stage_name}_timing.rpt\","
-    puts $checkpoint_file "        \"histogram\": \"${stage_name}_histogram.rpt\""
+    puts $checkpoint_file "        \"timing\": \"[json_escape ${stage_name}_timing.rpt]\","
+    puts $checkpoint_file "        \"histogram\": \"[json_escape ${stage_name}_histogram.rpt]\""
     puts $checkpoint_file "      \}"
-    puts $checkpoint_file "    \},"
+    if {$is_last} {
+        puts $checkpoint_file "    \}"
+    } else {
+        puts $checkpoint_file "    \},"
+    }
 
     puts "Checkpoint created: $stage_name"
     puts "  Path count: $path_count"
@@ -185,10 +195,9 @@ set_global_routing_layer_adjustment "M1-M10" 0.5
 global_route
 
 # Post-routing checkpoint
-create_timing_checkpoint "gcd_routing" $checkpoint_file
+create_timing_checkpoint "gcd_routing" $checkpoint_file true
 
 # Close checkpoint file
-puts $checkpoint_file "    \{\}"
 puts $checkpoint_file "  \]"
 puts $checkpoint_file "\}"
 close $checkpoint_file
