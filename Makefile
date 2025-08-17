@@ -38,3 +38,7 @@ inspect:
 	@MCP_SERVER_REQUEST_TIMEOUT=$(MCP_SERVER_REQUEST_TIMEOUT) \
 		MCP_REQUEST_MAX_TOTAL_TIMEOUT=$(MCP_REQUEST_MAX_TOTAL_TIMEOUT) \
 		npx @modelcontextprotocol/inspector@0.16.0 uv run openroad-mcp
+
+.PHONY: clean
+clean:
+	@cd ../OpenROAD-flow-scripts/flow && make clean_all
