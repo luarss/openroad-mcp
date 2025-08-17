@@ -6,6 +6,7 @@ from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
 from .tools.context import GetCommandHistoryTool, GetContextTool
+from .tools.orfs import ORFSTool
 from .tools.process import ExecuteCommandTool, GetStatusTool, RestartProcessTool
 from .utils.cleanup import cleanup_manager
 from .utils.logging import get_logger
@@ -24,8 +25,47 @@ get_status_tool = GetStatusTool(manager)
 restart_process_tool = RestartProcessTool(manager)
 get_command_history_tool = GetCommandHistoryTool(manager)
 get_context_tool = GetContextTool(manager)
+orfs_tool = ORFSTool(manager)
 
 
+# ORFS: headless mode
+@mcp.tool()
+async def orfs_make_clean_all(
+    design_config: str, platform: str = "nangate45", flow_root: str | None = None, timeout: float = 300.0
+) -> str:
+    """Clean all ORFS build artifacts using 'make clean_all'."""
+    return await orfs_tool.make_clean_all(
+        design_config=design_config, platform=platform, flow_root=flow_root, timeout=timeout
+    )
+
+
+@mcp.tool()
+async def orfs_make_flow(
+    design_config: str,
+    platform: str = "nangate45",
+    flow_root: str | None = None,
+    variables: dict[str, str] | None = None,
+    timeout: float = 3600.0,
+) -> str:
+    """Run complete ORFS flow using 'make'."""
+    return await orfs_tool.make_flow(
+        design_config=design_config, platform=platform, flow_root=flow_root, variables=variables, timeout=timeout
+    )
+
+
+@mcp.tool()
+async def validate_orfs_setup(design_config: str, flow_root: str | None = None) -> str:
+    """Validate ORFS setup and configuration files."""
+    return await orfs_tool.validate_orfs_setup(design_config=design_config, flow_root=flow_root)
+
+
+@mcp.tool()
+async def get_orfs_final_metrics(design_config: str, flow_root: str | None = None, platform: str = "nangate45") -> str:
+    """Get final metrics from the last completed ORFS flow stage."""
+    return await orfs_tool.get_final_metrics(design_config=design_config, flow_root=flow_root, platform=platform)
+
+
+# OpenROAD: interactive mode
 @mcp.tool()
 async def execute_openroad_command(command: str, timeout: float | None = None) -> str:
     """Execute a command in the OpenROAD interactive process and return the output."""

@@ -32,17 +32,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
+    - name: Build Docker image
       run: |
-        make sync
+        docker build -t openroad-mcp:test .
 
-    - name: Run tests
+    - name: Run tests in Docker container
       run: |
-        make test
-      env:
-        # Set high timeouts for MCP server tests
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
+        docker run --rm \
+          -e OPENROAD_BINARY=/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad \
+          -e MCP_SERVER_REQUEST_TIMEOUT=99999999999 \
+          -e MCP_REQUEST_MAX_TOTAL_TIMEOUT=99999999999 \
+          openroad-mcp:test \
+          /root/.local/bin/uv run python -m pytest

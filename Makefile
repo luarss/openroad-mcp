@@ -5,6 +5,10 @@ MCP_REQUEST_MAX_TOTAL_TIMEOUT:= 99999999999
 sync:
 	@uv sync --all-extras --inexact
 
+.PHONY: install-openroad
+install-openroad:
+	@./install_openroad.sh
+
 .PHONY: reqs
 reqs:
 	@rm -f requirements.txt
@@ -34,3 +38,7 @@ inspect:
 	@MCP_SERVER_REQUEST_TIMEOUT=$(MCP_SERVER_REQUEST_TIMEOUT) \
 		MCP_REQUEST_MAX_TOTAL_TIMEOUT=$(MCP_REQUEST_MAX_TOTAL_TIMEOUT) \
 		npx @modelcontextprotocol/inspector@0.16.0 uv run openroad-mcp
+
+.PHONY: clean
+clean:
+	@cd ../OpenROAD-flow-scripts/flow && make clean_all
