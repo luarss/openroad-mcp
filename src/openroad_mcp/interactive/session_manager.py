@@ -2,6 +2,7 @@
 
 import asyncio
 import uuid
+from datetime import datetime
 
 from ..core.models import InteractiveExecResult, InteractiveSessionInfo
 from ..utils.logging import get_logger
@@ -192,6 +193,179 @@ class InteractiveSessionManager:
         logger.info(f"Terminated {terminated_count}/{len(session_ids)} sessions")
         return terminated_count
 
+    async def inspect_session(self, session_id: str) -> dict:
+        """Get detailed session inspection data.
+
+        Args:
+            session_id: Target session ID
+
+        Returns:
+            Detailed session metrics and state
+
+        Raises:
+            SessionNotFoundError: If session doesn't exist
+        """
+        session = self._get_session(session_id)
+        return await session.get_detailed_metrics()
+
+    async def get_session_history(
+        self, session_id: str, limit: int | None = None, search: str | None = None
+    ) -> list[dict]:
+        """Get command history for a session.
+
+        Args:
+            session_id: Target session ID
+            limit: Maximum number of commands to return
+            search: Optional search string to filter commands
+
+        Returns:
+            List of command history entries
+
+        Raises:
+            SessionNotFoundError: If session doesn't exist
+        """
+        session = self._get_session(session_id)
+        return await session.get_command_history(limit, search)
+
+    async def replay_command(self, session_id: str, command_number: int) -> str:
+        """Replay a command from session history.
+
+        Args:
+            session_id: Target session ID
+            command_number: Command number to replay
+
+        Returns:
+            The command string that was replayed
+
+        Raises:
+            SessionNotFoundError: If session doesn't exist
+        """
+        session = self._get_session(session_id)
+        return await session.replay_command(command_number)
+
+    async def filter_session_output(self, session_id: str, pattern: str, max_lines: int = 1000) -> list[str]:
+        """Filter session output by pattern.
+
+        Args:
+            session_id: Target session ID
+            pattern: Regex pattern or simple string to search for
+            max_lines: Maximum number of lines to return
+
+        Returns:
+            List of matching lines
+
+        Raises:
+            SessionNotFoundError: If session doesn't exist
+        """
+        session = self._get_session(session_id)
+        return await session.filter_output(pattern, max_lines)
+
+    async def set_session_timeout(self, session_id: str, timeout_seconds: float) -> None:
+        """Set timeout for a session.
+
+        Args:
+            session_id: Target session ID
+            timeout_seconds: Timeout in seconds
+
+        Raises:
+            SessionNotFoundError: If session doesn't exist
+        """
+        session = self._get_session(session_id)
+        session.set_timeout(timeout_seconds)
+
+    async def session_metrics(self) -> dict:
+        """Get comprehensive metrics for all sessions.
+
+        Returns:
+            Session manager and individual session metrics
+        """
+        await self._cleanup_terminated_sessions()
+
+        total_sessions = len(self._sessions)
+        active_sessions = self.get_active_session_count()
+        terminated_sessions = total_sessions - active_sessions
+
+        # Collect session metrics
+        session_details = []
+        total_commands = 0
+        total_cpu_time = 0.0
+        total_memory_mb = 0.0
+
+        for session in self._sessions.values():
+            try:
+                metrics = await session.get_detailed_metrics()
+                session_details.append(metrics)
+                total_commands += metrics["commands"]["total_executed"]
+                total_cpu_time += metrics["performance"]["total_cpu_time"]
+                total_memory_mb += metrics["performance"]["current_memory_mb"]
+            except Exception as e:
+                logger.warning(f"Failed to get metrics for session {session.session_id}: {e}")
+
+        return {
+            "manager": {
+                "total_sessions": total_sessions,
+                "active_sessions": active_sessions,
+                "terminated_sessions": terminated_sessions,
+                "max_sessions": self._max_sessions,
+                "utilization_percent": (active_sessions / self._max_sessions) * 100 if self._max_sessions > 0 else 0,
+            },
+            "aggregate": {
+                "total_commands": total_commands,
+                "total_cpu_time": total_cpu_time,
+                "total_memory_mb": total_memory_mb,
+                "avg_memory_per_session": total_memory_mb / active_sessions if active_sessions > 0 else 0,
+            },
+            "sessions": session_details,
+        }
+
+    async def cleanup_idle_sessions(self, idle_threshold_seconds: float = 300, force: bool = False) -> int:
+        """Clean up sessions that have been idle too long.
+
+        Args:
+            idle_threshold_seconds: Idle timeout threshold
+            force: Whether to force termination
+
+        Returns:
+            Number of sessions cleaned up
+        """
+        cleaned_count = 0
+        session_ids = list(self._sessions.keys())
+
+        for session_id in session_ids:
+            try:
+                session = self._sessions[session_id]
+                if await session.is_idle_timeout(idle_threshold_seconds):
+                    await self.terminate_session(session_id, force)
+                    cleaned_count += 1
+                    logger.info(f"Cleaned up idle session {session_id}")
+            except Exception as e:
+                logger.error(f"Error checking idle status for session {session_id}: {e}")
+
+        return cleaned_count
+
+    def get_resource_utilization(self) -> dict:
+        """Get current resource utilization statistics.
+
+        Returns:
+            Resource utilization metrics
+        """
+        active_count = self.get_active_session_count()
+        total_count = self.get_session_count()
+
+        return {
+            "sessions": {
+                "active": active_count,
+                "total": total_count,
+                "max_allowed": self._max_sessions,
+                "utilization_percent": (active_count / self._max_sessions) * 100 if self._max_sessions > 0 else 0,
+                "available_slots": max(0, self._max_sessions - active_count),
+            },
+            "resource_limits": {
+                "approaching_limit": active_count >= (self._max_sessions * 0.8),  # 80% threshold
+                "at_limit": active_count >= self._max_sessions,
+            },
+        }
+
     async def cleanup(self) -> None:
         """Clean up all sessions and resources."""
         logger.info("Starting session manager cleanup")
@@ -240,30 +414,49 @@ class InteractiveSessionManager:
 
         return self._sessions[session_id]
 
-    async def _cleanup_terminated_sessions(self) -> int:
-        """Clean up terminated sessions.
+    async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
+        """Clean up terminated sessions with graceful degradation.
+
+        Args:
+            force_cleanup_after_seconds: Force cleanup after this many seconds
 
         Returns:
             Number of sessions cleaned up
         """
         async with self._cleanup_lock:
             terminated_ids = []
+            current_time = datetime.now()
 
             for session_id, session in self._sessions.items():
                 if not session.is_alive():
-                    terminated_ids.append(session_id)
+                    # Check if session has been dead long enough for forced cleanup
+                    time_since_death = (current_time - session.last_activity).total_seconds()
+                    if time_since_death > force_cleanup_after_seconds:
+                        terminated_ids.append((session_id, True))  # Force cleanup
+                    else:
+                        terminated_ids.append((session_id, False))  # Graceful cleanup
 
             # Clean up terminated sessions
-            for session_id in terminated_ids:
+            cleaned_count = 0
+            for session_id, force_cleanup in terminated_ids:
                 try:
                     session = self._sessions[session_id]
-                    await session.cleanup()
+                    if force_cleanup:
+                        logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
+                        await session.cleanup()
+                    else:
+                        await session.cleanup()
                     del self._sessions[session_id]
+                    cleaned_count += 1
                     logger.debug(f"Cleaned up terminated session {session_id}")
                 except Exception as e:
                     logger.warning(f"Error cleaning up session {session_id}: {e}")
+                    # In case of error, still remove from dict to prevent accumulation
+                    if session_id in self._sessions:
+                        del self._sessions[session_id]
+                        cleaned_count += 1
 
-            if terminated_ids:
-                logger.info(f"Cleaned up {len(terminated_ids)} terminated sessions")
+            if cleaned_count > 0:
+                logger.info(f"Cleaned up {cleaned_count} terminated sessions")
 
-            return len(terminated_ids)
+            return cleaned_count

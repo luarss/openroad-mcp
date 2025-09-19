@@ -6,7 +6,15 @@ from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
 from .tools.context import GetCommandHistoryTool, GetContextTool
-from .tools.interactive import CreateSessionTool, InteractiveShellTool, ListSessionsTool, TerminateSessionTool
+from .tools.interactive import (
+    CreateSessionTool,
+    InspectSessionTool,
+    InteractiveShellTool,
+    ListSessionsTool,
+    SessionHistoryTool,
+    SessionMetricsTool,
+    TerminateSessionTool,
+)
 from .tools.process import ExecuteCommandTool, GetStatusTool, RestartProcessTool
 from .utils.cleanup import cleanup_manager
 from .utils.logging import get_logger
@@ -31,6 +39,9 @@ interactive_shell_tool = InteractiveShellTool(manager)
 list_sessions_tool = ListSessionsTool(manager)
 create_session_tool = CreateSessionTool(manager)
 terminate_session_tool = TerminateSessionTool(manager)
+inspect_session_tool = InspectSessionTool(manager)
+session_history_tool = SessionHistoryTool(manager)
+session_metrics_tool = SessionMetricsTool(manager)
 
 
 @mcp.tool()
@@ -91,6 +102,24 @@ async def create_interactive_session(
 async def terminate_interactive_session(session_id: str, force: bool = False) -> str:
     """Terminate an interactive OpenROAD session."""
     return await terminate_session_tool.execute(session_id, force)
+
+
+@mcp.tool()
+async def inspect_interactive_session(session_id: str) -> str:
+    """Get detailed inspection data for an interactive OpenROAD session."""
+    return await inspect_session_tool.execute(session_id)
+
+
+@mcp.tool()
+async def get_session_history(session_id: str, limit: int | None = None, search: str | None = None) -> str:
+    """Get command history for an interactive OpenROAD session."""
+    return await session_history_tool.execute(session_id, limit, search)
+
+
+@mcp.tool()
+async def get_session_metrics() -> str:
+    """Get comprehensive metrics for all interactive OpenROAD sessions."""
+    return await session_metrics_tool.execute()
 
 
 async def startup_openroad() -> None:

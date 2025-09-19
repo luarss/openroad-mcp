@@ -14,7 +14,9 @@ requires-python = ">=3.13"
 dependencies = [
     "fastmcp>=2.10.6",
     "mcp[cli]>=1.12.1",
+    "psutil>=7.1.0",
     "pydantic>=2.11.7",
+    "types-psutil>=7.0.0.20250822",
 ]
 
 [project.scripts]

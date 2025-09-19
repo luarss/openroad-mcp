@@ -190,3 +190,84 @@ class TerminateSessionTool(BaseTool):
                 "force": force,
             }
             return self._format_result(result)
+
+
+class InspectSessionTool(BaseTool):
+    """Tool for detailed session introspection."""
+
+    async def execute(self, session_id: str) -> str:
+        """Get detailed session inspection data.
+
+        Args:
+            session_id: Session ID to inspect
+
+        Returns:
+            JSON result with detailed session metrics and state
+        """
+        try:
+            interactive_manager = self.manager.interactive_manager
+            metrics = await interactive_manager.inspect_session(session_id)
+            return self._format_result(metrics)
+
+        except SessionNotFoundError as e:
+            error_result = {"error": str(e), "session_id": session_id}
+            return self._format_result(error_result)
+
+        except Exception as e:
+            error_result = {"error": f"Unexpected error: {str(e)}", "session_id": session_id}
+            return self._format_result(error_result)
+
+
+class SessionHistoryTool(BaseTool):
+    """Tool for retrieving session command history."""
+
+    async def execute(self, session_id: str, limit: int | None = None, search: str | None = None) -> str:
+        """Get command history for a session.
+
+        Args:
+            session_id: Session ID
+            limit: Maximum number of commands to return
+            search: Optional search string to filter commands
+
+        Returns:
+            JSON result with command history
+        """
+        try:
+            interactive_manager = self.manager.interactive_manager
+            history = await interactive_manager.get_session_history(session_id, limit, search)
+
+            result = {
+                "session_id": session_id,
+                "history": history,
+                "total_commands": len(history),
+                "limit": limit,
+                "search": search,
+            }
+            return self._format_result(result)
+
+        except SessionNotFoundError as e:
+            error_result = {"error": str(e), "session_id": session_id}
+            return self._format_result(error_result)
+
+        except Exception as e:
+            error_result = {"error": f"Unexpected error: {str(e)}", "session_id": session_id}
+            return self._format_result(error_result)
+
+
+class SessionMetricsTool(BaseTool):
+    """Tool for retrieving comprehensive session metrics."""
+
+    async def execute(self) -> str:
+        """Get comprehensive metrics for all sessions.
+
+        Returns:
+            JSON result with session manager and individual session metrics
+        """
+        try:
+            interactive_manager = self.manager.interactive_manager
+            metrics = await interactive_manager.session_metrics()
+            return self._format_result(metrics)
+
+        except Exception as e:
+            error_result = {"error": f"Unexpected error: {str(e)}"}
+            return self._format_result(error_result)
