@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from ..config.settings import settings
 from ..utils.logging import get_logger
@@ -12,6 +13,9 @@ from .exceptions import (
     ProcessStartupError,
 )
 from .models import CommandRecord, CommandResult, ContextInfo, ProcessState, ProcessStatus
+
+if TYPE_CHECKING:
+    from ..interactive.session_manager import InteractiveSessionManager
 
 
 class OpenROADManager:
@@ -36,6 +40,9 @@ class OpenROADManager:
             self.initialized = True
             self.logger = get_logger("manager")
             self._process_start_time: float | None = None
+
+            # Interactive session management (lazy initialization)
+            self._interactive_manager: InteractiveSessionManager | None = None
 
     async def start_process(self) -> CommandResult:
         """Start the OpenROAD process."""
@@ -251,3 +258,36 @@ class OpenROADManager:
                         self.stderr_buffer.pop(0)
         except Exception as e:
             self.logger.error(f"Error reading stderr: {e}")
+
+    @property
+    def interactive_manager(self) -> "InteractiveSessionManager":
+        """Get or create interactive session manager."""
+        if self._interactive_manager is None:
+            # Lazy import to avoid circular dependencies
+            from ..interactive.session_manager import InteractiveSessionManager
+
+            self._interactive_manager = InteractiveSessionManager()
+            self.logger.info("Initialized interactive session manager")
+        return self._interactive_manager
+
+    async def cleanup_all(self) -> None:
+        """Clean up both subprocess and interactive sessions."""
+        self.logger.info("Starting comprehensive OpenROAD cleanup")
+
+        # Clean up interactive sessions first
+        if self._interactive_manager is not None:
+            try:
+                await self._interactive_manager.cleanup()
+                self.logger.info("Interactive sessions cleaned up")
+            except Exception as e:
+                self.logger.error(f"Error cleaning up interactive sessions: {e}")
+
+        # Clean up subprocess
+        if self.state == ProcessState.RUNNING:
+            try:
+                await self.stop_process()
+                self.logger.info("Subprocess cleaned up")
+            except Exception as e:
+                self.logger.error(f"Error cleaning up subprocess: {e}")
+
+        self.logger.info("Comprehensive OpenROAD cleanup completed")

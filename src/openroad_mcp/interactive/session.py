@@ -3,14 +3,12 @@
 import asyncio
 from datetime import datetime
 
+from ..core.models import InteractiveExecResult, InteractiveSessionInfo, SessionState
 from ..utils.logging import get_logger
 from .buffer import CircularBuffer
 from .models import (
-    InteractiveExecResult,
-    InteractiveSessionInfo,
     PTYError,
     SessionError,
-    SessionState,
     SessionTerminatedError,
 )
 from .pty_handler import PTYHandler
@@ -186,11 +184,11 @@ class InteractiveSession:
         return InteractiveSessionInfo(
             session_id=self.session_id,
             created_at=self.created_at.isoformat(),
-            state=self.state,
             is_alive=self.is_alive(),
             command_count=self.command_count,
             buffer_size=buffer_size,
             uptime_seconds=uptime,
+            state=self.state,
         )
 
     async def terminate(self, force: bool = False) -> None:
@@ -219,9 +217,9 @@ class InteractiveSession:
         """Clean up session resources."""
         logger.debug(f"Cleaning up session {self.session_id}")
 
-        if self.state != SessionState.TERMINATED:
+        if self.state not in (SessionState.TERMINATED, SessionState.ERROR):
             self.state = SessionState.TERMINATED
-            self._shutdown_event.set()
+        self._shutdown_event.set()
 
         # Cancel and wait for tasks
         await self._wait_for_tasks()
