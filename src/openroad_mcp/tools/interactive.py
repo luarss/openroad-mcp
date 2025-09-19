@@ -75,7 +75,13 @@ class ListSessionsTool(BaseTool):
                     command_count=session.command_count,
                     buffer_size=session.buffer_size,
                     uptime_seconds=session.uptime_seconds,
-                    state=session.state,
+                    state=(
+                        session.state.value
+                        if session.state is not None and hasattr(session.state, "value")
+                        else str(session.state)
+                        if session.state is not None
+                        else None
+                    ),
                 )
                 core_sessions.append(core_session)
                 if session.is_alive:
@@ -130,7 +136,13 @@ class CreateSessionTool(BaseTool):
                 command_count=session_info.command_count,
                 buffer_size=session_info.buffer_size,
                 uptime_seconds=session_info.uptime_seconds,
-                state=session_info.state,
+                state=(
+                    session_info.state.value
+                    if session_info.state is not None and hasattr(session_info.state, "value")
+                    else str(session_info.state)
+                    if session_info.state is not None
+                    else None
+                ),
             )
 
             return self._format_result(core_session)

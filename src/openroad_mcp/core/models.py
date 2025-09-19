@@ -72,7 +72,7 @@ class InteractiveSessionInfo(BaseModel):
     command_count: int
     buffer_size: int
     uptime_seconds: float | None = None
-    state: SessionState | None = None  # Optional for backward compatibility
+    state: str | None = None  # String representation of SessionState for JSON compatibility
 
 
 class InteractiveExecResult(BaseModel):
