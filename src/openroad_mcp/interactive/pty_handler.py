@@ -64,6 +64,12 @@ class PTYHandler:
 
             logger.info(f"Created PTY session with PID {self.process.pid} for command: {' '.join(command)}")
 
+            # Close slave FD in parent - child has its own copy
+            if self.slave_fd is not None:
+                os.close(self.slave_fd)
+                logger.debug(f"Closed slave FD {self.slave_fd} in parent process")
+                self.slave_fd = None
+
         except OSError as e:
             raise PTYError(f"Failed to create PTY session: {e}") from e
         except Exception as e:
