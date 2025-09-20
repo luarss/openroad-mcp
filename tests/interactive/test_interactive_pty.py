@@ -311,7 +311,7 @@ class TestPTYHandler:
         assert pty_handler.slave_fd is None
 
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    def test_destructor_cleanup(self, mock_close):
+    async def test_destructor_cleanup(self, mock_close):
         """Test cleanup in destructor."""
         # Create handler directly (not via fixture) to test destructor
         handler = PTYHandler()

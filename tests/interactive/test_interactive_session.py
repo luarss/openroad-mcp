@@ -1,7 +1,7 @@
 """Tests for InteractiveSession implementation."""
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -47,7 +47,7 @@ class TestInteractiveSession:
         """Test successful session start."""
         # Mock PTY handler
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         mock_pty_class.return_value = mock_pty
         session.pty = mock_pty
 
@@ -89,7 +89,7 @@ class TestInteractiveSession:
         from unittest.mock import MagicMock
 
         mock_pty = MagicMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
@@ -118,7 +118,7 @@ class TestInteractiveSession:
         from unittest.mock import MagicMock
 
         mock_pty = MagicMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
@@ -148,7 +148,7 @@ class TestInteractiveSession:
         from unittest.mock import MagicMock
 
         mock_pty = MagicMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         mock_pty.terminate_process = AsyncMock()
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
@@ -173,7 +173,7 @@ class TestInteractiveSession:
 
         mock_pty = MagicMock()
         mock_pty.cleanup = AsyncMock()
-        mock_pty.is_process_alive.return_value = False
+        mock_pty.is_process_alive = MagicMock(return_value=False)
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
@@ -193,7 +193,7 @@ class TestInteractiveSession:
     async def test_default_command(self, mock_pty_class, session):
         """Test that default OpenROAD command is used when none specified."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         session.pty = mock_pty
 
         await session.start()
@@ -208,7 +208,7 @@ class TestInteractiveSession:
     async def test_command_with_environment(self, mock_pty_class, session):
         """Test starting session with custom environment and working directory."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         session.pty = mock_pty
 
         env = {"TEST_VAR": "value"}
@@ -256,7 +256,7 @@ class TestInteractiveSession:
     async def test_output_collection_timing(self, mock_pty_class, session):
         """Test output collection with proper timing."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
@@ -287,7 +287,7 @@ class TestInteractiveSessionAsync:
             # Mock PTY for testing
             with patch("openroad_mcp.interactive.session.PTYHandler") as mock_pty_class:
                 mock_pty = AsyncMock()
-                mock_pty.is_process_alive.return_value = True
+                mock_pty.is_process_alive = MagicMock(return_value=True)
                 mock_pty_class.return_value = mock_pty
                 session.pty = mock_pty
 
@@ -314,7 +314,7 @@ class TestInteractiveSessionAsync:
         try:
             with patch("openroad_mcp.interactive.session.PTYHandler") as mock_pty_class:
                 mock_pty = AsyncMock()
-                mock_pty.is_process_alive.return_value = True
+                mock_pty.is_process_alive = MagicMock(return_value=True)
                 # Mock the methods that background tasks will call
                 mock_pty.read_output.return_value = b""  # Return empty data
                 mock_pty.write_input.return_value = None
