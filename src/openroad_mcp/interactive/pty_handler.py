@@ -1,6 +1,7 @@
 """PTY (pseudo-terminal) handler for true terminal emulation."""
 
 import asyncio
+import errno
 import fcntl
 import os
 import pty
@@ -112,7 +113,7 @@ class PTYHandler:
                 assert self.master_fd is not None  # Already checked above
                 return os.write(self.master_fd, data)
 
-            await asyncio.get_event_loop().run_in_executor(None, _write)
+            await asyncio.to_thread(_write)
             logger.debug(f"Wrote {len(data)} bytes to PTY")
 
         except (OSError, BrokenPipeError) as e:
@@ -132,13 +133,13 @@ class PTYHandler:
                 except BlockingIOError:
                     return None
 
-            data = await asyncio.get_event_loop().run_in_executor(None, _read)
+            data = await asyncio.to_thread(_read)
             if data:
                 logger.debug(f"Read {len(data)} bytes from PTY")
             return data
 
         except OSError as e:
-            if e.errno == 5:  # EIO - process terminated
+            if e.errno == errno.EIO:  # EIO - process terminated
                 logger.debug("PTY read failed: process terminated")
                 return None
             raise PTYError(f"Failed to read from PTY: {e}") from e

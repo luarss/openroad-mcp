@@ -116,9 +116,10 @@ class CircularBuffer:
         """
         try:
             await asyncio.wait_for(self._data_available.wait(), timeout=timeout)
-            return True
         except TimeoutError:
             return False
+        else:
+            return True
 
     async def clear(self) -> None:
         """Clear all buffered data."""
