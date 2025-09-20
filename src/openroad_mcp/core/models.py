@@ -29,6 +29,12 @@ class SessionState(Enum):
 SerializableSessionState = Annotated[SessionState, PlainSerializer(lambda x: x.value if x else None, return_type=str)]
 
 
+class BaseResult(BaseModel):
+    """Base class for all MCP tool result objects with standardized error handling."""
+
+    error: str | None = None
+
+
 class CommandRecord(BaseModel):
     """Record of a command execution."""
 
@@ -37,7 +43,7 @@ class CommandRecord(BaseModel):
     id: int
 
 
-class CommandResult(BaseModel):
+class CommandResult(BaseResult):
     """Result of a command execution."""
 
     status: str
@@ -46,9 +52,10 @@ class CommandResult(BaseModel):
     stderr: list[str] = Field(default_factory=list)
     execution_time: float | None = None
     pid: int | None = None
+    command: str | None = None
 
 
-class ProcessStatus(BaseModel):
+class ProcessStatus(BaseResult):
     """OpenROAD process status information."""
 
     state: ProcessState
@@ -57,9 +64,24 @@ class ProcessStatus(BaseModel):
     command_count: int = 0
     buffer_stdout_size: int = 0
     buffer_stderr_size: int = 0
+    message: str | None = None
 
 
-class ContextInfo(BaseModel):
+class ProcessRestartResult(BaseResult):
+    """Result from process restart operation."""
+
+    status: str
+    message: str | None = None
+
+
+class CommandHistoryResult(BaseResult):
+    """Result from command history retrieval."""
+
+    total_commands: int
+    commands: list[dict] = Field(default_factory=list)
+
+
+class ContextInfo(BaseResult):
     """Context information for the current session."""
 
     status: ProcessStatus
@@ -69,7 +91,7 @@ class ContextInfo(BaseModel):
     last_commands: list[CommandRecord] = Field(default_factory=list)
 
 
-class InteractiveSessionInfo(BaseModel):
+class InteractiveSessionInfo(BaseResult):
     """Information about an interactive session for MCP tools."""
 
     session_id: str
@@ -81,7 +103,7 @@ class InteractiveSessionInfo(BaseModel):
     state: SerializableSessionState | None = None
 
 
-class InteractiveExecResult(BaseModel):
+class InteractiveExecResult(BaseResult):
     """Result from interactive command execution for MCP tools."""
 
     output: str
@@ -92,9 +114,41 @@ class InteractiveExecResult(BaseModel):
     buffer_size: int = 0
 
 
-class InteractiveSessionListResult(BaseModel):
+class InteractiveSessionListResult(BaseResult):
     """Result containing list of interactive sessions."""
 
     sessions: list[InteractiveSessionInfo] = Field(default_factory=list)
     total_count: int = 0
     active_count: int = 0
+
+
+class SessionTerminationResult(BaseResult):
+    """Result from session termination operation."""
+
+    session_id: str
+    terminated: bool
+    was_alive: bool = False
+    force: bool = False
+
+
+class SessionInspectionResult(BaseResult):
+    """Result from session inspection operation."""
+
+    session_id: str
+    metrics: dict | None = None
+
+
+class SessionHistoryResult(BaseResult):
+    """Result from session history retrieval."""
+
+    session_id: str
+    history: list[dict] = Field(default_factory=list)
+    total_commands: int = 0
+    limit: int | None = None
+    search: str | None = None
+
+
+class SessionMetricsResult(BaseResult):
+    """Result from session metrics retrieval."""
+
+    metrics: dict | None = None

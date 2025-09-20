@@ -6,12 +6,18 @@ from typing import Any
 
 from ..core.manager import OpenROADManager
 from ..core.models import (
+    CommandHistoryResult,
     CommandResult,
     ContextInfo,
     InteractiveExecResult,
     InteractiveSessionInfo,
     InteractiveSessionListResult,
+    ProcessRestartResult,
     ProcessStatus,
+    SessionHistoryResult,
+    SessionInspectionResult,
+    SessionMetricsResult,
+    SessionTerminationResult,
 )
 
 
@@ -35,7 +41,12 @@ class BaseTool(ABC):
             | InteractiveExecResult
             | InteractiveSessionInfo
             | InteractiveSessionListResult
-            | dict[str, Any]
+            | CommandHistoryResult
+            | ProcessRestartResult
+            | SessionTerminationResult
+            | SessionInspectionResult
+            | SessionHistoryResult
+            | SessionMetricsResult
         ),
     ) -> str:
         """Format result as JSON string."""
