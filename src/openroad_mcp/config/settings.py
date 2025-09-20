@@ -19,6 +19,29 @@ class Settings(BaseModel):
 
     # Buffer settings
     MAX_BUFFER_SIZE: int = Field(default=1000, description="Maximum buffer size for stdout/stderr")
+    DEFAULT_BUFFER_SIZE: int = Field(default=128 * 1024, description="Default circular buffer size in bytes (128KB)")
+    LARGE_BUFFER_SIZE: int = Field(
+        default=10 * 1024 * 1024, description="Large buffer size for testing in bytes (10MB)"
+    )
+
+    # Interactive session settings
+    MAX_SESSIONS: int = Field(default=50, description="Maximum number of concurrent interactive sessions")
+    SESSION_QUEUE_SIZE: int = Field(default=128, description="Maximum size for session input queue")
+    SESSION_IDLE_TIMEOUT: float = Field(default=300.0, description="Session idle timeout in seconds (5 minutes)")
+
+    # Performance settings
+    READ_CHUNK_SIZE: int = Field(default=8192, description="Chunk size for reading PTY output in bytes")
+    WRITE_CHUNK_SIZE: int = Field(default=1024, description="Chunk size for writing data in bytes")
+    POLLING_SLEEP_INTERVAL: float = Field(default=0.001, description="Sleep interval during polling in seconds")
+
+    # Memory settings
+    DEFAULT_MEMORY_LIMIT_MB: int = Field(default=500, description="Default memory limit in MB")
+
+    # Rate limiting
+    RATE_LIMIT_PER_MIN: int = Field(default=60, description="Rate limit per minute")
+
+    # Network settings
+    DEFAULT_HTTP_PORT: int = Field(default=8000, description="Default HTTP server port")
 
     # Logging settings
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")
@@ -39,6 +62,17 @@ class Settings(BaseModel):
             "OUTPUT_POLLING_INTERVAL": ("OPENROAD_OUTPUT_POLLING_INTERVAL", float),
             "COMMAND_COMPLETION_DELAY": ("OPENROAD_COMMAND_COMPLETION_DELAY", float),
             "MAX_BUFFER_SIZE": ("OPENROAD_MAX_BUFFER_SIZE", int),
+            "DEFAULT_BUFFER_SIZE": ("OPENROAD_DEFAULT_BUFFER_SIZE", int),
+            "LARGE_BUFFER_SIZE": ("OPENROAD_LARGE_BUFFER_SIZE", int),
+            "MAX_SESSIONS": ("OPENROAD_MAX_SESSIONS", int),
+            "SESSION_QUEUE_SIZE": ("OPENROAD_SESSION_QUEUE_SIZE", int),
+            "SESSION_IDLE_TIMEOUT": ("OPENROAD_SESSION_IDLE_TIMEOUT", float),
+            "READ_CHUNK_SIZE": ("OPENROAD_READ_CHUNK_SIZE", int),
+            "WRITE_CHUNK_SIZE": ("OPENROAD_WRITE_CHUNK_SIZE", int),
+            "POLLING_SLEEP_INTERVAL": ("OPENROAD_POLLING_SLEEP_INTERVAL", float),
+            "DEFAULT_MEMORY_LIMIT_MB": ("OPENROAD_DEFAULT_MEMORY_LIMIT_MB", int),
+            "RATE_LIMIT_PER_MIN": ("OPENROAD_RATE_LIMIT_PER_MIN", int),
+            "DEFAULT_HTTP_PORT": ("OPENROAD_DEFAULT_HTTP_PORT", int),
             "LOG_LEVEL": ("LOG_LEVEL", str),
             "LOG_FORMAT": ("LOG_FORMAT", str),
         }

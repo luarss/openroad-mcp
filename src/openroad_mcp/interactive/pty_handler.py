@@ -7,6 +7,7 @@ import os
 import pty
 import termios
 
+from ..config.settings import settings
 from ..utils.logging import get_logger
 from .models import PTYError
 
@@ -136,12 +137,14 @@ class PTYHandler:
         except (OSError, BrokenPipeError) as e:
             raise PTYError(f"Failed to write to PTY: {e}") from e
 
-    async def read_output(self, size: int = 8192) -> bytes | None:
+    async def read_output(self, size: int | None = None) -> bytes | None:
         """Read data from PTY master (process output).
 
         Uses direct read from non-blocking file descriptor instead of thread pools
         for better performance and proper async I/O patterns.
         """
+        if size is None:
+            size = settings.READ_CHUNK_SIZE
         if self.master_fd is None:
             raise PTYError("Cannot read: master_fd is None")
 

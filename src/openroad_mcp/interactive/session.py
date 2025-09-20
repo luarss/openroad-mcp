@@ -6,6 +6,12 @@ from datetime import datetime
 
 import psutil
 
+from ..config.constants import (
+    BYTES_TO_MB,
+    MAX_COMMAND_COMPLETION_WINDOW,
+    UTILIZATION_PERCENTAGE_BASE,
+)
+from ..config.settings import settings
 from ..core.models import InteractiveExecResult, InteractiveSessionInfo, SessionState
 from ..utils.logging import get_logger
 from .buffer import CircularBuffer
@@ -22,9 +28,11 @@ logger = get_logger("interactive_session")
 class InteractiveSession:
     """Manages a single PTY-based OpenROAD session with async I/O."""
 
-    def __init__(self, session_id: str, buffer_size: int = 128 * 1024) -> None:
+    def __init__(self, session_id: str, buffer_size: int | None = None) -> None:
         """Initialize interactive session."""
         self.session_id = session_id
+        if buffer_size is None:
+            buffer_size = settings.DEFAULT_BUFFER_SIZE
         self.created_at = datetime.now()
         self.command_count = 0
         self.state = SessionState.CREATING
@@ -44,7 +52,7 @@ class InteractiveSession:
         # Core components
         self.pty = PTYHandler()
         self.output_buffer = CircularBuffer(max_size=buffer_size)
-        self.input_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=128)
+        self.input_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=settings.SESSION_QUEUE_SIZE)
 
         # Background tasks
         self._reader_task: asyncio.Task | None = None
@@ -145,7 +153,7 @@ class InteractiveSession:
                 # If we have data and no new data for completion window, consider complete
                 if collected_chunks:
                     remaining_time = timeout_s - (asyncio.get_event_loop().time() - start_time)
-                    completion_window = min(0.1, remaining_time)  # 100ms or remaining time
+                    completion_window = min(MAX_COMMAND_COMPLETION_WINDOW, remaining_time)
 
                     if completion_window > 0:
                         data_arrived = await self.output_buffer.wait_for_data(completion_window)
@@ -254,7 +262,7 @@ class InteractiveSession:
         try:
             while not self._shutdown_event.is_set() and self.pty.is_process_alive():
                 try:
-                    data = await self.pty.read_output(8192)
+                    data = await self.pty.read_output(settings.READ_CHUNK_SIZE)
                     if data:
                         await self.output_buffer.append(data)
                     else:
@@ -377,7 +385,7 @@ class InteractiveSession:
             "buffer": {
                 "current_size": buffer_size,
                 "max_size": self.output_buffer.max_size,
-                "utilization_percent": (buffer_size / self.output_buffer.max_size) * 100
+                "utilization_percent": (buffer_size / self.output_buffer.max_size) * UTILIZATION_PERCENTAGE_BASE
                 if self.output_buffer.max_size > 0
                 else 0,
             },
@@ -460,7 +468,7 @@ class InteractiveSession:
 
                     # Update memory usage
                     memory_info = process.memory_info()
-                    current_memory_mb = memory_info.rss / (1024 * 1024)  # Convert to MB
+                    current_memory_mb = memory_info.rss / BYTES_TO_MB
                     self.peak_memory_mb = max(self.peak_memory_mb, current_memory_mb)
 
                 except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
@@ -476,7 +484,7 @@ class InteractiveSession:
                 try:
                     process = psutil.Process(self.pty.process.pid)
                     memory_info = process.memory_info()
-                    return float(memory_info.rss / (1024 * 1024))  # Convert to MB
+                    return float(memory_info.rss / BYTES_TO_MB)
                 except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
                     pass
         except Exception:

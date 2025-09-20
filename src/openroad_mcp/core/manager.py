@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from ..config.constants import LAST_COMMANDS_COUNT, PROCESS_SHUTDOWN_TIMEOUT, RECENT_OUTPUT_LINES
 from ..config.settings import settings
 from ..utils.logging import get_logger
 from .exceptions import (
@@ -165,7 +166,7 @@ class OpenROADManager:
                 await asyncio.wait_for(self.process.wait(), timeout=settings.SHUTDOWN_TIMEOUT)
             except TimeoutError:
                 self.process.terminate()
-                await asyncio.wait_for(self.process.wait(), timeout=2.0)
+                await asyncio.wait_for(self.process.wait(), timeout=PROCESS_SHUTDOWN_TIMEOUT)
 
             self.state = ProcessState.STOPPED
             self.process = None
@@ -210,16 +211,16 @@ class OpenROADManager:
         """Get comprehensive context information."""
         status = await self.get_status()
 
-        # Get recent output (last 20 lines)
-        recent_stdout = self.stdout_buffer[-20:] if self.stdout_buffer else []
-        recent_stderr = self.stderr_buffer[-20:] if self.stderr_buffer else []
+        # Get recent output
+        recent_stdout = self.stdout_buffer[-RECENT_OUTPUT_LINES:] if self.stdout_buffer else []
+        recent_stderr = self.stderr_buffer[-RECENT_OUTPUT_LINES:] if self.stderr_buffer else []
 
         return ContextInfo(
             status=status,
             recent_stdout=recent_stdout,
             recent_stderr=recent_stderr,
             command_count=len(self.command_history),
-            last_commands=self.command_history[-5:] if self.command_history else [],
+            last_commands=self.command_history[-LAST_COMMANDS_COUNT:] if self.command_history else [],
         )
 
     async def _read_stdout(self) -> None:
