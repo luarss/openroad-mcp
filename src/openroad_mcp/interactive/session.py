@@ -470,7 +470,7 @@ class InteractiveSession:
         import re
 
         # Get recent buffer content
-        chunks = await self.output_buffer.drain_all()
+        chunks = await self.output_buffer.peek_all()
         if not chunks:
             return []
 
