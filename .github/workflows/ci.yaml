@@ -14,10 +14,9 @@ env:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest]
         test-type: [lint, core, interactive, integration, tools]
 
     steps:

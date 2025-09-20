@@ -38,7 +38,8 @@ test-interactive:
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests for timing workflows..."
-	@uv run pytest tests/integration/test_timing_workflows.py
+	@docker build -f Dockerfile.test -t openroad-mcp-test .
+	@docker run --rm -v $(PWD):/app openroad-mcp-test bash -c "uv sync --all-extras --inexact && uv run pytest tests/integration/test_timing_workflows.py"
 
 .PHONY: test-tools
 test-tools:
