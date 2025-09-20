@@ -65,8 +65,8 @@ async def main() -> None:
 
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt")
-    except Exception as e:
-        logger.error(f"Unexpected error in Claude Code server: {e}")
+    except Exception:
+        logger.exception("Unexpected error in Claude Code server")
         raise
     finally:
         # Ensure cleanup happens

@@ -1,8 +1,10 @@
 """Data models for OpenROAD MCP server."""
 
 from enum import Enum
+from typing import Annotated
 
 from pydantic import BaseModel, Field
+from pydantic.functional_serializers import PlainSerializer
 
 
 class ProcessState(Enum):
@@ -21,6 +23,10 @@ class SessionState(Enum):
     ACTIVE = "active"
     TERMINATED = "terminated"
     ERROR = "error"
+
+
+# Type alias for SessionState that serializes to string value
+SerializableSessionState = Annotated[SessionState, PlainSerializer(lambda x: x.value if x else None, return_type=str)]
 
 
 class CommandRecord(BaseModel):
@@ -72,7 +78,7 @@ class InteractiveSessionInfo(BaseModel):
     command_count: int
     buffer_size: int
     uptime_seconds: float | None = None
-    state: str | None = None  # String representation of SessionState for JSON compatibility
+    state: SerializableSessionState | None = None
 
 
 class InteractiveExecResult(BaseModel):

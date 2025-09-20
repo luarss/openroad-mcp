@@ -77,7 +77,7 @@ class InteractiveSessionManager:
             return session_id
 
         except Exception as e:
-            logger.error(f"Failed to create session {session_id}: {e}")
+            logger.exception(f"Failed to create session {session_id}")
             raise SessionError(f"Failed to create session: {e}", session_id) from e
 
     async def execute_command(

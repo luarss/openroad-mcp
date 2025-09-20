@@ -132,8 +132,8 @@ async def startup_openroad() -> None:
             logger.info(f"OpenROAD process started with PID {result.pid}")
         else:
             logger.warning(f"Failed to start OpenROAD process: {result.message}")
-    except Exception as e:
-        logger.error(f"Error during automatic OpenROAD startup: {e}")
+    except Exception:
+        logger.exception("Error during automatic OpenROAD startup")
 
 
 async def shutdown_openroad() -> None:
@@ -145,8 +145,8 @@ async def shutdown_openroad() -> None:
         await manager.cleanup_all()
 
         logger.info("OpenROAD services shutdown completed successfully")
-    except Exception as e:
-        logger.error(f"Error during OpenROAD shutdown: {e}")
+    except Exception:
+        logger.exception("Error during OpenROAD shutdown")
 
 
 async def run_server(config: CLIConfig) -> None:

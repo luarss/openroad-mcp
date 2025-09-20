@@ -279,15 +279,15 @@ class OpenROADManager:
             try:
                 await self._interactive_manager.cleanup()
                 self.logger.info("Interactive sessions cleaned up")
-            except Exception as e:
-                self.logger.error(f"Error cleaning up interactive sessions: {e}")
+            except Exception:
+                self.logger.exception("Error cleaning up interactive sessions")
 
         # Clean up subprocess
         if self.state == ProcessState.RUNNING:
             try:
                 await self.stop_process()
                 self.logger.info("Subprocess cleaned up")
-            except Exception as e:
-                self.logger.error(f"Error cleaning up subprocess: {e}")
+            except Exception:
+                self.logger.exception("Error cleaning up subprocess")
 
         self.logger.info("Comprehensive OpenROAD cleanup completed")
