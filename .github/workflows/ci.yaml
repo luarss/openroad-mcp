@@ -39,11 +39,11 @@ jobs:
 
     - name: Run integration tests
       if: matrix.test-type == 'integration'
-      run: uv run pytest tests/integration/test_timing_workflows.py -v --tb=short
+      run: make test-integration
 
     - name: Run tools tests
       if: matrix.test-type == 'tools'
-      run: uv run pytest tests/tools/ -v --tb=short
+      run: make test-tools
 
   nightly:
     runs-on: ubuntu-latest
@@ -52,8 +52,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v6
     - run: make sync
-    - run: uv run pytest tests/performance/test_memory_monitoring.py::TestStabilityMonitoring::test_stability_simulation -v -s --tb=short
-    - run: uv run pytest tests/performance/test_benchmarks.py::TestStressTests -v -s --tb=short
+    - run: make test-performance
 
   coverage:
     runs-on: ubuntu-latest
@@ -61,8 +60,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v6
-    - run: make sync && uv add pytest-cov
-    - run: uv run pytest --cov=src/openroad_mcp --cov-report=xml --cov-report=term-missing
+    - run: make sync
+    - run: make test-coverage
     - uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
