@@ -16,7 +16,6 @@ dependencies = [
     "mcp[cli]>=1.12.1",
     "psutil>=7.1.0",
     "pydantic>=2.11.7",
-    "types-psutil>=7.0.0.20250822",
 ]
 
 [project.scripts]
@@ -28,7 +27,9 @@ dev = [
     "pre-commit>=4.2.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
+    "pytest-cov>=7.0.0",
     "ruff>=0.12.5",
+    "types-psutil>=7.0.0.20250822",
 ]
 
 [tool.mypy]
