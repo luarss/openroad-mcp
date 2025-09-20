@@ -56,7 +56,7 @@ test-performance:
 .PHONY: test-coverage
 test-coverage:
 	@echo "Running tests with coverage analysis..."
-	@uv run pytest --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
+	@uv run pytest --ignore=tests/performance --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
 
 # MCP
 .PHONY: inspect
