@@ -38,7 +38,7 @@ class TestPTYHandler:
     @patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr")
     @patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr")
     @patch("openroad_mcp.interactive.pty_handler.fcntl.fcntl")
-    @patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec")
+    @patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec", new_callable=AsyncMock)
     @patch("openroad_mcp.interactive.pty_handler.os.close")
     async def test_create_session_success(
         self,
@@ -193,12 +193,14 @@ class TestPTYHandler:
 
     async def test_wait_for_exit_with_timeout(self, pty_handler):
         """Test waiting for exit with timeout."""
+
         mock_process = MagicMock()
-        mock_process.wait = AsyncMock(side_effect=TimeoutError())
+        mock_process.wait = AsyncMock()
         pty_handler.process = mock_process
 
-        result = await pty_handler.wait_for_exit(timeout=0.01)
-        assert result is None
+        with patch("asyncio.wait_for", new_callable=AsyncMock, side_effect=TimeoutError()):
+            result = await pty_handler.wait_for_exit(timeout=0.01)
+            assert result is None
 
     async def test_wait_for_exit_success(self, pty_handler):
         """Test successful wait for exit."""
@@ -225,7 +227,7 @@ class TestPTYHandler:
         # Should not call terminate on dead process
 
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    async def test_terminate_process_graceful(self, mock_close, pty_handler):
+    async def test_terminate_process_graceful(self, _mock_close, pty_handler):
         """Test graceful process termination."""
         mock_process = MagicMock()
         mock_process.returncode = None  # Still running
@@ -237,13 +239,15 @@ class TestPTYHandler:
         mock_process.terminate.assert_called_once()
         mock_process.wait.assert_called()
 
+    @patch("openroad_mcp.interactive.pty_handler.asyncio.wait_for", new_callable=AsyncMock)
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    async def test_terminate_process_force_after_timeout(self, mock_close, pty_handler):
+    async def test_terminate_process_force_after_timeout(self, _mock_close, mock_wait_for, pty_handler):
         """Test forced termination after graceful timeout."""
         mock_process = MagicMock()
         mock_process.returncode = None
-        # First call times out, second call succeeds
-        mock_process.wait = AsyncMock(side_effect=[TimeoutError(), None])
+        mock_process.wait = AsyncMock(return_value=None)
+        # First call to wait_for times out, second call succeeds
+        mock_wait_for.side_effect = [TimeoutError(), None]
         pty_handler.process = mock_process
 
         await pty_handler.terminate_process(force=False)
@@ -252,7 +256,7 @@ class TestPTYHandler:
         mock_process.kill.assert_called_once()
 
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    async def test_terminate_process_force_immediate(self, mock_close, pty_handler):
+    async def test_terminate_process_force_immediate(self, _mock_close, pty_handler):
         """Test immediate forced termination."""
         mock_process = MagicMock()
         mock_process.returncode = None
@@ -338,7 +342,9 @@ class TestPTYHandlerAsync:
             patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr") as mock_tcgetattr,
             patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr"),
             patch("openroad_mcp.interactive.pty_handler.fcntl.fcntl"),
-            patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec") as mock_subprocess,
+            patch(
+                "openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec", new_callable=AsyncMock
+            ) as mock_subprocess,
             patch("openroad_mcp.interactive.pty_handler.os.close"),
             patch("openroad_mcp.interactive.pty_handler.os.write") as mock_write,
         ):

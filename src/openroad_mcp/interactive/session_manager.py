@@ -99,8 +99,8 @@ class InteractiveSessionManager:
             logger.debug(f"Executed command in session {session_id}: {command.strip()}")
             return result
 
-        except Exception as e:
-            logger.error(f"Failed to execute command in session {session_id}: {e}")
+        except Exception:
+            logger.exception("Failed to execute command in session %s", session_id)
             raise
 
     async def get_session_info(self, session_id: str) -> InteractiveSessionInfo:
@@ -139,8 +139,8 @@ class InteractiveSessionManager:
                 if session_id in self._sessions:
                     del self._sessions[session_id]
 
-        except Exception as e:
-            logger.error(f"Failed to terminate session {session_id}: {e}")
+        except Exception:
+            logger.exception("Failed to terminate session %s", session_id)
             raise
 
     async def terminate_all_sessions(self, force: bool = False) -> int:
@@ -152,8 +152,8 @@ class InteractiveSessionManager:
             try:
                 await self.terminate_session(session_id, force)
                 terminated_count += 1
-            except Exception as e:
-                logger.error(f"Failed to terminate session {session_id}: {e}")
+            except Exception:
+                logger.exception("Failed to terminate session %s", session_id)
 
         logger.info(f"Terminated {terminated_count}/{len(session_ids)} sessions")
         return terminated_count
@@ -244,8 +244,8 @@ class InteractiveSessionManager:
                     await self.terminate_session(session_id, force)
                     cleaned_count += 1
                     logger.info(f"Cleaned up idle session {session_id}")
-            except Exception as e:
-                logger.error(f"Error checking idle status for session {session_id}: {e}")
+            except Exception:
+                logger.exception("Error checking idle status for session %s", session_id)
 
         return cleaned_count
 
@@ -290,8 +290,8 @@ class InteractiveSessionManager:
 
             logger.info("Session manager cleanup completed")
 
-        except Exception as e:
-            logger.error(f"Error during session manager cleanup: {e}")
+        except Exception:
+            logger.exception("Error during session manager cleanup")
             raise
 
     def get_session_count(self) -> int:

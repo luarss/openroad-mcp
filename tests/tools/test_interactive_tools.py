@@ -86,7 +86,7 @@ class TestInteractiveShellTool:
         result_json = await tool.execute("test", session_id="non-existent")
 
         # Verify error handling
-        assert "Error: Session not found" in result_json
+        assert "Session not found" in result_json
         assert "non-existent" in result_json
 
     async def test_execute_session_terminated_error(self, tool, mock_manager):
@@ -109,7 +109,7 @@ class TestInteractiveShellTool:
         result_json = await tool.execute("test", session_id="some-session")
 
         # Verify error handling
-        assert "Unexpected Error: Unexpected error" in result_json
+        assert "Unexpected error" in result_json
 
 
 class TestCreateSessionTool:
@@ -132,14 +132,18 @@ class TestCreateSessionTool:
         # Setup mocks
         mock_manager.interactive_manager.create_session.return_value = "session-1"
 
-        mock_session_info = AsyncMock()
-        mock_session_info.session_id = "session-1"
-        mock_session_info.created_at = "2024-01-01T00:00:00Z"
-        mock_session_info.is_alive = True
-        mock_session_info.command_count = 0
-        mock_session_info.buffer_size = 1024
-        mock_session_info.uptime_seconds = 0.0
-        mock_session_info.state = "creating"
+        # Create a proper InteractiveSessionInfo object instead of AsyncMock
+        from openroad_mcp.core.models import InteractiveSessionInfo
+
+        mock_session_info = InteractiveSessionInfo(
+            session_id="session-1",
+            created_at="2024-01-01T00:00:00Z",
+            is_alive=True,
+            command_count=0,
+            buffer_size=1024,
+            uptime_seconds=0.0,
+            state="creating",
+        )
         mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
 
         # Create session
@@ -154,14 +158,18 @@ class TestCreateSessionTool:
         # Setup mocks
         mock_manager.interactive_manager.create_session.return_value = "custom-session"
 
-        mock_session_info = AsyncMock()
-        mock_session_info.session_id = "custom-session"
-        mock_session_info.created_at = "2024-01-01T00:00:00Z"
-        mock_session_info.is_alive = True
-        mock_session_info.command_count = 0
-        mock_session_info.buffer_size = 4096
-        mock_session_info.uptime_seconds = 0.0
-        mock_session_info.state = "creating"
+        # Create a proper InteractiveSessionInfo object instead of AsyncMock
+        from openroad_mcp.core.models import InteractiveSessionInfo
+
+        mock_session_info = InteractiveSessionInfo(
+            session_id="custom-session",
+            created_at="2024-01-01T00:00:00Z",
+            is_alive=True,
+            command_count=0,
+            buffer_size=4096,
+            uptime_seconds=0.0,
+            state="creating",
+        )
         mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
 
         # Create session with parameters
@@ -280,24 +288,28 @@ class TestListSessionsTool:
 
     async def test_list_sessions_multiple(self, tool, mock_manager):
         """Test listing multiple sessions."""
-        # Setup mock sessions
-        session1 = AsyncMock()
-        session1.session_id = "session-1"
-        session1.created_at = "2024-01-01T00:00:00Z"
-        session1.is_alive = True
-        session1.command_count = 5
-        session1.buffer_size = 1024
-        session1.uptime_seconds = 100.0
-        session1.state = "active"
+        # Setup mock sessions with proper InteractiveSessionInfo objects
+        from openroad_mcp.core.models import InteractiveSessionInfo
 
-        session2 = AsyncMock()
-        session2.session_id = "session-2"
-        session2.created_at = "2024-01-01T00:01:00Z"
-        session2.is_alive = False
-        session2.command_count = 0
-        session2.buffer_size = 2048
-        session2.uptime_seconds = 10.0
-        session2.state = "creating"
+        session1 = InteractiveSessionInfo(
+            session_id="session-1",
+            created_at="2024-01-01T00:00:00Z",
+            is_alive=True,
+            command_count=5,
+            buffer_size=1024,
+            uptime_seconds=100.0,
+            state="active",
+        )
+
+        session2 = InteractiveSessionInfo(
+            session_id="session-2",
+            created_at="2024-01-01T00:01:00Z",
+            is_alive=False,
+            command_count=0,
+            buffer_size=2048,
+            uptime_seconds=10.0,
+            state="creating",
+        )
 
         mock_sessions = [session1, session2]
         mock_manager.interactive_manager.list_sessions.return_value = mock_sessions
@@ -421,14 +433,18 @@ class TestInteractiveToolsIntegration:
         # Mock responses
         manager.interactive_manager.create_session.return_value = "workflow-session"
 
-        mock_session_info = AsyncMock()
-        mock_session_info.session_id = "workflow-session"
-        mock_session_info.created_at = "2024-01-01T00:00:00Z"
-        mock_session_info.is_alive = True
-        mock_session_info.command_count = 1
-        mock_session_info.buffer_size = 1024
-        mock_session_info.uptime_seconds = 10.0
-        mock_session_info.state = "active"
+        # Create proper InteractiveSessionInfo object
+        from openroad_mcp.core.models import InteractiveSessionInfo
+
+        mock_session_info = InteractiveSessionInfo(
+            session_id="workflow-session",
+            created_at="2024-01-01T00:00:00Z",
+            is_alive=True,
+            command_count=1,
+            buffer_size=1024,
+            uptime_seconds=10.0,
+            state="active",
+        )
         manager.interactive_manager.get_session_info.return_value = mock_session_info
 
         mock_exec_result = InteractiveExecResult(

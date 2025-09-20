@@ -296,8 +296,8 @@ class InteractiveSession:
                 except PTYError as e:
                     logger.warning(f"PTY write error in session {self.session_id}: {e}")
                     break
-                except Exception as e:
-                    logger.error(f"Unexpected error writing input for session {self.session_id}: {e}")
+                except Exception:
+                    logger.exception("Unexpected error writing input for session %s", self.session_id)
                     break
 
         finally:
@@ -315,8 +315,8 @@ class InteractiveSession:
                 self.state = SessionState.TERMINATED
                 self._shutdown_event.set()
 
-        except Exception as e:
-            logger.error(f"Error monitoring exit for session {self.session_id}: {e}")
+        except Exception:
+            logger.exception("Error monitoring exit for session %s", self.session_id)
         finally:
             logger.debug(f"Exit monitor ended for session {self.session_id}")
 
@@ -345,10 +345,10 @@ class InteractiveSession:
                     logger.warning(f"Task {task_name} failed during cleanup in session {self.session_id}: {result}")
 
         except TimeoutError:
-            logger.error(f"Critical: Tasks failed to complete within 5s in session {self.session_id}")
+            logger.exception("Critical: Tasks failed to complete within 5s in session %s", self.session_id)
             # Force reset even on timeout to prevent resource leaks
-        except Exception as e:
-            logger.error(f"Unexpected error during task cleanup in session {self.session_id}: {e}")
+        except Exception:
+            logger.exception("Unexpected error during task cleanup in session %s", self.session_id)
 
         self._reset_task_references()
 
