@@ -33,7 +33,8 @@ test:
 .PHONY: test-interactive
 test-interactive:
 	@echo "Running interactive tests..."
-	@uv run pytest tests/interactive
+	@docker build -f Dockerfile.test -t openroad-mcp-test .
+	@docker run --rm openroad-mcp-test uv run pytest tests/interactive
 
 .PHONY: test-integration
 test-integration:
@@ -49,7 +50,8 @@ test-tools:
 .PHONY: test-performance
 test-performance:
 	@echo "Running performance tests (benchmarks, memory, stability)..."
-	@uv run pytest tests/performance/
+	@docker build -f Dockerfile.test -t openroad-mcp-test .
+	@docker run --rm openroad-mcp-test uv run pytest tests/performance/
 
 .PHONY: test-coverage
 test-coverage:
