@@ -66,7 +66,13 @@ class TestPTYIntegration:
         await pty_handler.write_input(test_input)
 
         # Read echoed output
-        output = await pty_handler.read_output()
+        output = None
+        for _ in range(10):
+            output = await pty_handler.read_output()
+            if output:
+                break
+            await asyncio.sleep(0.1)
+
         assert output is not None
         assert b"test line" in output
 
