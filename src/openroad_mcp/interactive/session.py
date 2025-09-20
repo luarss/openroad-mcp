@@ -223,7 +223,7 @@ class InteractiveSession:
             command_count=self.command_count,
             buffer_size=buffer_size,
             uptime_seconds=uptime,
-            state=self.state.value if hasattr(self.state, "value") else str(self.state),
+            state=self.state,
         )
 
     async def terminate(self, force: bool = False) -> None:

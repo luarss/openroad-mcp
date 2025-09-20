@@ -40,7 +40,7 @@ class TestInteractiveSession:
         info = await session.get_info()
 
         assert info.session_id == "test-session-1"
-        assert info.state == SessionState.CREATING.value
+        assert info.state == SessionState.CREATING
         assert not info.is_alive
         assert info.command_count == 0
         assert info.buffer_size == 0
