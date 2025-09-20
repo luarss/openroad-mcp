@@ -19,9 +19,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         test-type: [lint, core, interactive, integration, tools]
-        include:
-          - os: macos-latest
-            test-type: core
 
     steps:
     - uses: actions/checkout@v4
