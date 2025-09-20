@@ -183,7 +183,7 @@ class TestSessionManager:
 
         # Get session info to verify state
         info = await session_manager.get_session_info(session_id)
-        assert info.state in [SessionState.CREATING.value, "active", "ready"]
+        assert info.state in [SessionState.CREATING, SessionState.ACTIVE]
 
         # Since we can't directly access sessions, just verify the session exists
         await session_manager.terminate_session(session_id)
