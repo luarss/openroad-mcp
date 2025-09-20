@@ -12,11 +12,7 @@ class CircularBuffer:
     """Thread-safe circular buffer for output management with automatic eviction."""
 
     def __init__(self, max_size: int = 128 * 1024) -> None:
-        """Initialize circular buffer with maximum size in bytes.
-
-        Args:
-            max_size: Maximum total size in bytes before eviction starts
-        """
+        """Initialize circular buffer with maximum size in bytes."""
         self.max_size = max_size
         self.chunks: deque[bytes] = deque()
         self.total_bytes = 0
@@ -26,11 +22,7 @@ class CircularBuffer:
         logger.debug(f"Created CircularBuffer with max_size={max_size} bytes")
 
     async def append(self, data: bytes) -> None:
-        """Add data to buffer, evicting oldest chunks if needed.
-
-        Args:
-            data: Bytes to add to the buffer
-        """
+        """Add data to buffer, evicting oldest chunks if needed."""
         if not data:
             return
 
@@ -64,11 +56,7 @@ class CircularBuffer:
                 self._data_available.clear()
 
     async def drain_all(self) -> list[bytes]:
-        """Remove and return all buffered data.
-
-        Returns:
-            List of byte chunks that were in the buffer
-        """
+        """Remove and return all buffered data."""
         async with self._lock:
             result = list(self.chunks)
             self.chunks.clear()
@@ -82,41 +70,22 @@ class CircularBuffer:
             return result
 
     async def peek_all(self) -> list[bytes]:
-        """Return all buffered data without removing it.
-
-        Returns:
-            List of byte chunks currently in the buffer
-        """
+        """Return all buffered data without removing it."""
         async with self._lock:
             return list(self.chunks)
 
     async def get_size(self) -> int:
-        """Get current buffer size in bytes.
-
-        Returns:
-            Current total size of buffered data
-        """
+        """Get current buffer size in bytes."""
         async with self._lock:
             return self.total_bytes
 
     async def get_chunk_count(self) -> int:
-        """Get number of chunks in buffer.
-
-        Returns:
-            Number of separate chunks stored
-        """
+        """Get number of chunks in buffer."""
         async with self._lock:
             return len(self.chunks)
 
     async def wait_for_data(self, timeout: float | None = None) -> bool:
-        """Wait for new data to be available.
-
-        Args:
-            timeout: Maximum time to wait in seconds
-
-        Returns:
-            True if data became available, False if timeout
-        """
+        """Wait for new data to be available."""
         try:
             await asyncio.wait_for(self._data_available.wait(), timeout=timeout)
         except TimeoutError:
@@ -136,29 +105,13 @@ class CircularBuffer:
                 logger.debug(f"Cleared {cleared_bytes} bytes from buffer")
 
     def to_bytes(self, chunks: list[bytes]) -> bytes:
-        """Convert list of chunks to single bytes object.
-
-        Args:
-            chunks: List of byte chunks to concatenate
-
-        Returns:
-            Concatenated bytes
-        """
+        """Convert list of chunks to single bytes object."""
         if not chunks:
             return b""
         return b"".join(chunks)
 
     def to_string(self, chunks: list[bytes], encoding: str = "utf-8", errors: str = "replace") -> str:
-        """Convert list of chunks to string with error handling.
-
-        Args:
-            chunks: List of byte chunks to convert
-            encoding: Text encoding to use
-            errors: How to handle encoding errors
-
-        Returns:
-            Decoded string
-        """
+        """Convert list of chunks to string with error handling."""
         if not chunks:
             return ""
 
@@ -166,11 +119,7 @@ class CircularBuffer:
         return combined.decode(encoding, errors=errors)
 
     async def get_stats(self) -> dict[str, int]:
-        """Get buffer statistics.
-
-        Returns:
-            Dictionary with buffer statistics
-        """
+        """Get buffer statistics."""
         async with self._lock:
             return {
                 "total_bytes": self.total_bytes,

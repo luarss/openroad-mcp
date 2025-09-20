@@ -18,13 +18,7 @@ class InteractiveSessionManager:
     def __init__(
         self, max_sessions: int = 10, default_timeout_ms: int = 10000, default_buffer_size: int = 128 * 1024
     ) -> None:
-        """Initialize session manager.
-
-        Args:
-            max_sessions: Maximum number of concurrent sessions
-            default_timeout_ms: Default timeout for command execution in milliseconds
-            default_buffer_size: Default buffer size for session output buffers in bytes
-        """
+        """Initialize session manager."""
         self._sessions: dict[str, InteractiveSession] = {}
         self._max_sessions = max_sessions
         self._default_timeout_ms = default_timeout_ms
@@ -41,21 +35,7 @@ class InteractiveSessionManager:
         cwd: str | None = None,
         buffer_size: int | None = None,
     ) -> str:
-        """Create a new interactive session.
-
-        Args:
-            session_id: Optional session ID, generated if not provided
-            command: Command to execute (defaults to OpenROAD)
-            env: Environment variables
-            cwd: Working directory
-            buffer_size: Buffer size for output buffer in bytes, uses default if not provided
-
-        Returns:
-            The session ID
-
-        Raises:
-            SessionError: If session limit exceeded or creation fails
-        """
+        """Create a new interactive session."""
         # Generate session ID if not provided
         if session_id is None:
             session_id = str(uuid.uuid4())[:8]
@@ -91,20 +71,7 @@ class InteractiveSessionManager:
     async def execute_command(
         self, session_id: str, command: str, timeout_ms: int | None = None
     ) -> InteractiveExecResult:
-        """Execute a command in the specified session.
-
-        Args:
-            session_id: Target session ID
-            command: Command to execute
-            timeout_ms: Timeout in milliseconds, uses default if not provided
-
-        Returns:
-            Execution result with output and metadata
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-            SessionTerminatedError: If session is not active
-        """
+        """Execute a command in the specified session."""
         session = self._get_session(session_id)
         actual_timeout = timeout_ms or self._default_timeout_ms
 
@@ -121,26 +88,12 @@ class InteractiveSessionManager:
             raise
 
     async def get_session_info(self, session_id: str) -> InteractiveSessionInfo:
-        """Get information about a specific session.
-
-        Args:
-            session_id: Target session ID
-
-        Returns:
-            Session information
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Get information about a specific session."""
         session = self._get_session(session_id)
         return await session.get_info()
 
     async def list_sessions(self) -> list[InteractiveSessionInfo]:
-        """List all sessions with their information.
-
-        Returns:
-            List of session information
-        """
+        """List all sessions with their information."""
         # Clean up terminated sessions first
         await self._cleanup_terminated_sessions()
 
@@ -155,15 +108,7 @@ class InteractiveSessionManager:
         return session_infos
 
     async def terminate_session(self, session_id: str, force: bool = False) -> None:
-        """Terminate a specific session.
-
-        Args:
-            session_id: Target session ID
-            force: Whether to force termination
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Terminate a specific session."""
         session = self._get_session(session_id)
 
         try:
@@ -180,14 +125,7 @@ class InteractiveSessionManager:
             raise
 
     async def terminate_all_sessions(self, force: bool = False) -> int:
-        """Terminate all sessions.
-
-        Args:
-            force: Whether to force termination
-
-        Returns:
-            Number of sessions terminated
-        """
+        """Terminate all sessions."""
         session_ids = list(self._sessions.keys())
         terminated_count = 0
 
@@ -202,91 +140,34 @@ class InteractiveSessionManager:
         return terminated_count
 
     async def inspect_session(self, session_id: str) -> dict:
-        """Get detailed session inspection data.
-
-        Args:
-            session_id: Target session ID
-
-        Returns:
-            Detailed session metrics and state
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Get detailed session inspection data."""
         session = self._get_session(session_id)
         return await session.get_detailed_metrics()
 
     async def get_session_history(
         self, session_id: str, limit: int | None = None, search: str | None = None
     ) -> list[dict]:
-        """Get command history for a session.
-
-        Args:
-            session_id: Target session ID
-            limit: Maximum number of commands to return
-            search: Optional search string to filter commands
-
-        Returns:
-            List of command history entries
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Get command history for a session."""
         session = self._get_session(session_id)
         return await session.get_command_history(limit, search)
 
     async def replay_command(self, session_id: str, command_number: int) -> str:
-        """Replay a command from session history.
-
-        Args:
-            session_id: Target session ID
-            command_number: Command number to replay
-
-        Returns:
-            The command string that was replayed
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Replay a command from session history."""
         session = self._get_session(session_id)
         return await session.replay_command(command_number)
 
     async def filter_session_output(self, session_id: str, pattern: str, max_lines: int = 1000) -> list[str]:
-        """Filter session output by pattern.
-
-        Args:
-            session_id: Target session ID
-            pattern: Regex pattern or simple string to search for
-            max_lines: Maximum number of lines to return
-
-        Returns:
-            List of matching lines
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Filter session output by pattern."""
         session = self._get_session(session_id)
         return await session.filter_output(pattern, max_lines)
 
     async def set_session_timeout(self, session_id: str, timeout_seconds: float) -> None:
-        """Set timeout for a session.
-
-        Args:
-            session_id: Target session ID
-            timeout_seconds: Timeout in seconds
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Set timeout for a session."""
         session = self._get_session(session_id)
         session.set_timeout(timeout_seconds)
 
     async def session_metrics(self) -> dict:
-        """Get comprehensive metrics for all sessions.
-
-        Returns:
-            Session manager and individual session metrics
-        """
+        """Get comprehensive metrics for all sessions."""
         await self._cleanup_terminated_sessions()
 
         total_sessions = len(self._sessions)
@@ -327,15 +208,7 @@ class InteractiveSessionManager:
         }
 
     async def cleanup_idle_sessions(self, idle_threshold_seconds: float = 300, force: bool = False) -> int:
-        """Clean up sessions that have been idle too long.
-
-        Args:
-            idle_threshold_seconds: Idle timeout threshold
-            force: Whether to force termination
-
-        Returns:
-            Number of sessions cleaned up
-        """
+        """Clean up sessions that have been idle too long."""
         cleaned_count = 0
         session_ids = list(self._sessions.keys())
 
@@ -352,11 +225,7 @@ class InteractiveSessionManager:
         return cleaned_count
 
     def get_resource_utilization(self) -> dict:
-        """Get current resource utilization statistics.
-
-        Returns:
-            Resource utilization metrics
-        """
+        """Get current resource utilization statistics."""
         active_count = self.get_active_session_count()
         total_count = self.get_session_count()
 
@@ -406,31 +275,14 @@ class InteractiveSessionManager:
         return len([s for s in self._sessions.values() if s.is_alive()])
 
     def _get_session(self, session_id: str) -> InteractiveSession:
-        """Get session by ID, raising error if not found.
-
-        Args:
-            session_id: Target session ID
-
-        Returns:
-            The session instance
-
-        Raises:
-            SessionNotFoundError: If session doesn't exist
-        """
+        """Get session by ID, raising error if not found."""
         if session_id not in self._sessions:
             raise SessionNotFoundError(f"Session {session_id} not found", session_id)
 
         return self._sessions[session_id]
 
     async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
-        """Clean up terminated sessions with graceful degradation.
-
-        Args:
-            force_cleanup_after_seconds: Force cleanup after this many seconds
-
-        Returns:
-            Number of sessions cleaned up
-        """
+        """Clean up terminated sessions with graceful degradation."""
         async with self._cleanup_lock:
             terminated_ids = []
             current_time = datetime.now()

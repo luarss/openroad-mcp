@@ -23,12 +23,7 @@ class InteractiveSession:
     """Manages a single PTY-based OpenROAD session with async I/O."""
 
     def __init__(self, session_id: str, buffer_size: int = 128 * 1024) -> None:
-        """Initialize interactive session.
-
-        Args:
-            session_id: Unique identifier for this session
-            buffer_size: Maximum size of output buffer in bytes
-        """
+        """Initialize interactive session."""
         self.session_id = session_id
         self.created_at = datetime.now()
         self.command_count = 0
@@ -67,13 +62,7 @@ class InteractiveSession:
         env: dict[str, str] | None = None,
         cwd: str | None = None,
     ) -> None:
-        """Start the OpenROAD session.
-
-        Args:
-            command: Command to execute (defaults to OpenROAD)
-            env: Environment variables
-            cwd: Working directory
-        """
+        """Start the OpenROAD session."""
         if self.state != SessionState.CREATING:
             raise SessionError(f"Cannot start session in state {self.state.value}", self.session_id)
 
@@ -99,11 +88,7 @@ class InteractiveSession:
             raise SessionError(f"Failed to start session: {e}", self.session_id) from e
 
     async def send_command(self, command: str) -> None:
-        """Send command to the session.
-
-        Args:
-            command: Command string to send
-        """
+        """Send command to the session."""
         if not self.is_alive():
             raise SessionTerminatedError(f"Session {self.session_id} is not active", self.session_id)
 
@@ -132,14 +117,7 @@ class InteractiveSession:
             raise SessionError(f"Failed to send command: {e}", self.session_id) from e
 
     async def read_output(self, timeout_ms: int = 1000) -> InteractiveExecResult:
-        """Collect output with timeout.
-
-        Args:
-            timeout_ms: Timeout in milliseconds
-
-        Returns:
-            Execution result with output and metadata
-        """
+        """Collect output with timeout."""
         if not self.is_alive():
             raise SessionTerminatedError(f"Session {self.session_id} is not active", self.session_id)
 
@@ -208,11 +186,7 @@ class InteractiveSession:
         return self.state == SessionState.ACTIVE and self.pty.is_process_alive()
 
     async def get_info(self) -> InteractiveSessionInfo:
-        """Get session information.
-
-        Returns:
-            Current session information
-        """
+        """Get session information."""
         uptime = (datetime.now() - self.created_at).total_seconds()
         buffer_size = await self.output_buffer.get_size()
 
@@ -227,11 +201,7 @@ class InteractiveSession:
         )
 
     async def terminate(self, force: bool = False) -> None:
-        """Terminate the session.
-
-        Args:
-            force: Whether to force termination
-        """
+        """Terminate the session."""
         if self.state == SessionState.TERMINATED:
             return
 
@@ -353,11 +323,7 @@ class InteractiveSession:
         self._exit_monitor_task = None
 
     async def get_detailed_metrics(self) -> dict:
-        """Get detailed performance and state metrics.
-
-        Returns:
-            Comprehensive session metrics dictionary
-        """
+        """Get detailed performance and state metrics."""
         await self._update_performance_metrics()
         uptime = (datetime.now() - self.created_at).total_seconds()
         idle_time = (datetime.now() - self.last_activity).total_seconds()
@@ -395,15 +361,7 @@ class InteractiveSession:
         }
 
     async def get_command_history(self, limit: int | None = None, search: str | None = None) -> list[dict]:
-        """Get command history with optional filtering.
-
-        Args:
-            limit: Maximum number of commands to return (most recent first)
-            search: Optional search string to filter commands
-
-        Returns:
-            List of command history entries
-        """
+        """Get command history with optional filtering."""
         history = self.command_history.copy()
 
         # Filter by search string if provided
@@ -420,14 +378,7 @@ class InteractiveSession:
         return history
 
     async def replay_command(self, command_number: int) -> str:
-        """Replay a command from history.
-
-        Args:
-            command_number: The command number to replay
-
-        Returns:
-            The command string that was replayed
-        """
+        """Replay a command from history."""
         # Find command by number
         for cmd in self.command_history:
             if cmd["command_number"] == command_number:
@@ -437,36 +388,17 @@ class InteractiveSession:
         raise SessionError(f"Command {command_number} not found in history", self.session_id)
 
     def set_timeout(self, timeout_seconds: float) -> None:
-        """Set session timeout.
-
-        Args:
-            timeout_seconds: Timeout in seconds, None to disable
-        """
+        """Set session timeout."""
         self.session_timeout_seconds = timeout_seconds
         logger.info(f"Set timeout for session {self.session_id}: {timeout_seconds}s")
 
     async def is_idle_timeout(self, idle_threshold_seconds: float = 300) -> bool:
-        """Check if session has been idle too long.
-
-        Args:
-            idle_threshold_seconds: Idle timeout threshold
-
-        Returns:
-            True if session is idle beyond threshold
-        """
+        """Check if session has been idle too long."""
         idle_time = (datetime.now() - self.last_activity).total_seconds()
         return idle_time > idle_threshold_seconds
 
     async def filter_output(self, pattern: str, max_lines: int = 1000) -> list[str]:
-        """Filter recent output by pattern.
-
-        Args:
-            pattern: Regex pattern or simple string to search for
-            max_lines: Maximum number of lines to return
-
-        Returns:
-            List of matching lines
-        """
+        """Filter recent output by pattern."""
         import re
 
         # Get recent buffer content

@@ -14,16 +14,7 @@ class InteractiveShellTool(BaseTool):
     """Tool for executing commands in interactive OpenROAD sessions."""
 
     async def execute(self, command: str, session_id: str | None = None, timeout_ms: int | None = None) -> str:
-        """Execute a command in an interactive session.
-
-        Args:
-            command: Command to execute
-            session_id: Session ID (creates new session if None)
-            timeout_ms: Timeout in milliseconds
-
-        Returns:
-            JSON result with execution output and metadata
-        """
+        """Execute a command in an interactive session."""
         try:
             interactive_manager = self.manager.interactive_manager
 
@@ -71,11 +62,7 @@ class ListSessionsTool(BaseTool):
     """Tool for listing interactive sessions."""
 
     async def execute(self) -> str:
-        """List all interactive sessions.
-
-        Returns:
-            JSON result with session list and statistics
-        """
+        """List all interactive sessions."""
         try:
             interactive_manager = self.manager.interactive_manager
             sessions = await interactive_manager.list_sessions()
@@ -120,17 +107,7 @@ class CreateSessionTool(BaseTool):
         env: dict[str, str] | None = None,
         cwd: str | None = None,
     ) -> str:
-        """Create a new interactive session.
-
-        Args:
-            session_id: Optional session ID
-            command: Optional command to execute
-            env: Optional environment variables
-            cwd: Optional working directory
-
-        Returns:
-            JSON result with session information
-        """
+        """Create a new interactive session."""
         try:
             interactive_manager = self.manager.interactive_manager
 
@@ -180,15 +157,7 @@ class TerminateSessionTool(BaseTool):
     """Tool for terminating interactive sessions."""
 
     async def execute(self, session_id: str, force: bool = False) -> str:
-        """Terminate an interactive session.
-
-        Args:
-            session_id: Session ID to terminate
-            force: Whether to force termination
-
-        Returns:
-            JSON result with termination status
-        """
+        """Terminate an interactive session."""
         try:
             interactive_manager = self.manager.interactive_manager
 
@@ -226,14 +195,7 @@ class InspectSessionTool(BaseTool):
     """Tool for detailed session introspection."""
 
     async def execute(self, session_id: str) -> str:
-        """Get detailed session inspection data.
-
-        Args:
-            session_id: Session ID to inspect
-
-        Returns:
-            JSON result with detailed session metrics and state
-        """
+        """Get detailed session inspection data."""
         try:
             interactive_manager = self.manager.interactive_manager
             metrics = await interactive_manager.inspect_session(session_id)
@@ -254,16 +216,7 @@ class SessionHistoryTool(BaseTool):
     """Tool for retrieving session command history."""
 
     async def execute(self, session_id: str, limit: int | None = None, search: str | None = None) -> str:
-        """Get command history for a session.
-
-        Args:
-            session_id: Session ID
-            limit: Maximum number of commands to return
-            search: Optional search string to filter commands
-
-        Returns:
-            JSON result with command history
-        """
+        """Get command history for a session."""
         try:
             interactive_manager = self.manager.interactive_manager
             history = await interactive_manager.get_session_history(session_id, limit, search)
@@ -292,11 +245,7 @@ class SessionMetricsTool(BaseTool):
     """Tool for retrieving comprehensive session metrics."""
 
     async def execute(self) -> str:
-        """Get comprehensive metrics for all sessions.
-
-        Returns:
-            JSON result with session manager and individual session metrics
-        """
+        """Get comprehensive metrics for all sessions."""
         try:
             interactive_manager = self.manager.interactive_manager
             metrics = await interactive_manager.session_metrics()
