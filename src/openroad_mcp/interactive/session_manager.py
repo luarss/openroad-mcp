@@ -19,7 +19,7 @@ class InteractiveSessionManager:
         self, max_sessions: int = 10, default_timeout_ms: int = 10000, default_buffer_size: int = 128 * 1024
     ) -> None:
         """Initialize session manager."""
-        self._sessions: dict[str, InteractiveSession] = {}
+        self._sessions: dict[str, InteractiveSession | None] = {}
         self._max_sessions = max_sessions
         self._default_timeout_ms = default_timeout_ms
         self._default_buffer_size = default_buffer_size
@@ -40,31 +40,43 @@ class InteractiveSessionManager:
         if session_id is None:
             session_id = str(uuid.uuid4())[:8]
 
-        # Check if session already exists
-        if session_id in self._sessions:
-            raise SessionError(f"Session {session_id} already exists", session_id)
-
         # Atomically check session limit and create session to prevent TOCTOU race
         async with self._cleanup_lock:
             await self._cleanup_terminated_sessions()
-            active_count = len([s for s in self._sessions.values() if s.is_alive()])
+
+            # Check if session already exists while holding the lock
+            if session_id in self._sessions:
+                raise SessionError(f"Session {session_id} already exists", session_id)
+
+            # Count active sessions while holding the lock to prevent races
+            # Filter out None placeholders when counting
+            active_count = len([s for s in self._sessions.values() if s is not None and s.is_alive()])
             if active_count >= self._max_sessions:
                 raise SessionError(
-                    f"Maximum session limit reached ({self._max_sessions}). Currently {active_count} active sessions."
+                    f"Maximum session limit reached ({self._max_sessions}). Currently {active_count} active sessions.",
+                    session_id,
                 )
 
+            # Reserve the slot immediately to prevent TOCTOU
+            # Use None as placeholder to indicate slot is being created
+            self._sessions[session_id] = None
+
             try:
-                # Create and start session
+                # Create and start session outside the dict but within the lock
                 actual_buffer_size = buffer_size or self._default_buffer_size
                 session = InteractiveSession(session_id, buffer_size=actual_buffer_size)
                 await session.start(command, env, cwd)
 
+                # Replace placeholder with actual session
                 self._sessions[session_id] = session
                 logger.info(f"Created session {session_id}, total sessions: {len(self._sessions)}")
 
                 return session_id
 
             except Exception as e:
+                # Remove placeholder on failure
+                if session_id in self._sessions:
+                    del self._sessions[session_id]
                 logger.exception(f"Failed to create session {session_id}")
                 raise SessionError(f"Failed to create session: {e}", session_id) from e
 
@@ -99,6 +111,9 @@ class InteractiveSessionManager:
 
         session_infos = []
         for session in self._sessions.values():
+            # Skip None placeholders (sessions being created)
+            if session is None:
+                continue
             try:
                 info = await session.get_info()
                 session_infos.append(info)
@@ -181,6 +196,9 @@ class InteractiveSessionManager:
         total_memory_mb = 0.0
 
         for session in self._sessions.values():
+            # Skip None placeholders
+            if session is None:
+                continue
             try:
                 metrics = await session.get_detailed_metrics()
                 session_details.append(metrics)
@@ -215,6 +233,9 @@ class InteractiveSessionManager:
         for session_id in session_ids:
             try:
                 session = self._sessions[session_id]
+                # Skip None placeholders
+                if session is None:
+                    continue
                 if await session.is_idle_timeout(idle_threshold_seconds):
                     await self.terminate_session(session_id, force)
                     cleaned_count += 1
@@ -253,6 +274,9 @@ class InteractiveSessionManager:
             # Final cleanup of any remaining sessions
             async with self._cleanup_lock:
                 for session in list(self._sessions.values()):
+                    # Skip None placeholders
+                    if session is None:
+                        continue
                     try:
                         await session.cleanup()
                     except Exception as e:
@@ -272,14 +296,18 @@ class InteractiveSessionManager:
 
     def get_active_session_count(self) -> int:
         """Get the number of active sessions."""
-        return len([s for s in self._sessions.values() if s.is_alive()])
+        return len([s for s in self._sessions.values() if s is not None and s.is_alive()])
 
     def _get_session(self, session_id: str) -> InteractiveSession:
-        """Get session by ID, raising error if not found."""
+        """Get session by ID, raising error if not found or still being created."""
         if session_id not in self._sessions:
             raise SessionNotFoundError(f"Session {session_id} not found", session_id)
 
-        return self._sessions[session_id]
+        session = self._sessions[session_id]
+        if session is None:
+            raise SessionError(f"Session {session_id} is still being created", session_id)
+
+        return session
 
     async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
         """Clean up terminated sessions with graceful degradation."""
@@ -288,6 +316,9 @@ class InteractiveSessionManager:
             current_time = datetime.now()
 
             for session_id, session in self._sessions.items():
+                # Skip None placeholders
+                if session is None:
+                    continue
                 if not session.is_alive():
                     # Check if session has been dead long enough for forced cleanup
                     time_since_death = (current_time - session.last_activity).total_seconds()
@@ -301,6 +332,12 @@ class InteractiveSessionManager:
             for session_id, force_cleanup in terminated_ids:
                 try:
                     session = self._sessions[session_id]
+                    # Skip None placeholders in cleanup
+                    if session is None:
+                        del self._sessions[session_id]
+                        cleaned_count += 1
+                        continue
+
                     if force_cleanup:
                         logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
                         await session.cleanup()

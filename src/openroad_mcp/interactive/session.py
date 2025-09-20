@@ -56,6 +56,16 @@ class InteractiveSession:
 
         logger.info(f"Created interactive session {session_id}")
 
+    async def __aenter__(self) -> "InteractiveSession":
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object
+    ) -> None:
+        """Async context manager exit with guaranteed cleanup."""
+        await self.cleanup()
+
     async def start(
         self,
         command: list[str] | None = None,
@@ -249,7 +259,7 @@ class InteractiveSession:
                         await self.output_buffer.append(data)
                     else:
                         # No data, wait briefly
-                        await asyncio.sleep(0.005)  # 5ms polling
+                        await asyncio.sleep(0.1)
 
                 except PTYError as e:
                     logger.warning(f"PTY read error in session {self.session_id}: {e}")
@@ -302,22 +312,39 @@ class InteractiveSession:
             logger.debug(f"Exit monitor ended for session {self.session_id}")
 
     async def _wait_for_tasks(self) -> None:
-        """Wait for all background tasks to complete."""
+        """Wait for all background tasks to complete with proper error handling."""
         tasks = [self._reader_task, self._writer_task, self._exit_monitor_task]
         active_tasks = [task for task in tasks if task and not task.done()]
 
-        if active_tasks:
-            # Cancel tasks
-            for task in active_tasks:
+        if not active_tasks:
+            self._reset_task_references()
+            return
+
+        # Cancel all tasks first
+        for task in active_tasks:
+            if not task.cancelled():
                 task.cancel()
 
-            # Wait for cancellation with timeout
-            try:
-                await asyncio.wait_for(asyncio.gather(*active_tasks, return_exceptions=True), timeout=2.0)
-            except TimeoutError:
-                logger.warning(f"Timeout waiting for tasks to complete in session {self.session_id}")
+        # Wait for all tasks with proper error handling
+        try:
+            results = await asyncio.wait_for(asyncio.gather(*active_tasks, return_exceptions=True), timeout=5.0)
 
-        # Reset task references
+            # Log any unexpected exceptions (cancellation is expected)
+            for i, result in enumerate(results):
+                if isinstance(result, Exception) and not isinstance(result, asyncio.CancelledError):
+                    task_name = ["reader", "writer", "exit_monitor"][i]
+                    logger.warning(f"Task {task_name} failed during cleanup in session {self.session_id}: {result}")
+
+        except TimeoutError:
+            logger.error(f"Critical: Tasks failed to complete within 5s in session {self.session_id}")
+            # Force reset even on timeout to prevent resource leaks
+        except Exception as e:
+            logger.error(f"Unexpected error during task cleanup in session {self.session_id}: {e}")
+
+        self._reset_task_references()
+
+    def _reset_task_references(self) -> None:
+        """Reset all task references."""
         self._reader_task = None
         self._writer_task = None
         self._exit_monitor_task = None

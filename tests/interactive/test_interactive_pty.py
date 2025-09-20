@@ -311,18 +311,19 @@ class TestPTYHandler:
         assert pty_handler.slave_fd is None
 
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    async def test_destructor_cleanup(self, mock_close):
-        """Test cleanup in destructor."""
-        # Create handler directly (not via fixture) to test destructor
+    async def test_explicit_cleanup(self, mock_close):
+        """Test explicit cleanup of file descriptors."""
         handler = PTYHandler()
         handler.master_fd = 10
         handler.slave_fd = 11
 
-        # Trigger destructor
-        del handler
+        # Explicitly call cleanup
+        await handler.cleanup()
 
         # Should attempt to close file descriptors
         assert mock_close.call_count == 2
+        assert handler.master_fd is None
+        assert handler.slave_fd is None
 
 
 @pytest.mark.asyncio

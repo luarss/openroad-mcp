@@ -22,6 +22,16 @@ class PTYHandler:
         self.process: asyncio.subprocess.Process | None = None
         self._original_attrs: list | None = None
 
+    async def __aenter__(self) -> "PTYHandler":
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object
+    ) -> None:
+        """Async context manager exit with guaranteed cleanup."""
+        await self.cleanup()
+
     async def create_session(
         self,
         command: list[str],
@@ -109,41 +119,42 @@ class PTYHandler:
             raise PTYError(f"Failed to configure terminal: {e}") from e
 
     async def write_input(self, data: bytes) -> None:
-        """Write data to PTY master (goes to process stdin)."""
+        """Write data to PTY master (goes to process stdin).
+
+        Uses direct write to non-blocking file descriptor for optimal performance.
+        """
         if self.master_fd is None:
             raise PTYError("Cannot write: master_fd is None")
 
         try:
-            # Use asyncio thread pool for blocking write
-            def _write() -> int:
-                assert self.master_fd is not None  # Already checked above
-                return os.write(self.master_fd, data)
-
-            await asyncio.to_thread(_write)
-            logger.debug(f"Wrote {len(data)} bytes to PTY")
+            # Direct write to non-blocking FD
+            bytes_written = os.write(self.master_fd, data)
+            if bytes_written != len(data):
+                logger.warning(f"Partial write: {bytes_written}/{len(data)} bytes")
+            logger.debug(f"Wrote {bytes_written} bytes to PTY")
 
         except (OSError, BrokenPipeError) as e:
             raise PTYError(f"Failed to write to PTY: {e}") from e
 
     async def read_output(self, size: int = 8192) -> bytes | None:
-        """Read data from PTY master (process output)."""
+        """Read data from PTY master (process output).
+
+        Uses direct read from non-blocking file descriptor instead of thread pools
+        for better performance and proper async I/O patterns.
+        """
         if self.master_fd is None:
             raise PTYError("Cannot read: master_fd is None")
 
         try:
-            # Use asyncio thread pool for blocking read
-            def _read() -> bytes | None:
-                try:
-                    assert self.master_fd is not None  # Already checked above
-                    return os.read(self.master_fd, size)
-                except BlockingIOError:
-                    return None
-
-            data = await asyncio.to_thread(_read)
+            # Direct read from non-blocking FD - no threading needed
+            data = os.read(self.master_fd, size)
             if data:
                 logger.debug(f"Read {len(data)} bytes from PTY")
             return data
 
+        except BlockingIOError:
+            # No data available right now (expected with non-blocking I/O)
+            return None
         except OSError as e:
             if e.errno == errno.EIO:  # EIO - process terminated
                 logger.debug("PTY read failed: process terminated")
@@ -233,15 +244,3 @@ class PTYHandler:
         self._original_attrs = None
 
         logger.debug("PTY handler cleanup completed")
-
-    def __del__(self) -> None:
-        """Ensure cleanup on garbage collection."""
-        # Note: We can't use async cleanup in __del__
-        # This is best-effort synchronous cleanup
-        if self.master_fd is not None or self.slave_fd is not None:
-            for fd in [self.master_fd, self.slave_fd]:
-                if fd is not None:
-                    try:
-                        os.close(fd)
-                    except OSError:
-                        pass

@@ -1,6 +1,7 @@
 """Circular buffer for efficient output management with memory bounds."""
 
 import asyncio
+import threading
 from collections import deque
 
 from ..utils.logging import get_logger
@@ -9,14 +10,22 @@ logger = get_logger("circular_buffer")
 
 
 class CircularBuffer:
-    """Thread-safe circular buffer for output management with automatic eviction."""
+    """Thread-safe circular buffer for output management with automatic eviction.
+
+    Uses dual locking strategy:
+    - asyncio.Lock for async operations within the same event loop
+    - threading.RLock for synchronous access from any thread
+
+    This ensures true thread safety when accessed from both async and sync contexts.
+    """
 
     def __init__(self, max_size: int = 128 * 1024) -> None:
         """Initialize circular buffer with maximum size in bytes."""
         self.max_size = max_size
         self.chunks: deque[bytes] = deque()
         self.total_bytes = 0
-        self._lock = asyncio.Lock()
+        self._async_lock = asyncio.Lock()
+        self._thread_lock = threading.RLock()
         self._data_available = asyncio.Event()
 
         logger.debug(f"Created CircularBuffer with max_size={max_size} bytes")
@@ -26,7 +35,10 @@ class CircularBuffer:
         if not data:
             return
 
-        async with self._lock:
+        async with self._async_lock:
+            if self.max_size == 0:
+                return
+
             # Add new chunk
             self.chunks.append(data)
             self.total_bytes += len(data)
@@ -39,13 +51,6 @@ class CircularBuffer:
                 self.total_bytes -= old_size
                 evicted_bytes += old_size
 
-            # Special case: if single chunk exceeds max_size and max_size > 0, keep it anyway
-            # If max_size is 0, evict everything
-            if self.max_size == 0 and self.chunks:
-                evicted_chunk = self.chunks.popleft()
-                self.total_bytes -= len(evicted_chunk)
-                evicted_bytes += len(evicted_chunk)
-
             if evicted_bytes > 0:
                 logger.debug(f"Evicted {evicted_bytes} bytes, buffer now {self.total_bytes} bytes")
 
@@ -57,7 +62,7 @@ class CircularBuffer:
 
     async def drain_all(self) -> list[bytes]:
         """Remove and return all buffered data."""
-        async with self._lock:
+        async with self._async_lock:
             result = list(self.chunks)
             self.chunks.clear()
             self.total_bytes = 0
@@ -71,17 +76,17 @@ class CircularBuffer:
 
     async def peek_all(self) -> list[bytes]:
         """Return all buffered data without removing it."""
-        async with self._lock:
+        async with self._async_lock:
             return list(self.chunks)
 
     async def get_size(self) -> int:
         """Get current buffer size in bytes."""
-        async with self._lock:
+        async with self._async_lock:
             return self.total_bytes
 
     async def get_chunk_count(self) -> int:
         """Get number of chunks in buffer."""
-        async with self._lock:
+        async with self._async_lock:
             return len(self.chunks)
 
     async def wait_for_data(self, timeout: float | None = None) -> bool:
@@ -95,7 +100,7 @@ class CircularBuffer:
 
     async def clear(self) -> None:
         """Clear all buffered data."""
-        async with self._lock:
+        async with self._async_lock:
             cleared_bytes = self.total_bytes
             self.chunks.clear()
             self.total_bytes = 0
@@ -120,7 +125,7 @@ class CircularBuffer:
 
     async def get_stats(self) -> dict[str, int]:
         """Get buffer statistics."""
-        async with self._lock:
+        async with self._async_lock:
             return {
                 "total_bytes": self.total_bytes,
                 "chunk_count": len(self.chunks),
@@ -129,9 +134,11 @@ class CircularBuffer:
             }
 
     def __len__(self) -> int:
-        """Get current buffer size (synchronous)."""
-        return self.total_bytes
+        """Get current buffer size (thread-safe)."""
+        with self._thread_lock:
+            return self.total_bytes
 
     def __bool__(self) -> bool:
-        """Check if buffer has data (synchronous)."""
-        return self.total_bytes > 0
+        """Check if buffer has data (thread-safe)."""
+        with self._thread_lock:
+            return self.total_bytes > 0
