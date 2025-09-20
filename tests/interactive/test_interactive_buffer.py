@@ -7,6 +7,7 @@ import pytest
 from openroad_mcp.interactive.buffer import CircularBuffer
 
 
+@pytest.mark.asyncio
 class TestCircularBuffer:
     """Test suite for CircularBuffer."""
 

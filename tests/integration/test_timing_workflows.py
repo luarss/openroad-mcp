@@ -10,6 +10,7 @@ import pytest
 from openroad_mcp.interactive.session_manager import InteractiveSessionManager as SessionManager
 
 
+@pytest.mark.asyncio
 class TestTimingAnalysisWorkflows:
     """Integration tests for timing analysis workflows."""
 

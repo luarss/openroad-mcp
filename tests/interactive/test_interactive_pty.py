@@ -13,6 +13,7 @@ from openroad_mcp.interactive.pty_handler import PTYHandler
 skip_fd_issues = pytest.mark.skip(reason="Temporarily disabled due to file descriptor issues in test environment")
 
 
+@pytest.mark.asyncio
 class TestPTYHandler:
     """Test suite for PTYHandler."""
 

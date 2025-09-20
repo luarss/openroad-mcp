@@ -15,6 +15,7 @@ from openroad_mcp.interactive.session import InteractiveSession
 skip_fd_issues = pytest.mark.skip(reason="Temporarily disabled due to file descriptor issues in test environment")
 
 
+@pytest.mark.asyncio
 class TestInteractiveSession:
     """Test suite for InteractiveSession."""
 

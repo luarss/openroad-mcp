@@ -10,6 +10,7 @@ from openroad_mcp.interactive.buffer import CircularBuffer
 from openroad_mcp.interactive.session_manager import InteractiveSessionManager as SessionManager
 
 
+@pytest.mark.asyncio
 class TestPerformanceBenchmarks:
     """Performance benchmark tests."""
 

@@ -66,6 +66,7 @@ class MemoryMonitor:
         print(f"  Duration: {diff['duration']:.2f}s")
 
 
+@pytest.mark.asyncio
 class TestMemoryLeakDetection:
     """Test suite for memory leak detection."""
 

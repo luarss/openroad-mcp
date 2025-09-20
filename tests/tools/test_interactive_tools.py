@@ -16,6 +16,7 @@ from openroad_mcp.tools.interactive import (
 )
 
 
+@pytest.mark.asyncio
 class TestInteractiveShellTool:
     """Test suite for InteractiveShellTool."""
 
