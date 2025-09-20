@@ -5,7 +5,14 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from ..core.manager import OpenROADManager
-from ..core.models import CommandResult, ContextInfo, ProcessStatus
+from ..core.models import (
+    CommandResult,
+    ContextInfo,
+    InteractiveExecResult,
+    InteractiveSessionInfo,
+    InteractiveSessionListResult,
+    ProcessStatus,
+)
 
 
 class BaseTool(ABC):
@@ -19,7 +26,18 @@ class BaseTool(ABC):
         """Execute the tool and return JSON result."""
         pass
 
-    def _format_result(self, result: CommandResult | ProcessStatus | ContextInfo | dict[str, Any]) -> str:
+    def _format_result(
+        self,
+        result: (
+            CommandResult
+            | ProcessStatus
+            | ContextInfo
+            | InteractiveExecResult
+            | InteractiveSessionInfo
+            | InteractiveSessionListResult
+            | dict[str, Any]
+        ),
+    ) -> str:
         """Format result as JSON string."""
         if hasattr(result, "model_dump"):
             return json.dumps(result.model_dump(), indent=2)

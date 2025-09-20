@@ -19,13 +19,21 @@ make sync
 
 ### Testing
 ```bash
-# Run all tests
+# Run core tests (recommended - excludes PTY tests that may fail in some environments)
 make test
+
+# Run interactive PTY tests separately (may have file descriptor issues in CI)
+make test-interactive
+
+# Run all tests including potentially problematic PTY tests
+make test-all
 
 # Format and check code
 make format
 make check
 ```
+
+**Note**: Interactive PTY tests are separated because they may experience file descriptor issues in certain environments (containers, CI systems). The core functionality tests (`make test`) provide comprehensive coverage of the MCP integration without these environment-specific issues.
 
 ### MCP Inspector
 ```bash

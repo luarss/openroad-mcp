@@ -1,0 +1,77 @@
+# Git and version control
+.git
+.gitignore
+.github
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Development tools cache
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+.envrc
+
+# Test and development files
+*.test
+
+# Documentation
+
+# Development configuration
+.pre-commit-config.yaml
+
+# Lock files (include uv.lock for reproducible builds)
+# uv.lock
+
+# Project specific
+claude/
+.claude
+claude_code_server.py
+mcp.json
+or-plan.md
+orfs-plan.md
+GEMINI.md
+
+# Dockerfile itself
+Dockerfile*
+.dockerignore

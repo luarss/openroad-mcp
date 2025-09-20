@@ -1,8 +1,10 @@
 """Data models for OpenROAD MCP server."""
 
 from enum import Enum
+from typing import Annotated
 
 from pydantic import BaseModel, Field
+from pydantic.functional_serializers import PlainSerializer
 
 
 class ProcessState(Enum):
@@ -12,6 +14,19 @@ class ProcessState(Enum):
     STARTING = "starting"
     RUNNING = "running"
     ERROR = "error"
+
+
+class SessionState(Enum):
+    """Interactive session states."""
+
+    CREATING = "creating"
+    ACTIVE = "active"
+    TERMINATED = "terminated"
+    ERROR = "error"
+
+
+# Type alias for SessionState that serializes to string value
+SerializableSessionState = Annotated[SessionState, PlainSerializer(lambda x: x.value if x else None, return_type=str)]
 
 
 class CommandRecord(BaseModel):
@@ -52,3 +67,34 @@ class ContextInfo(BaseModel):
     recent_stderr: list[str] = Field(default_factory=list)
     command_count: int = 0
     last_commands: list[CommandRecord] = Field(default_factory=list)
+
+
+class InteractiveSessionInfo(BaseModel):
+    """Information about an interactive session for MCP tools."""
+
+    session_id: str
+    created_at: str
+    is_alive: bool
+    command_count: int
+    buffer_size: int
+    uptime_seconds: float | None = None
+    state: SerializableSessionState | None = None
+
+
+class InteractiveExecResult(BaseModel):
+    """Result from interactive command execution for MCP tools."""
+
+    output: str
+    session_id: str | None
+    timestamp: str
+    execution_time: float
+    command_count: int = 0
+    buffer_size: int = 0
+
+
+class InteractiveSessionListResult(BaseModel):
+    """Result containing list of interactive sessions."""
+
+    sessions: list[InteractiveSessionInfo] = Field(default_factory=list)
+    total_count: int = 0
+    active_count: int = 0
