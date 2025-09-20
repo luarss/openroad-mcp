@@ -40,7 +40,7 @@ class TestInteractiveSession:
         info = await session.get_info()
 
         assert info.session_id == "test-session-1"
-        assert info.state == SessionState.CREATING
+        assert info.state == SessionState.CREATING.value
         assert not info.is_alive
         assert info.command_count == 0
         assert info.buffer_size == 0
@@ -90,7 +90,9 @@ class TestInteractiveSession:
     async def test_send_command(self, mock_pty_class, session):
         """Test sending commands to session."""
         # Setup mock
-        mock_pty = AsyncMock()
+        from unittest.mock import MagicMock
+
+        mock_pty = MagicMock()
         mock_pty.is_process_alive.return_value = True
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
@@ -117,7 +119,9 @@ class TestInteractiveSession:
     async def test_read_output_timeout(self, mock_pty_class, session):
         """Test reading output with timeout."""
         # Setup mock
-        mock_pty = AsyncMock()
+        from unittest.mock import MagicMock
+
+        mock_pty = MagicMock()
         mock_pty.is_process_alive.return_value = True
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
@@ -145,15 +149,18 @@ class TestInteractiveSession:
     async def test_session_termination(self, mock_pty_class, session):
         """Test session termination."""
         # Setup mock
-        mock_pty = AsyncMock()
+        from unittest.mock import MagicMock
+
+        mock_pty = MagicMock()
         mock_pty.is_process_alive.return_value = True
+        mock_pty.terminate_process = AsyncMock()
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
-        # Create mock tasks
-        session._reader_task = AsyncMock()
-        session._writer_task = AsyncMock()
-        session._exit_monitor_task = AsyncMock()
+        # Create mock tasks - set to None so they're not considered active
+        session._reader_task = None
+        session._writer_task = None
+        session._exit_monitor_task = None
 
         # Terminate session
         await session.terminate(force=False)
@@ -166,7 +173,11 @@ class TestInteractiveSession:
     async def test_session_cleanup(self, mock_pty_class, session):
         """Test session cleanup."""
         # Setup mock
-        mock_pty = AsyncMock()
+        from unittest.mock import MagicMock
+
+        mock_pty = MagicMock()
+        mock_pty.cleanup = AsyncMock()
+        mock_pty.is_process_alive.return_value = False
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
