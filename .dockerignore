@@ -53,12 +53,9 @@ Thumbs.db
 .envrc
 
 # Test and development files
-tests/
 *.test
 
 # Documentation
-*.md
-docs/
 
 # Development configuration
 .pre-commit-config.yaml
@@ -68,10 +65,7 @@ docs/
 
 # Project specific
 claude/
-orfs_work/
-gcd_timing_checkpoints/
 .claude
-SHELL_TOOLS_ARCHITECTURE.md
 claude_code_server.py
 mcp.json
 or-plan.md

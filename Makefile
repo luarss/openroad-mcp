@@ -28,7 +28,7 @@ check:
 .PHONY: test
 test:
 	@echo "Running core tests..."
-	@uv run pytest --ignore=tests/interactive --ignore=tests/performance
+	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration
 
 .PHONY: test-interactive
 test-interactive:
@@ -39,7 +39,7 @@ test-interactive:
 test-integration:
 	@echo "Running integration tests for timing workflows..."
 	@docker build -f Dockerfile.test -t openroad-mcp-test .
-	@docker run --rm -v $(PWD):/app openroad-mcp-test bash -c "uv sync --all-extras --inexact && uv run pytest tests/integration/test_timing_workflows.py"
+	@docker run --rm openroad-mcp-test uv run pytest tests/integration/test_timing_workflows.py
 
 .PHONY: test-tools
 test-tools:
