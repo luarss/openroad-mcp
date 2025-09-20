@@ -22,7 +22,7 @@ class TestPTYHandler:
         """Create a test PTY handler."""
         return PTYHandler()
 
-    def test_pty_handler_initialization(self, pty_handler):
+    async def test_pty_handler_initialization(self, pty_handler):
         """Test PTY handler initialization."""
         assert pty_handler.master_fd is None
         assert pty_handler.slave_fd is None
@@ -168,11 +168,11 @@ class TestPTYHandler:
         with pytest.raises(PTYError, match="Cannot read: master_fd is None"):
             await pty_handler.read_output()
 
-    def test_is_process_alive_no_process(self, pty_handler):
+    async def test_is_process_alive_no_process(self, pty_handler):
         """Test is_process_alive when no process."""
         assert not pty_handler.is_process_alive()
 
-    def test_is_process_alive_with_process(self, pty_handler):
+    async def test_is_process_alive_with_process(self, pty_handler):
         """Test is_process_alive with mock process."""
         mock_process = MagicMock()
         mock_process.returncode = None  # Still running
