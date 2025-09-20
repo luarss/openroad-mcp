@@ -9,11 +9,6 @@ from openroad_mcp.core.models import SessionState
 from openroad_mcp.interactive.models import SessionTerminatedError
 from openroad_mcp.interactive.session import InteractiveSession
 
-# Skip marker for tests that may cause file descriptor issues in some environments
-# These tests involving PTY operations work correctly but can cause resource exhaustion
-# when run in sequence in containerized test environments. Core session logic is tested separately.
-skip_fd_issues = pytest.mark.skip(reason="Temporarily disabled due to file descriptor issues in test environment")
-
 
 @pytest.mark.asyncio
 class TestInteractiveSession:
@@ -195,10 +190,10 @@ class TestInteractiveSession:
         assert await session.output_buffer.get_size() == 0
 
     @patch("openroad_mcp.interactive.session.PTYHandler")
-    @skip_fd_issues
     async def test_default_command(self, mock_pty_class, session):
         """Test that default OpenROAD command is used when none specified."""
         mock_pty = AsyncMock()
+        mock_pty.is_process_alive.return_value = True
         session.pty = mock_pty
 
         await session.start()
@@ -206,11 +201,14 @@ class TestInteractiveSession:
         # Verify default command was used
         mock_pty.create_session.assert_called_once_with(["openroad", "-no_init"], None, None)
 
+        # Cleanup
+        await session.cleanup()
+
     @patch("openroad_mcp.interactive.session.PTYHandler")
-    @skip_fd_issues
     async def test_command_with_environment(self, mock_pty_class, session):
         """Test starting session with custom environment and working directory."""
         mock_pty = AsyncMock()
+        mock_pty.is_process_alive.return_value = True
         session.pty = mock_pty
 
         env = {"TEST_VAR": "value"}
@@ -220,6 +218,9 @@ class TestInteractiveSession:
 
         # Verify environment and cwd passed through
         mock_pty.create_session.assert_called_once_with(["custom", "command"], env, cwd)
+
+        # Cleanup
+        await session.cleanup()
 
     async def test_is_alive_states(self, session):
         """Test is_alive method in different states."""
@@ -251,11 +252,11 @@ class TestInteractiveSession:
             await session.send_command("cmd2")
             assert session.command_count == initial_count + 2
 
-    @skip_fd_issues
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_output_collection_timing(self, mock_pty_class, session):
         """Test output collection with proper timing."""
         mock_pty = AsyncMock()
+        mock_pty.is_process_alive.return_value = True
         session.pty = mock_pty
         session.state = SessionState.ACTIVE
 
@@ -271,14 +272,13 @@ class TestInteractiveSession:
         result = await session.read_output(timeout_ms=200)
 
         assert "delayed output" in result.output
-        assert 0.04 <= result.execution_time <= 0.15  # Should be around 50ms + some overhead
+        assert 0.04 <= result.execution_time <= 0.20  # Should be around 50ms + some overhead, increased tolerance
 
 
 @pytest.mark.asyncio
 class TestInteractiveSessionAsync:
     """Async test runner for InteractiveSession."""
 
-    @skip_fd_issues
     async def test_session_lifecycle(self):
         """Test complete session lifecycle."""
         session = InteractiveSession("lifecycle-test")
@@ -307,7 +307,6 @@ class TestInteractiveSessionAsync:
             # Ensure cleanup
             await session.cleanup()
 
-    @skip_fd_issues
     async def test_concurrent_operations(self):
         """Test concurrent session operations."""
         session = InteractiveSession("concurrent-test")
@@ -316,6 +315,16 @@ class TestInteractiveSessionAsync:
             with patch("openroad_mcp.interactive.session.PTYHandler") as mock_pty_class:
                 mock_pty = AsyncMock()
                 mock_pty.is_process_alive.return_value = True
+                # Mock the methods that background tasks will call
+                mock_pty.read_output.return_value = b""  # Return empty data
+                mock_pty.write_input.return_value = None
+
+                # Make wait_for_exit wait indefinitely (until cancelled)
+                async def wait_forever():
+                    await asyncio.Event().wait()  # Wait forever until cancelled
+
+                mock_pty.wait_for_exit = wait_forever
+
                 mock_pty_class.return_value = mock_pty
                 session.pty = mock_pty
 

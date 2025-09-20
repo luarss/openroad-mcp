@@ -20,7 +20,12 @@ class TestPTYHandler:
     @pytest.fixture
     def pty_handler(self):
         """Create a test PTY handler."""
-        return PTYHandler()
+        handler = PTYHandler()
+        yield handler
+        # Ensure cleanup - reset any file descriptors to None to prevent destructor issues
+        handler.master_fd = None
+        handler.slave_fd = None
+        handler.process = None
 
     async def test_pty_handler_initialization(self, pty_handler):
         """Test PTY handler initialization."""
@@ -34,9 +39,10 @@ class TestPTYHandler:
     @patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr")
     @patch("openroad_mcp.interactive.pty_handler.fcntl.fcntl")
     @patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec")
-    @skip_fd_issues
+    @patch("openroad_mcp.interactive.pty_handler.os.close")
     async def test_create_session_success(
         self,
+        mock_os_close,
         mock_subprocess,
         mock_fcntl,
         mock_tcsetattr,
@@ -51,7 +57,7 @@ class TestPTYHandler:
         mock_tcgetattr.return_value = [0, 0, 0, 0, 0, 0]  # Mock termios attrs
         mock_fcntl.return_value = 0
 
-        mock_process = AsyncMock()
+        mock_process = MagicMock()
         mock_process.pid = 12345
         mock_subprocess.return_value = mock_process
 
@@ -61,7 +67,10 @@ class TestPTYHandler:
         # Verify PTY creation
         mock_openpty.assert_called_once()
         assert pty_handler.master_fd == 10
-        assert pty_handler.slave_fd == 11
+        assert pty_handler.slave_fd is None  # Should be closed in parent
+
+        # Verify slave FD was closed
+        mock_os_close.assert_called_once_with(11)
 
         # Verify terminal configuration
         mock_tcgetattr.assert_called_with(11)
@@ -82,7 +91,6 @@ class TestPTYHandler:
         assert pty_handler.process == mock_process
 
     @patch("openroad_mcp.interactive.pty_handler.pty.openpty")
-    @skip_fd_issues
     async def test_create_session_pty_failure(self, mock_openpty, pty_handler):
         """Test PTY creation failure handling."""
         mock_openpty.side_effect = OSError("PTY creation failed")
@@ -92,8 +100,10 @@ class TestPTYHandler:
 
     @patch("openroad_mcp.interactive.pty_handler.pty.openpty")
     @patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr")
-    @skip_fd_issues
-    async def test_create_session_terminal_config_failure(self, mock_tcgetattr, mock_openpty, pty_handler):
+    @patch("openroad_mcp.interactive.pty_handler.os.close")
+    async def test_create_session_terminal_config_failure(
+        self, mock_os_close, mock_tcgetattr, mock_openpty, pty_handler
+    ):
         """Test terminal configuration failure handling."""
         mock_openpty.return_value = (10, 11)
         mock_tcgetattr.side_effect = OSError("Terminal config failed")
@@ -102,7 +112,6 @@ class TestPTYHandler:
             await pty_handler.create_session(["echo", "test"])
 
     @patch("openroad_mcp.interactive.pty_handler.os.write")
-    @skip_fd_issues
     async def test_write_input_success(self, mock_write, pty_handler):
         """Test successful input writing."""
         pty_handler.master_fd = 10
@@ -112,14 +121,12 @@ class TestPTYHandler:
 
         mock_write.assert_called_once_with(10, b"hello")
 
-    @skip_fd_issues
     async def test_write_input_no_fd(self, pty_handler):
         """Test writing input when no master_fd."""
         with pytest.raises(PTYError, match="Cannot write: master_fd is None"):
             await pty_handler.write_input(b"test")
 
     @patch("openroad_mcp.interactive.pty_handler.os.write")
-    @skip_fd_issues
     async def test_write_input_failure(self, mock_write, pty_handler):
         """Test input writing failure."""
         pty_handler.master_fd = 10
@@ -129,7 +136,6 @@ class TestPTYHandler:
             await pty_handler.write_input(b"test")
 
     @patch("openroad_mcp.interactive.pty_handler.os.read")
-    @skip_fd_issues
     async def test_read_output_success(self, mock_read, pty_handler):
         """Test successful output reading."""
         pty_handler.master_fd = 10
@@ -141,7 +147,6 @@ class TestPTYHandler:
         mock_read.assert_called_once_with(10, 1024)
 
     @patch("openroad_mcp.interactive.pty_handler.os.read")
-    @skip_fd_issues
     async def test_read_output_blocking(self, mock_read, pty_handler):
         """Test reading when no data available (BlockingIOError)."""
         pty_handler.master_fd = 10
@@ -152,7 +157,6 @@ class TestPTYHandler:
         assert result is None
 
     @patch("openroad_mcp.interactive.pty_handler.os.read")
-    @skip_fd_issues
     async def test_read_output_process_terminated(self, mock_read, pty_handler):
         """Test reading when process terminated (EIO)."""
         pty_handler.master_fd = 10
@@ -162,7 +166,6 @@ class TestPTYHandler:
 
         assert result is None
 
-    @skip_fd_issues
     async def test_read_output_no_fd(self, pty_handler):
         """Test reading output when no master_fd."""
         with pytest.raises(PTYError, match="Cannot read: master_fd is None"):
@@ -183,40 +186,35 @@ class TestPTYHandler:
         mock_process.returncode = 0  # Exited
         assert not pty_handler.is_process_alive()
 
-    @skip_fd_issues
     async def test_wait_for_exit_no_process(self, pty_handler):
         """Test waiting for exit when no process."""
         result = await pty_handler.wait_for_exit()
         assert result is None
 
-    @skip_fd_issues
     async def test_wait_for_exit_with_timeout(self, pty_handler):
         """Test waiting for exit with timeout."""
-        mock_process = AsyncMock()
-        mock_process.wait.side_effect = TimeoutError()
+        mock_process = MagicMock()
+        mock_process.wait = AsyncMock(side_effect=TimeoutError())
         pty_handler.process = mock_process
 
         result = await pty_handler.wait_for_exit(timeout=0.01)
         assert result is None
 
-    @skip_fd_issues
     async def test_wait_for_exit_success(self, pty_handler):
         """Test successful wait for exit."""
-        mock_process = AsyncMock()
-        mock_process.wait.return_value = None
+        mock_process = MagicMock()
+        mock_process.wait = AsyncMock(return_value=None)
         mock_process.returncode = 0
         pty_handler.process = mock_process
 
         result = await pty_handler.wait_for_exit()
         assert result == 0
 
-    @skip_fd_issues
     async def test_terminate_process_no_process(self, pty_handler):
         """Test terminating when no process."""
         # Should not raise exception
         await pty_handler.terminate_process()
 
-    @skip_fd_issues
     async def test_terminate_process_already_dead(self, pty_handler):
         """Test terminating already dead process."""
         mock_process = MagicMock()
@@ -226,12 +224,12 @@ class TestPTYHandler:
         await pty_handler.terminate_process()
         # Should not call terminate on dead process
 
-    @skip_fd_issues
-    async def test_terminate_process_graceful(self, pty_handler):
+    @patch("openroad_mcp.interactive.pty_handler.os.close")
+    async def test_terminate_process_graceful(self, mock_close, pty_handler):
         """Test graceful process termination."""
-        mock_process = AsyncMock()
+        mock_process = MagicMock()
         mock_process.returncode = None  # Still running
-        mock_process.wait.return_value = None
+        mock_process.wait = AsyncMock(return_value=None)
         pty_handler.process = mock_process
 
         await pty_handler.terminate_process(force=False)
@@ -239,12 +237,13 @@ class TestPTYHandler:
         mock_process.terminate.assert_called_once()
         mock_process.wait.assert_called()
 
-    @skip_fd_issues
-    async def test_terminate_process_force_after_timeout(self, pty_handler):
+    @patch("openroad_mcp.interactive.pty_handler.os.close")
+    async def test_terminate_process_force_after_timeout(self, mock_close, pty_handler):
         """Test forced termination after graceful timeout."""
-        mock_process = AsyncMock()
+        mock_process = MagicMock()
         mock_process.returncode = None
-        mock_process.wait.side_effect = TimeoutError()
+        # First call times out, second call succeeds
+        mock_process.wait = AsyncMock(side_effect=[TimeoutError(), None])
         pty_handler.process = mock_process
 
         await pty_handler.terminate_process(force=False)
@@ -252,10 +251,10 @@ class TestPTYHandler:
         mock_process.terminate.assert_called_once()
         mock_process.kill.assert_called_once()
 
-    @skip_fd_issues
-    async def test_terminate_process_force_immediate(self, pty_handler):
+    @patch("openroad_mcp.interactive.pty_handler.os.close")
+    async def test_terminate_process_force_immediate(self, mock_close, pty_handler):
         """Test immediate forced termination."""
-        mock_process = AsyncMock()
+        mock_process = MagicMock()
         mock_process.returncode = None
         pty_handler.process = mock_process
 
@@ -266,12 +265,13 @@ class TestPTYHandler:
 
     @patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr")
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    @skip_fd_issues
     async def test_cleanup_success(self, mock_close, mock_tcsetattr, pty_handler):
         """Test successful cleanup."""
         # Setup handler state
-        mock_process = AsyncMock()
+        mock_process = MagicMock()
         mock_process.returncode = None
+        mock_process.terminate = MagicMock()
+        mock_process.wait = AsyncMock(return_value=None)
         pty_handler.process = mock_process
         pty_handler.master_fd = 10
         pty_handler.slave_fd = 11
@@ -297,7 +297,6 @@ class TestPTYHandler:
         assert pty_handler._original_attrs is None
 
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    @skip_fd_issues
     async def test_cleanup_with_errors(self, mock_close, pty_handler):
         """Test cleanup with errors (should not raise)."""
         pty_handler.master_fd = 10
@@ -312,14 +311,15 @@ class TestPTYHandler:
         assert pty_handler.slave_fd is None
 
     @patch("openroad_mcp.interactive.pty_handler.os.close")
-    @skip_fd_issues
-    def test_destructor_cleanup(self, mock_close, pty_handler):
+    def test_destructor_cleanup(self, mock_close):
         """Test cleanup in destructor."""
-        pty_handler.master_fd = 10
-        pty_handler.slave_fd = 11
+        # Create handler directly (not via fixture) to test destructor
+        handler = PTYHandler()
+        handler.master_fd = 10
+        handler.slave_fd = 11
 
         # Trigger destructor
-        del pty_handler
+        del handler
 
         # Should attempt to close file descriptors
         assert mock_close.call_count == 2
@@ -329,28 +329,31 @@ class TestPTYHandler:
 class TestPTYHandlerAsync:
     """Async test runner for PTYHandler."""
 
-    @skip_fd_issues
     async def test_pty_handler_lifecycle(self):
         """Test complete PTY handler lifecycle."""
-        handler = PTYHandler()
+        # Mock all the system calls for testing
+        with (
+            patch("openroad_mcp.interactive.pty_handler.pty.openpty") as mock_openpty,
+            patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr") as mock_tcgetattr,
+            patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr"),
+            patch("openroad_mcp.interactive.pty_handler.fcntl.fcntl"),
+            patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec") as mock_subprocess,
+            patch("openroad_mcp.interactive.pty_handler.os.close"),
+            patch("openroad_mcp.interactive.pty_handler.os.write") as mock_write,
+        ):
+            # Setup mocks
+            mock_openpty.return_value = (10, 11)
+            mock_tcgetattr.return_value = [0, 0, 0, 0, 0, 0]
+            mock_process = MagicMock()
+            mock_process.pid = 12345
+            mock_process.returncode = None
+            mock_subprocess.return_value = mock_process
+            mock_write.return_value = 6  # Return length of "hello\n"
 
-        try:
-            # Mock all the system calls for testing
-            with (
-                patch("openroad_mcp.interactive.pty_handler.pty.openpty") as mock_openpty,
-                patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr") as mock_tcgetattr,
-                patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr"),
-                patch("openroad_mcp.interactive.pty_handler.fcntl.fcntl"),
-                patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec") as mock_subprocess,
-            ):
-                # Setup mocks
-                mock_openpty.return_value = (10, 11)
-                mock_tcgetattr.return_value = [0, 0, 0, 0, 0, 0]
-                mock_process = AsyncMock()
-                mock_process.pid = 12345
-                mock_process.returncode = None
-                mock_subprocess.return_value = mock_process
+            # Create handler inside mocked context
+            handler = PTYHandler()
 
+            try:
                 # Test lifecycle
                 await handler.create_session(["echo", "test"])
                 assert handler.is_process_alive()
@@ -363,5 +366,5 @@ class TestPTYHandlerAsync:
 
                 await handler.terminate_process()
 
-        finally:
-            await handler.cleanup()
+            finally:
+                await handler.cleanup()
