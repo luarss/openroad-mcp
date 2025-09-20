@@ -4,6 +4,7 @@ import asyncio
 import uuid
 from datetime import datetime
 
+from ..config.settings import settings
 from ..core.models import InteractiveExecResult, InteractiveSessionInfo
 from ..utils.logging import get_logger
 from .models import SessionError, SessionNotFoundError
@@ -16,7 +17,10 @@ class InteractiveSessionManager:
     """Manages multiple concurrent interactive OpenROAD sessions."""
 
     def __init__(
-        self, max_sessions: int = 10, default_timeout_ms: int = 10000, default_buffer_size: int = 128 * 1024
+        self,
+        max_sessions: int = settings.MAX_SESSIONS,
+        default_timeout_ms: int = int(settings.COMMAND_TIMEOUT * 1000),
+        default_buffer_size: int = settings.DEFAULT_BUFFER_SIZE,
     ) -> None:
         """Initialize session manager."""
         self._sessions: dict[str, InteractiveSession | None] = {}

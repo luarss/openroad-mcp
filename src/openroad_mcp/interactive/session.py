@@ -1,6 +1,7 @@
 """Interactive session management with PTY and async I/O."""
 
 import asyncio
+import re
 import time
 from datetime import datetime
 
@@ -170,7 +171,7 @@ class InteractiveSession:
                         break  # Timeout waiting for data
 
             # Convert chunks to string
-            output = self.output_buffer.to_string(collected_chunks, errors="replace")
+            output = CircularBuffer.to_string(collected_chunks, errors="replace")
             execution_time = asyncio.get_event_loop().time() - start_time
             buffer_size = await self.output_buffer.get_size()
 
@@ -267,7 +268,7 @@ class InteractiveSession:
                         await self.output_buffer.append(data)
                     else:
                         # No data, wait briefly
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(settings.COMMAND_COMPLETION_DELAY)
 
                 except PTYError as e:
                     logger.warning(f"PTY read error in session {self.session_id}: {e}")
@@ -427,22 +428,20 @@ class InteractiveSession:
         self.session_timeout_seconds = timeout_seconds
         logger.info(f"Set timeout for session {self.session_id}: {timeout_seconds}s")
 
-    async def is_idle_timeout(self, idle_threshold_seconds: float = 300) -> bool:
+    async def is_idle_timeout(self, idle_threshold_seconds: float = settings.SESSION_IDLE_TIMEOUT) -> bool:
         """Check if session has been idle too long."""
         idle_time = (datetime.now() - self.last_activity).total_seconds()
         return idle_time > idle_threshold_seconds
 
     async def filter_output(self, pattern: str, max_lines: int = 1000) -> list[str]:
         """Filter recent output by pattern."""
-        import re
-
         # Get recent buffer content
         chunks = await self.output_buffer.peek_all()
         if not chunks:
             return []
 
         # Convert to text and split into lines
-        text = self.output_buffer.to_string(chunks, errors="replace")
+        text = CircularBuffer.to_string(chunks, errors="replace")
         lines = text.split("\n")
 
         # Filter lines

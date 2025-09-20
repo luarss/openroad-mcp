@@ -4,6 +4,7 @@ import asyncio
 import threading
 from collections import deque
 
+from ..config.settings import settings
 from ..utils.logging import get_logger
 
 logger = get_logger("circular_buffer")
@@ -19,7 +20,7 @@ class CircularBuffer:
     This ensures true thread safety when accessed from both async and sync contexts.
     """
 
-    def __init__(self, max_size: int = 128 * 1024) -> None:
+    def __init__(self, max_size: int = settings.DEFAULT_BUFFER_SIZE) -> None:
         """Initialize circular buffer with maximum size in bytes."""
         self.max_size = max_size
         self.chunks: deque[bytes] = deque()
@@ -109,18 +110,20 @@ class CircularBuffer:
             if cleared_bytes > 0:
                 logger.debug(f"Cleared {cleared_bytes} bytes from buffer")
 
-    def to_bytes(self, chunks: list[bytes]) -> bytes:
+    @staticmethod
+    def to_bytes(chunks: list[bytes]) -> bytes:
         """Convert list of chunks to single bytes object."""
         if not chunks:
             return b""
         return b"".join(chunks)
 
-    def to_string(self, chunks: list[bytes], encoding: str = "utf-8", errors: str = "replace") -> str:
+    @staticmethod
+    def to_string(chunks: list[bytes], encoding: str = "utf-8", errors: str = "replace") -> str:
         """Convert list of chunks to string with error handling."""
         if not chunks:
             return ""
 
-        combined = self.to_bytes(chunks)
+        combined = CircularBuffer.to_bytes(chunks)
         return combined.decode(encoding, errors=errors)
 
     async def get_stats(self) -> dict[str, int]:
