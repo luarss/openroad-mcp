@@ -10,6 +10,7 @@ from openroad_mcp.interactive.models import SessionNotFoundError, SessionTermina
 from openroad_mcp.interactive.session_manager import InteractiveSessionManager as SessionManager
 
 
+@pytest.mark.asyncio
 class TestSessionManager:
     """Test suite for SessionManager."""
 
@@ -269,31 +270,33 @@ class TestSessionManagerAsync:
 
     async def test_stress_session_operations(self):
         """Test stress operations on session manager."""
-        manager = SessionManager()
+        num_sessions = 50
+        manager = SessionManager(max_sessions=num_sessions)
 
         try:
             # Create many sessions rapidly
             tasks = []
-            for _ in range(50):
+            for _ in range(num_sessions):
                 task = manager.create_session()
                 tasks.append(task)
 
             session_ids = await asyncio.gather(*tasks)
-            assert len(session_ids) == 50
-            assert len(set(session_ids)) == 50  # All unique
+            assert len(session_ids) == num_sessions
+            assert len(set(session_ids)) == num_sessions  # All unique
 
             # List all sessions
             result = await manager.list_sessions()
-            assert len(result) == 50
+            assert len(result) == num_sessions
 
             # Cleanup some sessions concurrently
+            sessions_to_cleanup = num_sessions // 2
             cleanup_tasks = []
-            for i in range(0, 25):
+            for i in range(sessions_to_cleanup):
                 task = manager.terminate_session(session_ids[i])
                 cleanup_tasks.append(task)
 
             await asyncio.gather(*cleanup_tasks)
-            assert manager.get_session_count() == 25
+            assert manager.get_session_count() == num_sessions - sessions_to_cleanup
 
         finally:
             await manager.cleanup()
