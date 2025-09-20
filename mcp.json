@@ -3,11 +3,8 @@
     "command": "uv",
     "args": [
       "run",
-      "--with",
-      "fastmcp",
-      "fastmcp",
-      "run",
-      "/home/luars/openroad-mcp/claude_code_server.py"
+      "python",
+      "claude_code_server.py"
     ]
   }
 }

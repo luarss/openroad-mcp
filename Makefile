@@ -65,6 +65,14 @@ inspect:
 		MCP_REQUEST_MAX_TOTAL_TIMEOUT=$(MCP_REQUEST_MAX_TOTAL_TIMEOUT) \
 		npx @modelcontextprotocol/inspector@0.16.0 uv run openroad-mcp
 
+.PHONY: test-all
+test-all:
+	@echo "Running all tests (core + interactive + tools + integration)..."
+	@$(MAKE) test
+	@$(MAKE) test-interactive
+	@$(MAKE) test-tools
+	@$(MAKE) test-integration
+
 .PHONY: mcp-json
 mcp-json:
 	@uv run fastmcp install mcp-json claude_code_server.py > mcp.json
