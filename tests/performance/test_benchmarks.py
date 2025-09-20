@@ -170,7 +170,7 @@ class TestPerformanceBenchmarks:
             buffer_size = 1024 * 1024  # 1MB each
 
             for _i in range(session_count):
-                session_id = await session_manager.create_session()
+                session_id = await session_manager.create_session(buffer_size=buffer_size)
 
                 # Add test data to buffers
                 session = session_manager._sessions[session_id]

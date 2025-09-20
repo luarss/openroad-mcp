@@ -15,16 +15,20 @@ logger = get_logger("session_manager")
 class InteractiveSessionManager:
     """Manages multiple concurrent interactive OpenROAD sessions."""
 
-    def __init__(self, max_sessions: int = 10, default_timeout_ms: int = 10000) -> None:
+    def __init__(
+        self, max_sessions: int = 10, default_timeout_ms: int = 10000, default_buffer_size: int = 128 * 1024
+    ) -> None:
         """Initialize session manager.
 
         Args:
             max_sessions: Maximum number of concurrent sessions
             default_timeout_ms: Default timeout for command execution in milliseconds
+            default_buffer_size: Default buffer size for session output buffers in bytes
         """
         self._sessions: dict[str, InteractiveSession] = {}
         self._max_sessions = max_sessions
         self._default_timeout_ms = default_timeout_ms
+        self._default_buffer_size = default_buffer_size
         self._cleanup_lock = asyncio.Lock()
 
         logger.info(f"Initialized InteractiveSessionManager with max_sessions={max_sessions}")
@@ -35,6 +39,7 @@ class InteractiveSessionManager:
         command: list[str] | None = None,
         env: dict[str, str] | None = None,
         cwd: str | None = None,
+        buffer_size: int | None = None,
     ) -> str:
         """Create a new interactive session.
 
@@ -43,6 +48,7 @@ class InteractiveSessionManager:
             command: Command to execute (defaults to OpenROAD)
             env: Environment variables
             cwd: Working directory
+            buffer_size: Buffer size for output buffer in bytes, uses default if not provided
 
         Returns:
             The session ID
@@ -69,7 +75,8 @@ class InteractiveSessionManager:
 
             try:
                 # Create and start session
-                session = InteractiveSession(session_id)
+                actual_buffer_size = buffer_size or self._default_buffer_size
+                session = InteractiveSession(session_id, buffer_size=actual_buffer_size)
                 await session.start(command, env, cwd)
 
                 self._sessions[session_id] = session
