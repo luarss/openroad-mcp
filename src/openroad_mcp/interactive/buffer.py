@@ -57,8 +57,11 @@ class CircularBuffer:
             if evicted_bytes > 0:
                 logger.debug(f"Evicted {evicted_bytes} bytes, buffer now {self.total_bytes} bytes")
 
-            # Signal that data is available
-            self._data_available.set()
+            # Signal data availability only if buffer has data
+            if self.chunks:
+                self._data_available.set()
+            else:
+                self._data_available.clear()
 
     async def drain_all(self) -> list[bytes]:
         """Remove and return all buffered data.
