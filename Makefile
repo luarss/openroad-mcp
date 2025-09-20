@@ -1,5 +1,6 @@
 MCP_SERVER_REQUEST_TIMEOUT:= 99999999999
 MCP_REQUEST_MAX_TOTAL_TIMEOUT:= 99999999999
+DOCKER_TEST_IMAGE:= openroad-mcp-test
 
 .PHONY: sync
 sync:
@@ -30,17 +31,20 @@ test:
 	@echo "Running core tests..."
 	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration
 
+# Build Docker test image
+.PHONY: docker-test-build
+docker-test-build:
+	@docker build -f Dockerfile.test -t $(DOCKER_TEST_IMAGE) .
+
 .PHONY: test-interactive
-test-interactive:
+test-interactive: docker-test-build
 	@echo "Running interactive tests..."
-	@docker build -f Dockerfile.test -t openroad-mcp-test .
-	@docker run --rm openroad-mcp-test uv run pytest tests/interactive
+	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/interactive
 
 .PHONY: test-integration
-test-integration:
+test-integration: docker-test-build
 	@echo "Running integration tests for timing workflows..."
-	@docker build -f Dockerfile.test -t openroad-mcp-test .
-	@docker run --rm openroad-mcp-test uv run pytest tests/integration/test_timing_workflows.py
+	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/integration/test_timing_workflows.py
 
 .PHONY: test-tools
 test-tools:
@@ -48,15 +52,14 @@ test-tools:
 	@uv run pytest tests/tools/
 
 .PHONY: test-performance
-test-performance:
+test-performance: docker-test-build
 	@echo "Running performance tests (benchmarks, memory, stability)..."
-	@docker build -f Dockerfile.test -t openroad-mcp-test .
-	@docker run --rm openroad-mcp-test uv run pytest tests/performance/
+	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/performance/
 
 .PHONY: test-coverage
-test-coverage:
+test-coverage: docker-test-build
 	@echo "Running tests with coverage analysis..."
-	@uv run pytest --ignore=tests/performance --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
+	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest --ignore=tests/performance --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
 
 # MCP
 .PHONY: inspect
