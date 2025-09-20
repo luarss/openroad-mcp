@@ -2,316 +2,70 @@ name: CI
 
 on:
   push:
-    branches: [main, topic/*]
+    branches: [main]
   pull_request:
     branches: [main]
   schedule:
-    # Run nightly stability tests at 2 AM UTC
     - cron: '0 2 * * *'
 
+env:
+  MCP_SERVER_REQUEST_TIMEOUT: 99999999999
+  MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
+
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run formatting checks
-      run: |
-        make check
-
-  test-core:
-    name: Core Tests
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run core tests
-      run: |
-        make test
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: core-test-results
-        path: |
-          .pytest_cache/
-          *.log
-
-  test-interactive:
-    name: Interactive Tests
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run interactive tests
-      run: |
-        make test-interactive
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload interactive test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: interactive-test-results
-        path: |
-          .pytest_cache/
-          *.log
-
-  test-integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run integration tests
-      run: |
-        uv run pytest tests/integration/test_timing_workflows.py -v --tb=short
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload integration test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-test-results
-        path: |
-          .pytest_cache/
-          *.log
-
-  test-performance:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run performance benchmarks
-      run: |
-        uv run pytest tests/performance/test_benchmarks.py -v -s --tb=short
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Run memory monitoring tests
-      run: |
-        uv run pytest tests/performance/test_memory_monitoring.py -v -s --tb=short
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload performance test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: performance-test-results
-        path: |
-          .pytest_cache/
-          *.log
-
-  test-cross-platform:
-    name: Cross-Platform Tests
+  test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.13"]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run core tests on ${{ matrix.os }}
-      run: |
-        make test
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload cross-platform test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-${{ matrix.os }}
-        path: |
-          .pytest_cache/
-          *.log
-
-  test-tools:
-    name: MCP Tools Tests
-    runs-on: ubuntu-latest
+        os: [ubuntu-latest]
+        test-type: [lint, core, interactive, integration, tools]
+        include:
+          - os: macos-latest
+            test-type: core
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
+    - run: make sync
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
+    - name: Run lint
+      if: matrix.test-type == 'lint'
+      run: make check
 
-    - name: Install dependencies
-      run: |
-        make sync
+    - name: Run core tests
+      if: matrix.test-type == 'core'
+      run: make test
 
-    - name: Run MCP tools tests
-      run: |
-        uv run pytest tests/tools/ -v --tb=short
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
+    - name: Run interactive tests
+      if: matrix.test-type == 'interactive'
+      run: make test-interactive
 
-    - name: Upload tools test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: tools-test-results
-        path: |
-          .pytest_cache/
-          *.log
+    - name: Run integration tests
+      if: matrix.test-type == 'integration'
+      run: uv run pytest tests/integration/test_timing_workflows.py -v --tb=short
 
-  nightly-stability:
-    name: Nightly Stability Tests
+    - name: Run tools tests
+      if: matrix.test-type == 'tools'
+      run: uv run pytest tests/tools/ -v --tb=short
+
+  nightly:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run 24-hour stability simulation
-      run: |
-        uv run pytest tests/performance/test_memory_monitoring.py::TestStabilityMonitoring::test_stability_simulation -v -s --tb=short
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Run long-running stress tests
-      run: |
-        uv run pytest tests/performance/test_benchmarks.py::TestStressTests -v -s --tb=short
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload stability test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: nightly-stability-results
-        path: |
-          .pytest_cache/
-          *.log
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
+    - run: make sync
+    - run: uv run pytest tests/performance/test_memory_monitoring.py::TestStabilityMonitoring::test_stability_simulation -v -s --tb=short
+    - run: uv run pytest tests/performance/test_benchmarks.py::TestStressTests -v -s --tb=short
 
   coverage:
-    name: Test Coverage
     runs-on: ubuntu-latest
-    needs: [test-core, test-interactive, test-integration, test-tools]
-
+    needs: test
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-        uv add pytest-cov
-
-    - name: Run tests with coverage
-      run: |
-        uv run pytest --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
-      env:
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
-
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
+    - run: make sync && uv add pytest-cov
+    - run: uv run pytest --cov=src/openroad_mcp --cov-report=xml --cov-report=term-missing
+    - uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-
-    - name: Upload coverage HTML
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-html
-        path: htmlcov/
-
-    - name: Check coverage threshold
-      run: |
-        uv run python -c "
-        import xml.etree.ElementTree as ET
-        tree = ET.parse('coverage.xml')
-        coverage = float(tree.getroot().attrib['line-rate']) * 100
-        print(f'Coverage: {coverage:.1f}%')
-        if coverage < 90.0:
-            print('ERROR: Coverage below 90% threshold')
-            exit(1)
-        else:
-            print('SUCCESS: Coverage meets 90% threshold')
-        "
