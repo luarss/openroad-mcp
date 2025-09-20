@@ -58,27 +58,28 @@ class InteractiveSessionManager:
         if session_id in self._sessions:
             raise SessionError(f"Session {session_id} already exists", session_id)
 
-        # Check session limit
-        await self._cleanup_terminated_sessions()
-        active_count = len([s for s in self._sessions.values() if s.is_alive()])
-        if active_count >= self._max_sessions:
-            raise SessionError(
-                f"Maximum session limit reached ({self._max_sessions}). Currently {active_count} active sessions."
-            )
+        # Atomically check session limit and create session to prevent TOCTOU race
+        async with self._cleanup_lock:
+            await self._cleanup_terminated_sessions()
+            active_count = len([s for s in self._sessions.values() if s.is_alive()])
+            if active_count >= self._max_sessions:
+                raise SessionError(
+                    f"Maximum session limit reached ({self._max_sessions}). Currently {active_count} active sessions."
+                )
 
-        try:
-            # Create and start session
-            session = InteractiveSession(session_id)
-            await session.start(command, env, cwd)
+            try:
+                # Create and start session
+                session = InteractiveSession(session_id)
+                await session.start(command, env, cwd)
 
-            self._sessions[session_id] = session
-            logger.info(f"Created session {session_id}, total sessions: {len(self._sessions)}")
+                self._sessions[session_id] = session
+                logger.info(f"Created session {session_id}, total sessions: {len(self._sessions)}")
 
-            return session_id
+                return session_id
 
-        except Exception as e:
-            logger.exception(f"Failed to create session {session_id}")
-            raise SessionError(f"Failed to create session: {e}", session_id) from e
+            except Exception as e:
+                logger.exception(f"Failed to create session {session_id}")
+                raise SessionError(f"Failed to create session: {e}", session_id) from e
 
     async def execute_command(
         self, session_id: str, command: str, timeout_ms: int | None = None
