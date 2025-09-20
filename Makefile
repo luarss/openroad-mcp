@@ -90,9 +90,13 @@ test-coverage:
 	@uv add pytest-cov
 	@uv run pytest --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
 
-# MCP inspector
+# MCP
 .PHONY: inspect
 inspect:
 	@MCP_SERVER_REQUEST_TIMEOUT=$(MCP_SERVER_REQUEST_TIMEOUT) \
 		MCP_REQUEST_MAX_TOTAL_TIMEOUT=$(MCP_REQUEST_MAX_TOTAL_TIMEOUT) \
 		npx @modelcontextprotocol/inspector@0.16.0 uv run openroad-mcp
+
+.PHONY: mcp-json
+mcp-json:
+	@uv run fastmcp install mcp-json claude_code_server.py > mcp.json
