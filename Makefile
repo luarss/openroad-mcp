@@ -75,7 +75,3 @@ test-all:
 	@$(MAKE) test-interactive
 	@$(MAKE) test-tools
 	@$(MAKE) test-integration
-
-.PHONY: mcp-json
-mcp-json:
-	@uv run fastmcp install mcp-json claude_code_server.py > mcp.json
