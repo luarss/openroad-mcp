@@ -34,7 +34,6 @@ class TestPTYHandler:
     @patch("openroad_mcp.interactive.pty_handler.fcntl.fcntl")
     @patch("openroad_mcp.interactive.pty_handler.asyncio.create_subprocess_exec")
     @skip_fd_issues
-    @skip_fd_issues
     async def test_create_session_success(
         self,
         mock_subprocess,
@@ -43,6 +42,7 @@ class TestPTYHandler:
         mock_tcgetattr,
         mock_openpty,
         pty_handler,
+        tmp_path,
     ):
         """Test successful PTY session creation."""
         # Setup mocks
@@ -55,7 +55,7 @@ class TestPTYHandler:
         mock_subprocess.return_value = mock_process
 
         # Create session
-        await pty_handler.create_session(["echo", "hello"], env={"TEST": "value"}, cwd="/tmp")
+        await pty_handler.create_session(["echo", "hello"], env={"TEST": "value"}, cwd=str(tmp_path))
 
         # Verify PTY creation
         mock_openpty.assert_called_once()
@@ -74,14 +74,13 @@ class TestPTYHandler:
         assert call_args[1]["stdin"] == 11
         assert call_args[1]["stdout"] == 11
         assert call_args[1]["stderr"] == 11
-        assert call_args[1]["cwd"] == "/tmp"
+        assert call_args[1]["cwd"] == str(tmp_path)
         assert "TEST" in call_args[1]["env"]
         assert "TERM" in call_args[1]["env"]
 
         assert pty_handler.process == mock_process
 
     @patch("openroad_mcp.interactive.pty_handler.pty.openpty")
-    @skip_fd_issues
     @skip_fd_issues
     async def test_create_session_pty_failure(self, mock_openpty, pty_handler):
         """Test PTY creation failure handling."""
@@ -92,7 +91,6 @@ class TestPTYHandler:
 
     @patch("openroad_mcp.interactive.pty_handler.pty.openpty")
     @patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr")
-    @skip_fd_issues
     @skip_fd_issues
     async def test_create_session_terminal_config_failure(self, mock_tcgetattr, mock_openpty, pty_handler):
         """Test terminal configuration failure handling."""
@@ -268,7 +266,6 @@ class TestPTYHandler:
     @patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr")
     @patch("openroad_mcp.interactive.pty_handler.os.close")
     @skip_fd_issues
-    @skip_fd_issues
     async def test_cleanup_success(self, mock_close, mock_tcsetattr, pty_handler):
         """Test successful cleanup."""
         # Setup handler state
@@ -331,7 +328,6 @@ class TestPTYHandler:
 class TestPTYHandlerAsync:
     """Async test runner for PTYHandler."""
 
-    @skip_fd_issues
     @skip_fd_issues
     async def test_pty_handler_lifecycle(self):
         """Test complete PTY handler lifecycle."""

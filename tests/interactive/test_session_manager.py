@@ -34,9 +34,11 @@ class TestSessionManager:
         info = await session_manager.get_session_info(session_id)
         assert info.session_id == session_id
 
-    async def test_create_session_with_params(self, session_manager):
+    async def test_create_session_with_params(self, session_manager, tmp_path):
         """Test creating session with custom parameters."""
-        session_id = await session_manager.create_session(command=["echo", "test"], env={"TEST": "value"}, cwd="/tmp")
+        session_id = await session_manager.create_session(
+            command=["echo", "test"], env={"TEST": "value"}, cwd=str(tmp_path)
+        )
 
         info = await session_manager.get_session_info(session_id)
         assert info.session_id == session_id

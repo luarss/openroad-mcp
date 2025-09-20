@@ -64,6 +64,6 @@ jobs:
     - uses: astral-sh/setup-uv@v6
     - run: make sync
     - run: make test-coverage
-    - uses: codecov/codecov-action@v3
+    - uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml

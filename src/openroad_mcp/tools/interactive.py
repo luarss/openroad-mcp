@@ -1,8 +1,13 @@
 """Interactive shell tools for OpenROAD MCP server."""
 
+from datetime import datetime
+
 from ..core.models import InteractiveExecResult, InteractiveSessionInfo, InteractiveSessionListResult
 from ..interactive.models import SessionError, SessionNotFoundError, SessionTerminatedError
+from ..utils.logging import get_logger
 from .base import BaseTool
+
+logger = get_logger("interactive_tools")
 
 
 class InteractiveShellTool(BaseTool):
@@ -32,20 +37,32 @@ class InteractiveShellTool(BaseTool):
             return self._format_result(result)
 
         except SessionNotFoundError as e:
+            logger.warning(f"Session not found: {session_id}")
             error_result = InteractiveExecResult(
-                output=f"Error: {str(e)}", session_id=session_id, timestamp="", execution_time=0.0
+                output=f"Error: {str(e)}",
+                session_id=session_id,
+                timestamp=datetime.now().isoformat(),
+                execution_time=0.0,
             )
             return self._format_result(error_result)
 
         except (SessionTerminatedError, SessionError) as e:
+            logger.error(f"Session error for {session_id}: {e}")
             error_result = InteractiveExecResult(
-                output=f"Session Error: {str(e)}", session_id=session_id, timestamp="", execution_time=0.0
+                output=f"Session Error: {str(e)}",
+                session_id=session_id,
+                timestamp=datetime.now().isoformat(),
+                execution_time=0.0,
             )
             return self._format_result(error_result)
 
         except Exception as e:
+            logger.exception(f"Unexpected error executing command in session {session_id}")
             error_result = InteractiveExecResult(
-                output=f"Unexpected Error: {str(e)}", session_id=session_id, timestamp="", execution_time=0.0
+                output=f"Unexpected Error: {str(e)}",
+                session_id=session_id,
+                timestamp=datetime.now().isoformat(),
+                execution_time=0.0,
             )
             return self._format_result(error_result)
 
@@ -88,6 +105,7 @@ class ListSessionsTool(BaseTool):
             return self._format_result(result)
 
         except Exception:
+            logger.exception("Failed to list interactive sessions")
             error_result = InteractiveSessionListResult(sessions=[], total_count=0, active_count=0)
             return self._format_result(error_result)
 
@@ -136,14 +154,24 @@ class CreateSessionTool(BaseTool):
             return self._format_result(core_session)
 
         except SessionError as e:
+            logger.error(f"Session creation error: {e}")
             error_result = InteractiveSessionInfo(
-                session_id=session_id or "unknown", created_at="", is_alive=False, command_count=0, buffer_size=0
+                session_id=session_id or "unknown",
+                created_at=datetime.now().isoformat(),
+                is_alive=False,
+                command_count=0,
+                buffer_size=0,
             )
             return self._format_result({"error": str(e), "session": error_result.model_dump()})
 
         except Exception as e:
+            logger.exception(f"Unexpected error creating session {session_id}")
             error_result = InteractiveSessionInfo(
-                session_id=session_id or "unknown", created_at="", is_alive=False, command_count=0, buffer_size=0
+                session_id=session_id or "unknown",
+                created_at=datetime.now().isoformat(),
+                is_alive=False,
+                command_count=0,
+                buffer_size=0,
             )
             return self._format_result({"error": f"Unexpected error: {str(e)}", "session": error_result.model_dump()})
 
@@ -179,10 +207,12 @@ class TerminateSessionTool(BaseTool):
             return self._format_result(result)
 
         except SessionNotFoundError as e:
+            logger.warning(f"Attempted to terminate non-existent session: {session_id}")
             result = {"session_id": session_id, "terminated": False, "error": str(e), "force": force}
             return self._format_result(result)
 
         except Exception as e:
+            logger.exception(f"Failed to terminate session {session_id}")
             result = {
                 "session_id": session_id,
                 "terminated": False,
@@ -210,10 +240,12 @@ class InspectSessionTool(BaseTool):
             return self._format_result(metrics)
 
         except SessionNotFoundError as e:
+            logger.warning(f"Attempted to inspect non-existent session: {session_id}")
             error_result = {"error": str(e), "session_id": session_id}
             return self._format_result(error_result)
 
         except Exception as e:
+            logger.exception(f"Failed to inspect session {session_id}")
             error_result = {"error": f"Unexpected error: {str(e)}", "session_id": session_id}
             return self._format_result(error_result)
 
@@ -246,10 +278,12 @@ class SessionHistoryTool(BaseTool):
             return self._format_result(result)
 
         except SessionNotFoundError as e:
+            logger.warning(f"Attempted to get history for non-existent session: {session_id}")
             error_result = {"error": str(e), "session_id": session_id}
             return self._format_result(error_result)
 
         except Exception as e:
+            logger.exception(f"Failed to get history for session {session_id}")
             error_result = {"error": f"Unexpected error: {str(e)}", "session_id": session_id}
             return self._format_result(error_result)
 
@@ -269,5 +303,6 @@ class SessionMetricsTool(BaseTool):
             return self._format_result(metrics)
 
         except Exception as e:
+            logger.exception("Failed to get session metrics")
             error_result = {"error": f"Unexpected error: {str(e)}"}
             return self._format_result(error_result)

@@ -108,8 +108,8 @@ class TestMemoryLeakDetection:
 
             # TICKET-020 requirement: Zero memory leaks in 24-hour tests
             # For this short test, allow small increase but flag significant leaks
-            assert diff["rss_diff_mb"] < 10.0, f"Excessive RSS growth: {diff['rss_diff_mb']:.2f}MB"
-            assert diff["fd_diff"] <= 2, f"File descriptor leak: {diff['fd_diff']} descriptors"
+            assert diff["rss_diff_mb"] < 5.0, f"Excessive RSS growth: {diff['rss_diff_mb']:.2f}MB"
+            assert diff["fd_diff"] <= 1, f"File descriptor leak: {diff['fd_diff']} descriptors"
 
         finally:
             await session_manager.cleanup()
@@ -159,8 +159,8 @@ class TestMemoryLeakDetection:
 
         # Verify memory is properly released
         expected_usage = buffer_count * (buffer_size / (1024 * 1024))  # Expected MB
-        assert creation_diff["rss_diff_mb"] >= expected_usage * 0.5, "Buffer memory not allocated as expected"
-        assert cleanup_diff["rss_diff_mb"] >= -expected_usage * 0.5, "Buffer memory not fully released"
+        assert creation_diff["rss_diff_mb"] >= expected_usage * 0.7, "Buffer memory not allocated as expected"
+        assert cleanup_diff["rss_diff_mb"] >= -expected_usage * 0.7, "Buffer memory not fully released"
 
     async def test_long_running_session_memory(self, memory_monitor):
         """Test memory usage in long-running sessions."""
@@ -208,10 +208,10 @@ class TestMemoryLeakDetection:
             memory_monitor.print_report(cleanup_diff, "Session Cleanup")
 
             # Memory should not grow excessively during long operation
-            assert diff["rss_diff_mb"] < 50.0, f"Excessive memory growth: {diff['rss_diff_mb']:.2f}MB"
+            assert diff["rss_diff_mb"] < 25.0, f"Excessive memory growth: {diff['rss_diff_mb']:.2f}MB"
 
             # Memory should be released after cleanup
-            assert cleanup_diff["rss_diff_mb"] <= 5.0, f"Memory not released: {cleanup_diff['rss_diff_mb']:.2f}MB"
+            assert cleanup_diff["rss_diff_mb"] <= 2.0, f"Memory not released: {cleanup_diff['rss_diff_mb']:.2f}MB"
 
         finally:
             await session_manager.cleanup()
@@ -275,12 +275,12 @@ class TestMemoryLeakDetection:
 
             # Verify reasonable memory usage per session
             memory_per_session = creation_diff["rss_diff_mb"] / session_count
-            assert memory_per_session < 5.0, f"Excessive memory per session: {memory_per_session:.2f}MB"
+            assert memory_per_session < 2.0, f"Excessive memory per session: {memory_per_session:.2f}MB"
 
             # Verify cleanup releases most memory
             total_growth = creation_diff["rss_diff_mb"] + activity_diff["rss_diff_mb"]
             cleanup_ratio = abs(cleanup_diff["rss_diff_mb"]) / max(total_growth, 1.0)
-            assert cleanup_ratio > 0.7, f"Insufficient memory cleanup: {cleanup_ratio:.2f} ratio"
+            assert cleanup_ratio > 0.8, f"Insufficient memory cleanup: {cleanup_ratio:.2f} ratio"
 
         finally:
             await session_manager.cleanup()
@@ -311,8 +311,11 @@ class TestMemoryLeakDetection:
                             print(f"Memory limit approached at chunk {i}: {current_memory:.1f}MB")
                             break
 
-                except MemoryError:
-                    print(f"Memory error at chunk {i} - gracefully handled")
+                except MemoryError as e:
+                    print(f"Memory error at chunk {i} - gracefully handled: {e}")
+                    break
+                except OSError as e:
+                    print(f"OS error at chunk {i} - system limit reached: {e}")
                     break
 
             memory_monitor.take_snapshot("buffer_filled")
@@ -335,11 +338,15 @@ class TestMemoryLeakDetection:
             memory_monitor.print_report(diff, "Large Buffer Cleanup")
 
             # Should release significant memory
-            assert diff["rss_diff_mb"] < -10.0, f"Large buffer memory not released: {diff['rss_diff_mb']:.2f}MB"
+            assert diff["rss_diff_mb"] < -20.0, f"Large buffer memory not released: {diff['rss_diff_mb']:.2f}MB"
 
-        except Exception as e:
+        except (MemoryError, OSError) as e:
             # Graceful handling of memory pressure
             print(f"Memory limit test completed with controlled exception: {e}")
+        except Exception as e:
+            # Unexpected errors should still be logged
+            print(f"Unexpected error in memory limit test: {e}")
+            raise
 
     async def test_file_descriptor_leak_detection(self, memory_monitor):
         """Test for file descriptor leaks."""
@@ -372,7 +379,7 @@ class TestMemoryLeakDetection:
             memory_monitor.print_report(diff, "File Descriptor Leak Test")
 
             # Should not leak file descriptors
-            assert diff["fd_diff"] <= 5, f"File descriptor leak detected: {diff['fd_diff']} descriptors"
+            assert diff["fd_diff"] <= 2, f"File descriptor leak detected: {diff['fd_diff']} descriptors"
 
         finally:
             await session_manager.cleanup()
@@ -441,8 +448,8 @@ class TestStabilityMonitoring:
             print(f"Memory growth rate: {memory_growth_rate:.3f} MB/hour")
 
             # Allow minimal growth but detect significant leaks
-            assert memory_growth_rate < 0.5, f"Memory leak detected: {memory_growth_rate:.3f} MB/hour"
-            assert total_diff["fd_diff"] <= 3, f"File descriptor accumulation: {total_diff['fd_diff']}"
+            assert memory_growth_rate < 0.2, f"Memory leak detected: {memory_growth_rate:.3f} MB/hour"
+            assert total_diff["fd_diff"] <= 1, f"File descriptor accumulation: {total_diff['fd_diff']}"
 
             # Check intermediate snapshots for stability
             for hour in range(6, simulated_hours, 6):
@@ -452,7 +459,7 @@ class TestStabilityMonitoring:
                 hourly_diff = memory_monitor.get_memory_diff(f"hour_{prev_hour}", f"hour_{hour}")
                 hourly_growth = hourly_diff["rss_diff_mb"] / 6  # Per hour
 
-                assert hourly_growth < 1.0, f"Hour {hour}: Excessive growth {hourly_growth:.3f} MB/hour"
+                assert hourly_growth < 0.5, f"Hour {hour}: Excessive growth {hourly_growth:.3f} MB/hour"
 
         finally:
             await session_manager.cleanup()
