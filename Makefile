@@ -44,7 +44,7 @@ test-interactive: docker-test-build
 .PHONY: test-integration
 test-integration: docker-test-build
 	@echo "Running integration tests for timing workflows..."
-	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/integration/test_timing_workflows.py
+	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/integration
 
 .PHONY: test-tools
 test-tools:

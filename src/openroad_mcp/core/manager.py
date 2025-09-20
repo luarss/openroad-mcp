@@ -53,6 +53,7 @@ class OpenROADManager:
             self.state = ProcessState.STARTING
             self.process = await asyncio.create_subprocess_exec(
                 settings.OPENROAD_BINARY,
+                "-no_splash",
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
