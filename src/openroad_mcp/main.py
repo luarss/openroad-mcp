@@ -4,6 +4,7 @@ import asyncio
 import sys
 
 from openroad_mcp.config.cli import parse_cli_args
+from openroad_mcp.config.constants import EXIT_CODE_ERROR, EXIT_CODE_KEYBOARD_INTERRUPT
 from openroad_mcp.server import run_server
 from openroad_mcp.utils.logging import setup_logging
 
@@ -25,13 +26,13 @@ def main() -> None:
 
     except ValueError as e:
         print(f"Configuration error: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(EXIT_CODE_ERROR)
     except KeyboardInterrupt:
         print("\nInterrupted by user", file=sys.stderr)
-        sys.exit(130)
+        sys.exit(EXIT_CODE_KEYBOARD_INTERRUPT)
     except Exception as e:
         print(f"Unexpected error: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(EXIT_CODE_ERROR)
 
 
 if __name__ == "__main__":

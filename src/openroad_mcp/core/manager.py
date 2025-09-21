@@ -2,7 +2,9 @@
 
 import asyncio
 from datetime import datetime
+from typing import TYPE_CHECKING
 
+from ..config.constants import LAST_COMMANDS_COUNT, PROCESS_SHUTDOWN_TIMEOUT, RECENT_OUTPUT_LINES
 from ..config.settings import settings
 from ..utils.logging import get_logger
 from .exceptions import (
@@ -12,6 +14,9 @@ from .exceptions import (
     ProcessStartupError,
 )
 from .models import CommandRecord, CommandResult, ContextInfo, ProcessState, ProcessStatus
+
+if TYPE_CHECKING:
+    from ..interactive.session_manager import InteractiveSessionManager
 
 
 class OpenROADManager:
@@ -37,6 +42,9 @@ class OpenROADManager:
             self.logger = get_logger("manager")
             self._process_start_time: float | None = None
 
+            # Interactive session management (lazy initialization)
+            self._interactive_manager: InteractiveSessionManager | None = None
+
     async def start_process(self) -> CommandResult:
         """Start the OpenROAD process."""
         if self.state == ProcessState.RUNNING:
@@ -46,6 +54,7 @@ class OpenROADManager:
             self.state = ProcessState.STARTING
             self.process = await asyncio.create_subprocess_exec(
                 settings.OPENROAD_BINARY,
+                "-no_splash",
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -157,7 +166,7 @@ class OpenROADManager:
                 await asyncio.wait_for(self.process.wait(), timeout=settings.SHUTDOWN_TIMEOUT)
             except TimeoutError:
                 self.process.terminate()
-                await asyncio.wait_for(self.process.wait(), timeout=2.0)
+                await asyncio.wait_for(self.process.wait(), timeout=PROCESS_SHUTDOWN_TIMEOUT)
 
             self.state = ProcessState.STOPPED
             self.process = None
@@ -202,16 +211,16 @@ class OpenROADManager:
         """Get comprehensive context information."""
         status = await self.get_status()
 
-        # Get recent output (last 20 lines)
-        recent_stdout = self.stdout_buffer[-20:] if self.stdout_buffer else []
-        recent_stderr = self.stderr_buffer[-20:] if self.stderr_buffer else []
+        # Get recent output
+        recent_stdout = self.stdout_buffer[-RECENT_OUTPUT_LINES:] if self.stdout_buffer else []
+        recent_stderr = self.stderr_buffer[-RECENT_OUTPUT_LINES:] if self.stderr_buffer else []
 
         return ContextInfo(
             status=status,
             recent_stdout=recent_stdout,
             recent_stderr=recent_stderr,
             command_count=len(self.command_history),
-            last_commands=self.command_history[-5:] if self.command_history else [],
+            last_commands=self.command_history[-LAST_COMMANDS_COUNT:] if self.command_history else [],
         )
 
     async def _read_stdout(self) -> None:
@@ -251,3 +260,36 @@ class OpenROADManager:
                         self.stderr_buffer.pop(0)
         except Exception as e:
             self.logger.error(f"Error reading stderr: {e}")
+
+    @property
+    def interactive_manager(self) -> "InteractiveSessionManager":
+        """Get or create interactive session manager."""
+        if self._interactive_manager is None:
+            # Lazy import to avoid circular dependencies
+            from ..interactive.session_manager import InteractiveSessionManager
+
+            self._interactive_manager = InteractiveSessionManager()
+            self.logger.info("Initialized interactive session manager")
+        return self._interactive_manager
+
+    async def cleanup_all(self) -> None:
+        """Clean up both subprocess and interactive sessions."""
+        self.logger.info("Starting comprehensive OpenROAD cleanup")
+
+        # Clean up interactive sessions first
+        if self._interactive_manager is not None:
+            try:
+                await self._interactive_manager.cleanup()
+                self.logger.info("Interactive sessions cleaned up")
+            except Exception:
+                self.logger.exception("Error cleaning up interactive sessions")
+
+        # Clean up subprocess
+        if self.state == ProcessState.RUNNING:
+            try:
+                await self.stop_process()
+                self.logger.info("Subprocess cleaned up")
+            except Exception:
+                self.logger.exception("Error cleaning up subprocess")
+
+        self.logger.info("Comprehensive OpenROAD cleanup completed")

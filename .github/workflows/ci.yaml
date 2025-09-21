@@ -5,44 +5,65 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+
+env:
+  MCP_SERVER_REQUEST_TIMEOUT: 120
+  MCP_REQUEST_MAX_TOTAL_TIMEOUT: 300
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-
-    - name: Install dependencies
-      run: |
-        make sync
-
-    - name: Run formatting checks
-      run: |
-        make check
-
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        test-type: [lint, core, interactive, integration, tools]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
+    - run: make sync
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
+    - name: Run lint
+      if: matrix.test-type == 'lint'
+      run: make check
 
-    - name: Install dependencies
-      run: |
-        make sync
+    - name: Run core tests
+      if: matrix.test-type == 'core'
+      run: make test
 
-    - name: Run tests
-      run: |
-        make test
-      env:
-        # Set high timeouts for MCP server tests
-        MCP_SERVER_REQUEST_TIMEOUT: 99999999999
-        MCP_REQUEST_MAX_TOTAL_TIMEOUT: 99999999999
+    - name: Run interactive tests
+      if: matrix.test-type == 'interactive'
+      run: make test-interactive
+
+    - name: Run integration tests
+      if: matrix.test-type == 'integration'
+      run: make test-integration
+
+    - name: Run tools tests
+      if: matrix.test-type == 'tools'
+      run: make test-tools
+
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'schedule'
+    steps:
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
+    - run: make sync
+    - run: make test-performance
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: test
+    steps:
+    - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v6
+    - run: make sync
+    - run: make test-coverage
+    - uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
