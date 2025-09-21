@@ -126,6 +126,19 @@ class InteractiveSession:
         self._writer_task = asyncio.create_task(self._write_input())
         self._exit_monitor_task = asyncio.create_task(self._monitor_exit())
 
+        # Wait for background tasks to start and initial output to be available
+        # await self._wait_for_startup_ready()
+
+    async def _wait_for_startup_ready(self, timeout: float = 2.0) -> None:
+        """Wait for background tasks to be ready and initial output to be available."""
+        logger.info(f"Session {self.session_id} waiting for startup readiness (timeout={timeout}s)")
+
+        # Simply wait a fixed time for startup to complete
+        # This prevents infinite hangs while allowing background tasks to initialize
+        await asyncio.sleep(timeout)
+
+        logger.info(f"Session {self.session_id} startup wait completed")
+
     async def send_command(self, command: str) -> None:
         """Send command to the session."""
         if not self.is_alive():

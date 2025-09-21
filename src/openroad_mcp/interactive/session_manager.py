@@ -111,7 +111,7 @@ class InteractiveSessionManager:
     async def list_sessions(self) -> list[InteractiveSessionInfo]:
         """List all sessions with their information."""
         # Clean up terminated sessions first
-        await self._cleanup_terminated_sessions()
+        await self._cleanup_terminated_sessions_with_lock()
 
         session_infos = []
         for session in self._sessions.values():
@@ -187,7 +187,7 @@ class InteractiveSessionManager:
 
     async def session_metrics(self) -> dict:
         """Get comprehensive metrics for all sessions."""
-        await self._cleanup_terminated_sessions()
+        await self._cleanup_terminated_sessions_with_lock()
 
         total_sessions = len(self._sessions)
         active_sessions = self.get_active_session_count()
@@ -313,58 +313,62 @@ class InteractiveSessionManager:
 
         return session
 
+    async def _cleanup_terminated_sessions_with_lock(self, force_cleanup_after_seconds: float = 60.0) -> int:
+        """Clean up terminated sessions with lock acquisition."""
+        async with self._cleanup_lock:
+            return await self._cleanup_terminated_sessions(force_cleanup_after_seconds)
+
     async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
         """Clean up terminated sessions with graceful degradation."""
-        async with self._cleanup_lock:
-            terminated_ids = []
-            current_time = datetime.now()
+        terminated_ids = []
+        current_time = datetime.now()
 
-            for session_id, session in self._sessions.items():
-                # Skip None placeholders
+        for session_id, session in self._sessions.items():
+            # Skip None placeholders
+            if session is None:
+                continue
+            if not session.is_alive():
+                # Check if session has been dead long enough for forced cleanup
+                time_since_death = (current_time - session.last_activity).total_seconds()
+                if time_since_death > force_cleanup_after_seconds:
+                    terminated_ids.append((session_id, True))  # Force cleanup
+                else:
+                    terminated_ids.append((session_id, False))  # Graceful cleanup
+
+        # Clean up terminated sessions
+        cleaned_count = 0
+        for session_id, force_cleanup in terminated_ids:
+            try:
+                session = self._sessions[session_id]
+                # Skip None placeholders in cleanup
                 if session is None:
+                    del self._sessions[session_id]
+                    cleaned_count += 1
                     continue
-                if not session.is_alive():
-                    # Check if session has been dead long enough for forced cleanup
-                    time_since_death = (current_time - session.last_activity).total_seconds()
-                    if time_since_death > force_cleanup_after_seconds:
-                        terminated_ids.append((session_id, True))  # Force cleanup
-                    else:
-                        terminated_ids.append((session_id, False))  # Graceful cleanup
 
-            # Clean up terminated sessions
-            cleaned_count = 0
-            for session_id, force_cleanup in terminated_ids:
-                try:
-                    session = self._sessions[session_id]
-                    # Skip None placeholders in cleanup
-                    if session is None:
-                        del self._sessions[session_id]
-                        cleaned_count += 1
-                        continue
-
-                    if force_cleanup:
-                        logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
-                        try:
-                            await session.cleanup()
-                        except Exception as cleanup_error:
-                            logger.error(f"Force cleanup failed for session {session_id}: {cleanup_error}")
-                        finally:
-                            del self._sessions[session_id]
-                            cleaned_count += 1
-                    else:
+                if force_cleanup:
+                    logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
+                    try:
                         await session.cleanup()
+                    except Exception as cleanup_error:
+                        logger.error(f"Force cleanup failed for session {session_id}: {cleanup_error}")
+                    finally:
                         del self._sessions[session_id]
                         cleaned_count += 1
-                        logger.debug(f"Cleaned up terminated session {session_id}")
-                except Exception as e:
-                    logger.error(f"Error during session {session_id} cleanup: {e}")
-                    # In case of error, still remove from dict to prevent accumulation
-                    if force_cleanup and session_id in self._sessions:
-                        logger.warning(f"Force removing session {session_id} from tracking after cleanup error")
-                        del self._sessions[session_id]
-                        cleaned_count += 1
+                else:
+                    await session.cleanup()
+                    del self._sessions[session_id]
+                    cleaned_count += 1
+                    logger.debug(f"Cleaned up terminated session {session_id}")
+            except Exception as e:
+                logger.error(f"Error during session {session_id} cleanup: {e}")
+                # In case of error, still remove from dict to prevent accumulation
+                if force_cleanup and session_id in self._sessions:
+                    logger.warning(f"Force removing session {session_id} from tracking after cleanup error")
+                    del self._sessions[session_id]
+                    cleaned_count += 1
 
-            if cleaned_count > 0:
-                logger.info(f"Cleaned up {cleaned_count} terminated sessions")
+        if cleaned_count > 0:
+            logger.info(f"Cleaned up {cleaned_count} terminated sessions")
 
-            return cleaned_count
+        return cleaned_count
