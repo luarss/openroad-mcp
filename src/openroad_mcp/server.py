@@ -1,5 +1,7 @@
 """Main MCP server setup and tool registration."""
 
+import asyncio
+
 from fastmcp import FastMCP
 
 from openroad_mcp.config.cli import CLIConfig
@@ -153,18 +155,22 @@ async def run_server(config: CLIConfig) -> None:
     """Main server entry point with lifecycle management."""
     logger.info(f"Starting OpenROAD MCP server in {config.transport.mode} mode...")
 
+    # Create shutdown event for coordinated shutdown
+    shutdown_event = asyncio.Event()
+
     try:
         # Register cleanup handlers
         cleanup_manager.register_async_cleanup_handler(shutdown_openroad)
         cleanup_manager.setup_signal_handlers()
+        cleanup_manager.set_shutdown_event(shutdown_event)
 
         # Start OpenROAD process automatically
         await startup_openroad()
 
-        # Run the MCP server with the configured transport
+        # Run the MCP server with the configured transport in a task
         if config.transport.mode == "stdio":
             logger.info("Using stdio transport")
-            await mcp.run_async(transport="stdio")
+            server_task = asyncio.create_task(mcp.run_async(transport="stdio"))
         elif config.transport.mode == "http":
             logger.info(f"Using HTTP transport on {config.transport.host}:{config.transport.port}")
             # TODO: Streamable-HTTP
@@ -175,6 +181,18 @@ async def run_server(config: CLIConfig) -> None:
             )
         else:
             raise ValueError(f"Unsupported transport mode: {config.transport.mode}")
+
+        # Wait for either server completion or shutdown signal
+        shutdown_task = asyncio.create_task(cleanup_manager.wait_for_shutdown())
+        _, pending = await asyncio.wait([server_task, shutdown_task], return_when=asyncio.FIRST_COMPLETED)
+
+        # Cancel pending tasks
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt")

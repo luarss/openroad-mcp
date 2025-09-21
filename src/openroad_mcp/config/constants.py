@@ -19,6 +19,7 @@ MAX_COMMAND_COMPLETION_WINDOW = 0.1
 
 # Process management
 PROCESS_SHUTDOWN_TIMEOUT = 2.0
+FORCE_EXIT_DELAY_SECONDS = 2
 
 # Buffer logging thresholds
 LARGE_BUFFER_THRESHOLD = 10 * 1024 * 1024  # 10MB - threshold for logging buffer creation
