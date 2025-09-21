@@ -292,7 +292,7 @@ class InteractiveSession:
                     await self.pty.write_input(data)
 
                 except TimeoutError:
-                    continue  # Check shutdown and retry
+                    continue
                 except PTYError as e:
                     logger.warning(f"PTY write error in session {self.session_id}: {e}")
                     break
@@ -346,7 +346,6 @@ class InteractiveSession:
 
         except TimeoutError:
             logger.exception("Critical: Tasks failed to complete within 5s in session %s", self.session_id)
-            # Force reset even on timeout to prevent resource leaks
         except Exception:
             logger.exception("Unexpected error during task cleanup in session %s", self.session_id)
 
