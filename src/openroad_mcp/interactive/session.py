@@ -9,7 +9,10 @@ import psutil
 
 from ..config.constants import (
     BYTES_TO_MB,
+    JS_SAFE_INTEGER_MAX,
+    LARGE_IO_THRESHOLD,
     MAX_COMMAND_COMPLETION_WINDOW,
+    SLOW_OPERATION_THRESHOLD,
     UTILIZATION_PERCENTAGE_BASE,
 )
 from ..config.settings import settings
@@ -36,7 +39,7 @@ class InteractiveSession:
             buffer_size = settings.DEFAULT_BUFFER_SIZE
         self.created_at = datetime.now()
         self.command_count = 0
-        self.state = SessionState.CREATING
+        self._state = SessionState.CREATING
 
         # Command history and performance tracking
         self.command_history: list[dict] = []
@@ -65,6 +68,18 @@ class InteractiveSession:
 
         logger.info(f"Created interactive session {session_id}")
 
+    @property
+    def state(self) -> SessionState:
+        """Get current session state."""
+        return self._state
+
+    @state.setter
+    def state(self, value: SessionState) -> None:
+        """Set session state with logging."""
+        if self._state != value:
+            logger.debug(f"Session {self.session_id} state change: {self._state.value} -> {value.value}")
+            self._state = value
+
     async def __aenter__(self) -> "InteractiveSession":
         """Async context manager entry."""
         return self
@@ -82,29 +97,34 @@ class InteractiveSession:
         cwd: str | None = None,
     ) -> None:
         """Start the OpenROAD session."""
-        if self.state != SessionState.CREATING:
-            raise SessionError(f"Cannot start session in state {self.state.value}", self.session_id)
+        self._validate_start_state()
 
         try:
-            # Default to OpenROAD command
-            if command is None:
-                command = ["openroad", "-no_init"]
-
-            # Create PTY session
-            await self.pty.create_session(command, env, cwd)
-            self.state = SessionState.ACTIVE
-
-            # Start background I/O tasks
-            self._reader_task = asyncio.create_task(self._read_output())
-            self._writer_task = asyncio.create_task(self._write_input())
-            self._exit_monitor_task = asyncio.create_task(self._monitor_exit())
-
+            command = command or ["openroad", "-no_init"]
+            await self._initialize_pty(command, env, cwd)
+            await self._start_background_tasks()
             logger.info(f"Started session {self.session_id} with command: {' '.join(command)}")
 
         except Exception as e:
             self.state = SessionState.ERROR
             await self.cleanup()
             raise SessionError(f"Failed to start session: {e}", self.session_id) from e
+
+    def _validate_start_state(self) -> None:
+        """Validate that session can be started."""
+        if self.state != SessionState.CREATING:
+            raise SessionError(f"Cannot start session in state {self.state.value}", self.session_id)
+
+    async def _initialize_pty(self, command: list[str], env: dict[str, str] | None, cwd: str | None) -> None:
+        """Initialize PTY and mark session as active."""
+        await self.pty.create_session(command, env, cwd)
+        self.state = SessionState.ACTIVE
+
+    async def _start_background_tasks(self) -> None:
+        """Start all background I/O tasks."""
+        self._reader_task = asyncio.create_task(self._read_output())
+        self._writer_task = asyncio.create_task(self._write_input())
+        self._exit_monitor_task = asyncio.create_task(self._monitor_exit())
 
     async def send_command(self, command: str) -> None:
         """Send command to the session."""
@@ -193,7 +213,8 @@ class InteractiveSession:
                 buffer_size=buffer_size,
             )
 
-            logger.debug(f"Read {len(output)} chars from session {self.session_id} in {execution_time:.3f}s")
+            if execution_time > SLOW_OPERATION_THRESHOLD or len(output) > LARGE_IO_THRESHOLD:
+                logger.debug(f"Read {len(output)} chars from session {self.session_id} in {execution_time:.3f}s")
 
             return result
 
@@ -202,7 +223,18 @@ class InteractiveSession:
 
     def is_alive(self) -> bool:
         """Check if session is active and process is running."""
-        return self.state == SessionState.ACTIVE and self.pty.is_process_alive()
+        if self.state == SessionState.TERMINATED:
+            return False
+
+        # If process died but state hasn't been updated, fix it
+        process_alive = self.pty.is_process_alive()
+        if not process_alive and self.state == SessionState.ACTIVE:
+            logger.warning(f"Session {self.session_id} process died but state was ACTIVE, updating to TERMINATED")
+            self.state = SessionState.TERMINATED
+            self._shutdown_event.set()
+            return False
+
+        return self.state == SessionState.ACTIVE and process_alive
 
     async def get_info(self) -> InteractiveSessionInfo:
         """Get session information."""
@@ -312,11 +344,16 @@ class InteractiveSession:
             exit_code = await self.pty.wait_for_exit()
             if exit_code is not None:
                 logger.info(f"Process in session {self.session_id} exited with code {exit_code}")
-                self.state = SessionState.TERMINATED
-                self._shutdown_event.set()
+                if self.state != SessionState.TERMINATED:
+                    self.state = SessionState.TERMINATED
+                    self._shutdown_event.set()
 
         except Exception:
             logger.exception("Error monitoring exit for session %s", self.session_id)
+            # Even on error, ensure we mark session as terminated if process is dead
+            if not self.pty.is_process_alive() and self.state != SessionState.TERMINATED:
+                self.state = SessionState.TERMINATED
+                self._shutdown_event.set()
         finally:
             logger.debug(f"Exit monitor ended for session {self.session_id}")
 
@@ -466,7 +503,9 @@ class InteractiveSession:
 
                     # Update memory usage
                     memory_info = process.memory_info()
-                    current_memory_mb = memory_info.rss / BYTES_TO_MB
+                    # Ensure RSS is a valid positive number and handle potential overflow
+                    rss_bytes = max(0, min(memory_info.rss, JS_SAFE_INTEGER_MAX))
+                    current_memory_mb = rss_bytes / BYTES_TO_MB
                     self.peak_memory_mb = max(self.peak_memory_mb, current_memory_mb)
 
                 except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
@@ -482,7 +521,9 @@ class InteractiveSession:
                 try:
                     process = psutil.Process(self.pty.process.pid)
                     memory_info = process.memory_info()
-                    return float(memory_info.rss / BYTES_TO_MB)
+                    # Ensure RSS is a valid positive number and handle potential overflow
+                    rss_bytes = max(0, min(memory_info.rss, JS_SAFE_INTEGER_MAX))
+                    return float(rss_bytes / BYTES_TO_MB)
                 except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
                     pass
         except Exception:

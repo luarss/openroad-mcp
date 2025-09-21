@@ -344,16 +344,23 @@ class InteractiveSessionManager:
 
                     if force_cleanup:
                         logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
-                        await session.cleanup()
+                        try:
+                            await session.cleanup()
+                        except Exception as cleanup_error:
+                            logger.error(f"Force cleanup failed for session {session_id}: {cleanup_error}")
+                        finally:
+                            del self._sessions[session_id]
+                            cleaned_count += 1
                     else:
                         await session.cleanup()
-                    del self._sessions[session_id]
-                    cleaned_count += 1
-                    logger.debug(f"Cleaned up terminated session {session_id}")
+                        del self._sessions[session_id]
+                        cleaned_count += 1
+                        logger.debug(f"Cleaned up terminated session {session_id}")
                 except Exception as e:
-                    logger.warning(f"Error cleaning up session {session_id}: {e}")
+                    logger.error(f"Error during session {session_id} cleanup: {e}")
                     # In case of error, still remove from dict to prevent accumulation
-                    if session_id in self._sessions:
+                    if force_cleanup and session_id in self._sessions:
+                        logger.warning(f"Force removing session {session_id} from tracking after cleanup error")
                         del self._sessions[session_id]
                         cleaned_count += 1
 

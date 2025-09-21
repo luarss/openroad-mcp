@@ -7,6 +7,7 @@ import os
 import pty
 import termios
 
+from ..config.constants import LARGE_IO_THRESHOLD
 from ..config.settings import settings
 from ..utils.logging import get_logger
 from .models import PTYError
@@ -132,7 +133,8 @@ class PTYHandler:
             bytes_written = os.write(self.master_fd, data)
             if bytes_written != len(data):
                 logger.warning(f"Partial write: {bytes_written}/{len(data)} bytes")
-            logger.debug(f"Wrote {bytes_written} bytes to PTY")
+            elif bytes_written > LARGE_IO_THRESHOLD:
+                logger.debug(f"Large write: {bytes_written} bytes to PTY")
 
         except (OSError, BrokenPipeError) as e:
             raise PTYError(f"Failed to write to PTY: {e}") from e
@@ -151,8 +153,8 @@ class PTYHandler:
         try:
             # Direct read from non-blocking FD - no threading needed
             data = os.read(self.master_fd, size)
-            if data:
-                logger.debug(f"Read {len(data)} bytes from PTY")
+            if data and len(data) > LARGE_IO_THRESHOLD:
+                logger.debug(f"Large read: {len(data)} bytes from PTY")
             return data
 
         except BlockingIOError:

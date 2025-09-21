@@ -4,6 +4,7 @@ import asyncio
 import threading
 from collections import deque
 
+from ..config.constants import CHUNK_JOIN_THRESHOLD, LARGE_BUFFER_THRESHOLD, SIGNIFICANT_LOG_THRESHOLD
 from ..config.settings import settings
 from ..utils.logging import get_logger
 
@@ -29,7 +30,8 @@ class CircularBuffer:
         self._thread_lock = threading.RLock()
         self._data_available = asyncio.Event()
 
-        logger.debug(f"Created CircularBuffer with max_size={max_size} bytes")
+        if max_size == 0 or max_size > LARGE_BUFFER_THRESHOLD:
+            logger.debug(f"Created CircularBuffer with max_size={max_size} bytes")
 
     async def append(self, data: bytes) -> None:
         """Add data to buffer, evicting oldest chunks if needed."""
@@ -52,8 +54,8 @@ class CircularBuffer:
                 self.total_bytes -= old_size
                 evicted_bytes += old_size
 
-            if evicted_bytes > 0:
-                logger.debug(f"Evicted {evicted_bytes} bytes, buffer now {self.total_bytes} bytes")
+            if evicted_bytes > SIGNIFICANT_LOG_THRESHOLD:
+                logger.debug(f"Large eviction: {evicted_bytes} bytes, buffer now {self.total_bytes} bytes")
 
             # Signal data availability only if buffer has data
             if self.chunks:
@@ -71,7 +73,8 @@ class CircularBuffer:
 
             if result:
                 total_drained = sum(len(chunk) for chunk in result)
-                logger.debug(f"Drained {len(result)} chunks ({total_drained} bytes)")
+                if total_drained > SIGNIFICANT_LOG_THRESHOLD:
+                    logger.debug(f"Large drain: {len(result)} chunks ({total_drained} bytes)")
 
             return result
 
@@ -107,15 +110,28 @@ class CircularBuffer:
             self.total_bytes = 0
             self._data_available.clear()
 
-            if cleared_bytes > 0:
-                logger.debug(f"Cleared {cleared_bytes} bytes from buffer")
+            if cleared_bytes > SIGNIFICANT_LOG_THRESHOLD:
+                logger.debug(f"Large clear: {cleared_bytes} bytes from buffer")
 
     @staticmethod
     def to_bytes(chunks: list[bytes]) -> bytes:
         """Convert list of chunks to single bytes object."""
         if not chunks:
             return b""
-        return b"".join(chunks)
+
+        # For small number of chunks, direct join is fine
+        if len(chunks) < CHUNK_JOIN_THRESHOLD:
+            return b"".join(chunks)
+
+        # For large number of chunks, use bytearray to avoid intermediate allocations
+        total_size = sum(len(chunk) for chunk in chunks)
+        result = bytearray(total_size)
+        offset = 0
+        for chunk in chunks:
+            chunk_len = len(chunk)
+            result[offset : offset + chunk_len] = chunk
+            offset += chunk_len
+        return bytes(result)
 
     @staticmethod
     def to_string(chunks: list[bytes], encoding: str = "utf-8", errors: str = "replace") -> str:

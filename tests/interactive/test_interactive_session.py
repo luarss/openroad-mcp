@@ -231,10 +231,15 @@ class TestInteractiveSession:
         session.state = SessionState.ACTIVE
         with patch.object(session.pty, "is_process_alive", return_value=False):
             assert not session.is_alive()
+            assert session.state == SessionState.TERMINATED
+
+        # Reset state for next test
+        session.state = SessionState.ACTIVE
 
         # Active state with live process
         with patch.object(session.pty, "is_process_alive", return_value=True):
             assert session.is_alive()
+            assert session.state == SessionState.ACTIVE
 
         # Terminated state
         session.state = SessionState.TERMINATED
