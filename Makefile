@@ -59,7 +59,14 @@ test-performance: docker-test-build
 .PHONY: test-coverage
 test-coverage: docker-test-build
 	@echo "Running tests with coverage analysis..."
-	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest --ignore=tests/performance --cov=src/openroad_mcp --cov-report=xml --cov-report=html --cov-report=term-missing
+	@docker run --rm -v $(PWD):/output $(DOCKER_TEST_IMAGE) sh -c "\
+		uv run pytest --ignore=tests/performance \
+			--cov=src/openroad_mcp \
+			--cov-report=xml \
+			--cov-report=html \
+			--cov-report=term-missing && \
+		cp coverage.xml /output/ && \
+		cp -r htmlcov /output/ 2>/dev/null || true"
 
 # MCP
 .PHONY: inspect
