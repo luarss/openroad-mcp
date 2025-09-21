@@ -25,7 +25,8 @@ class SessionState(Enum):
     ERROR = "error"
 
 
-# Type alias for SessionState that serializes to string value
+# Type aliases: serialize enum values to strings
+SerializableProcessState = Annotated[ProcessState, PlainSerializer(lambda x: x.value if x else None, return_type=str)]
 SerializableSessionState = Annotated[SessionState, PlainSerializer(lambda x: x.value if x else None, return_type=str)]
 
 
@@ -58,7 +59,7 @@ class CommandResult(BaseResult):
 class ProcessStatus(BaseResult):
     """OpenROAD process status information."""
 
-    state: ProcessState
+    state: SerializableProcessState
     pid: int | None = None
     uptime: float | None = None
     command_count: int = 0
