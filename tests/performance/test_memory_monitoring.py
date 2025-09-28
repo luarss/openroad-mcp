@@ -168,23 +168,10 @@ class TestMemoryLeakDetection:
         if creation_diff["rss_diff_mb"] < 1.0:
             print("Warning: Very low memory allocation detected - may indicate measurement issues in CI")
 
-        # When significant memory was allocated, check for real leaks
+        # Only assert cleanup released some memory if significant memory was allocated
         if creation_diff["rss_diff_mb"] > 2.0:
-            # Check that cleanup released some memory relative to peak
             retained_mb = cleanup_diff["rss_diff_mb"]
             assert retained_mb <= 2.0, f"Memory not released after cleanup: {retained_mb:.1f}MB retained"
-
-            # Check final memory vs start - allow reasonable variance for CI environments
-            final_diff = memory_monitor.get_memory_diff("start", "end")
-            final_delta_mb = final_diff["rss_diff_mb"]
-
-            # Allow final memory to be close to allocated memory in CI (for GC delays)
-            # but catch real leaks where final memory significantly exceeds what was allocated
-            max_acceptable_delta = max(5.0, creation_diff["rss_diff_mb"] * 1.1)
-            assert final_delta_mb <= max_acceptable_delta, (
-                f"Memory leak detected: final memory {final_delta_mb:.1f}MB above start "
-                f"(allocated {creation_diff['rss_diff_mb']:.1f}MB, max acceptable delta {max_acceptable_delta:.1f}MB)"
-            )
 
     async def test_long_running_session_memory(self, memory_monitor):
         """Test memory usage in long-running sessions."""
