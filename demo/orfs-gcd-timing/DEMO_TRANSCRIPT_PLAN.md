@@ -6,38 +6,51 @@ A 10-15 minute live demonstration showing AI-guided timing closure debugging usi
 
 **Key Value**: Transform timing closure from manual, time-intensive process into intelligent, conversational workflow using actual production databases.
 
+## Critical Setup Requirements
+
+### Pre-Demo Checklist
+1. **ORFS Flow Completion**: Ensure `make DESIGN_CONFIG=flow/designs/nangate45/gcd/config.mk` has been run
+2. **MCP Server Running**: Verify OpenROAD MCP server is operational
+3. **Constraint Files**: Validate SDC files have correct port mappings (see Section 2.3)
+
+### Known Issues & Solutions
+- **SDC Constraint Warning**: Original constraint files use `[all_inputs]` which includes clock port
+- **Solution**: Use specific port lists excluding clock: `{req_msg req_val reset resp_rdy}` for inputs
+- **Port Mapping**: Verify GCD design ports before demo:
+  - **Inputs**: `clk, req_msg[31:0], req_val, reset, resp_rdy`
+  - **Outputs**: `req_rdy, resp_msg[15:0], resp_val`
+
 ## Demo Flow Structure
 
 ### Phase 1: ORFS Integration (2-3 minutes)
 
-**Narrator:** "First, let's run the OpenROAD-flow-scripts to generate our timing database"
+**Narrator:** "First, let's verify our OpenROAD-flow-scripts GCD design artifacts"
 
 **Actions:**
-- Execute ORFS GCD flow: `make DESIGN_CONFIG=flow/designs/nangate45/gcd/config.mk`
-- Show generated artifacts at each stage:
-  - `2_floorplan.odb` (659KB) - Post-floorplan with PDN
-  - `3_place.odb` (681KB) - Post-placement
-  - `4_cts.odb` (709KB) - Post-clock tree synthesis
-  - `5_route.odb` (1.2MB) - Post-routing
+- Show pre-generated ORFS artifacts:
+  ```bash
+  ls -la /home/luars/OpenROAD-flow-scripts/flow/results/nangate45/gcd/base/
+  ```
+- Highlight key files:
+  - `1_synth.v` (56KB) - Synthesized netlist for timing analysis
   - `6_final.odb` (1.2MB) - Final routed design
-
-**Key Files Highlighted:**
-- `6_final.odb` - Complete placed and routed database
-- `6_final.spef` - Extracted parasitics
-- `6_final.sdc` - Final timing constraints
+  - `6_final.spef` (492KB) - Extracted parasitics
+  - `6_final.sdc` (5.7KB) - Final timing constraints
 
 **Talking Points:**
-- "These are real production databases, not synthetic examples"
-- "Each .odb file contains complete physical and logical design state"
-- "ORFS provides industrial-strength RTL-to-GDS flow"
+- "These are real production databases from complete RTL-to-GDS flow"
+- "We'll use the synthesized netlist for timing analysis due to schema compatibility"
+- "ORFS provides industrial-strength nangate45 technology integration"
 
-### Phase 2: MCP Server Database Loading (2-3 minutes)
+### Phase 2: MCP Server Database Loading (3-4 minutes)
 
 **Narrator:** "Now let's load the ORFS-generated design into OpenROAD via MCP"
 
-**Commands Demonstrated:**
+**Demo Commands (Verified Working):**
 ```tcl
-# Start OpenROAD MCP interactive session
+# Create interactive session
+# Session created via MCP: demo-session
+
 # Technology setup (required first)
 read_lef /home/luars/OpenROAD-flow-scripts/flow/platforms/nangate45/lef/NangateOpenCellLibrary.tech.lef
 read_lef /home/luars/OpenROAD-flow-scripts/flow/platforms/nangate45/lef/NangateOpenCellLibrary.macro.lef
@@ -47,14 +60,14 @@ read_liberty /home/luars/OpenROAD-flow-scripts/flow/platforms/nangate45/lib/Nang
 read_verilog /home/luars/OpenROAD-flow-scripts/flow/results/nangate45/gcd/base/1_synth.v
 link_design gcd
 
-# Load timing constraints
+# Load baseline timing constraints
 read_sdc /home/luars/OpenROAD-flow-scripts/flow/results/nangate45/gcd/base/6_final.sdc
 
 # Initial timing check
 report_checks -digits 3
 ```
 
-**Expected Output:**
+**Expected Output (Verified):**
 ```
 Startpoint: dpath.a_reg.out[10]$_DFFE_PP_
             (rising edge-triggered flip-flop clocked by core_clock)
@@ -84,138 +97,125 @@ Path Type: max
             0.039   slack (MET)
 ```
 
-**Talking Points:**
-- "Clean handoff from ORFS synthesized netlist to OpenROAD MCP"
-- "All timing data preserved: technology libraries, constraints, logical design"
-- "Baseline shows design meets timing with +39ps slack"
-- "Note: Schema compatibility requires netlist approach vs. direct .odb loading"
+**Key Achievements:**
+- Clean technology library loading
+- Successful netlist import and linking
+- Baseline timing: **+39ps slack** (design meets timing)
 
 ### Phase 3: Violation Injection & AI Analysis (4-5 minutes)
 
-**Narrator:** "Let's create timing violations and analyze them conversationally"
+**Narrator:** "Let's create timing violations using corrected aggressive constraints"
 
-**Setup:**
+**Critical Fix Applied:**
+Instead of using problematic constraint files, apply constraints manually to avoid warnings:
+
 ```tcl
-# Load extreme constraints to create violations
-read_sdc configs/extreme_pressure_constraints.sdc
+# Create aggressive clock constraints (corrected approach)
+create_clock -name core_clock -period 4.0 [get_ports clk]
+set_clock_uncertainty 0.2 [get_clocks core_clock]
+
+# Apply I/O constraints with correct port mapping
+set_input_delay -clock core_clock -max 3.5 [get_ports {req_msg req_val reset resp_rdy}]
+set_output_delay -clock core_clock -max 3.5 [get_ports {req_rdy resp_msg resp_val}]
+
+# Check for violations
 report_checks -path_delay max -slack_max 0.0
 ```
 
-**AI Conversation Script:**
+**Expected Violation (Verified):**
+```
+Startpoint: dpath.a_reg.out[10]$_DFFE_PP_
+            (rising edge-triggered flip-flop clocked by core_clock)
+Endpoint: resp_msg[15] (output port clocked by core_clock)
+Path Group: core_clock
+Path Type: max
+
+  Delay    Time   Description
+---------------------------------------------------------
+   0.00    0.00   clock core_clock (rise edge)
+   0.00    0.00   clock network delay (ideal)
+   ...
+   0.00    0.32 ^ resp_msg[15] (out)
+           0.32   data arrival time
+
+   4.00    4.00   clock core_clock (rise edge)
+   0.00    4.00   clock network delay (ideal)
+  -0.20    3.80   clock uncertainty
+  -3.50    0.30   output external delay
+           0.30   data required time
+---------------------------------------------------------
+           0.30   data required time
+          -0.32   data arrival time
+---------------------------------------------------------
+          -0.02   slack (VIOLATED)
+```
+
+**AI Analysis Script:**
 
 **👤 User:** "Analyze the timing violations in this GCD design"
 
-**🤖 AI:** "I found timing violations with worst slack -0.02ns. Let me examine the critical paths..."
+**🤖 AI:** "I found timing violations with worst slack **-0.02ns**. Analysis shows:
 
-*[AI executes: `report_checks -path_delay max -slack_max 0.0`]*
-
-**🤖 AI:** "Analysis complete. The worst violation occurs in the GCD datapath output:
-- **Critical Path**: dpath.a_reg.out[10] → resp_msg[15] (output port)
+- **Critical Path**: `dpath.a_reg.out[10]` → `resp_msg[15]` (output port)
 - **Path Delay**: 0.32ns through combinational logic
 - **Available Time**: 0.30ns (4.0ns clock - 3.5ns output delay - 0.2ns uncertainty)
-- **Violation**: -0.02ns slack
-- **Root Cause**: Aggressive I/O timing constraints vs. output logic depth"
+- **Root Cause**: Aggressive I/O timing constraints (3.5ns output delay = 87.5% of clock period)"
 
-**👤 User:** "What's the root cause and how can we fix it?"
+**👤 User:** "What fixes do you recommend?"
 
-**🤖 AI:** "The 4.0ns clock period with 3.5ns output delay is too aggressive for this output path.
+**🤖 AI:** "Recommended fixes:
+1. **Increase clock period**: 4.0ns → 5.0ns (250MHz → 200MHz)
+2. **Relax output delay**: 3.5ns → 1.0ns (realistic I/O timing)
+3. **Reduce clock uncertainty**: 0.2ns → 0.1ns
 
-**Recommended Fixes:**
-1. **Relax I/O timing**: Reduce output delay from 3.5ns to 1.0ns
-2. **Relax clock period**: 4.0ns → 5.0ns (250MHz → 200MHz)
-3. **Add false paths**: Test and debug signals causing false violations
-4. **Reduce clock uncertainty**: 0.2ns → 0.1ns for realistic margins
+Would you like me to apply these fixes?"
 
-Would you like me to apply these fixes automatically?"
+### Phase 4: AI-Guided Timing Closure (3-4 minutes)
 
-**👤 User:** "Yes, apply the fixes and verify timing closure"
+**Narrator:** "Watch AI apply intelligent fixes and achieve timing closure"
 
-### Phase 4: Results Enhancement (3-4 minutes)
-
-**Narrator:** "Watch AI apply intelligent fixes and verify timing closure"
-
-**🤖 AI Actions:**
+**🤖 AI Actions (Verified Working):**
 ```tcl
-# Apply optimized constraints (mild_clock_constraints.sdc)
-read_sdc configs/mild_clock_constraints.sdc
+# Apply AI-recommended fixes
+create_clock -name core_clock -period 5.0 [get_ports clk]
+set_clock_uncertainty 0.1 [get_clocks core_clock]
+set_output_delay -clock core_clock -max 1.0 [get_ports {req_rdy resp_msg resp_val}]
 
 # Verify timing closure
 report_checks -digits 3
-
-# Check for any remaining violations
 report_checks -path_delay max -slack_max 0.0
 ```
 
-**🤖 AI:** "✅ **Timing Closure Achieved!**
+**✅ Verified Results:**
+```
+# No violations found - all paths meet timing
+Startpoint: req_msg[0] (input port clocked by core_clock)
+Endpoint: dpath.b_reg.out[0]$_DFFE_PP_
+          (rising edge-triggered flip-flop clocked by core_clock)
+...
+            1.269   slack (MET)
+```
+
+**🤖 AI:** "**Timing Closure Achieved!**
 
 **Results:**
 - All setup violations cleared
-- Worst slack: +1.2ns (positive margin)
-- Hold timing: All paths meet requirements
-- Clock frequency: Stable operation achieved
+- Worst slack: **+1.27ns** (positive margin)
+- Clock frequency: 200MHz operation verified
+- Design ready for integration"
 
-**Performance Impact:**
-- Applied realistic constraints vs. extreme pressure scenario
-- **Achievement**: Timing closure achieved through intelligent constraint optimization
-- GCD throughput meets typical system requirements"
+### Phase 5: Cross-Domain Analysis (2-3 minutes)
 
-**Detailed Results Display:**
-```
-=== TIMING SUMMARY ===
-Setup Analysis:
-  Worst Slack: +1.200ns (MET)
-  Total Negative Slack: 0.000ns
-  Failing Endpoints: 0
+**Narrator:** "Demonstrate comprehensive design analysis capabilities"
 
-Hold Analysis:
-  Worst Slack: +0.045ns (MET)
-  Total Negative Slack: 0.000ns
-  Failing Endpoints: 0
-
-Clock Frequency: Successfully meeting timing targets
-```
-
-### Phase 5: Cross-Domain Debugging (2-3 minutes)
-
-**Narrator:** "Demonstrate comprehensive analysis capabilities"
-
-**🤖 AI:** "Let me provide cross-domain analysis correlating timing with physical implementation..."
-
-**Advanced Analysis:**
+**Advanced Commands:**
 ```tcl
-# Detailed path analysis
-report_checks -path_delay max -fields {slew cap fanout}
-
 # Path group analysis
 report_checks -group_count 10
 
-# Design area and utilization
+# Detailed timing with physical metrics
+report_checks -path_delay max -fields {slew cap fanout}
+
+# Design utilization
 report_design_area
-
-# Note: Physical .odb comparison requires schema compatibility
-# Available for comparison: 4_cts.odb, 5_route.odb, 6_final.odb
-```
-
-**🤖 AI Insights:**
-"**Cross-Domain Analysis Results:**
-
-1. **Timing-Logic Correlation**:
-   - Critical paths primarily in GCD datapath arithmetic logic
-   - Output multiplexing creates timing bottlenecks
-   - Register-to-register paths show good timing margins
-
-2. **Constraint Analysis**:
-   - I/O timing constraints were the primary violation source
-   - Clock period has reasonable margin for this logic complexity
-   - False path opportunities exist for test/debug signals
-
-3. **Design Recommendations**:
-   - Current timing closure achieved through realistic I/O constraints
-   - GCD algorithm shows good timing behavior for this technology
-   - Design ready for integration with relaxed constraints"
-
-**Automated Report Generation:**
-```bash
-# Generate comprehensive timing closure report
-report_timing_summary > timing_closure_report.txt
 ```
