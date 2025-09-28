@@ -44,9 +44,15 @@ make inspect
 
 ## Usage
 
-The server provides the following MCP tool:
+The server provides the following MCP tools for interactive OpenROAD sessions:
 
-- `execute_openroad_command`: Execute OpenROAD commands with configurable timeout
+- `interactive_openroad`: Execute commands in an interactive OpenROAD session with PTY support
+- `list_interactive_sessions`: List all active interactive OpenROAD sessions
+- `create_interactive_session`: Create a new interactive OpenROAD session
+- `terminate_interactive_session`: Terminate an interactive OpenROAD session
+- `inspect_interactive_session`: Get detailed inspection data for an interactive session
+- `get_session_history`: Get command history for an interactive session
+- `get_session_metrics`: Get comprehensive metrics for all interactive sessions
 
 ## Contributing
 

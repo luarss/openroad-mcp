@@ -7,7 +7,6 @@ from fastmcp import FastMCP
 from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
-from .tools.context import GetCommandHistoryTool, GetContextTool
 from .tools.interactive import (
     CreateSessionTool,
     InspectSessionTool,
@@ -17,7 +16,6 @@ from .tools.interactive import (
     SessionMetricsTool,
     TerminateSessionTool,
 )
-from .tools.process import ExecuteCommandTool, GetStatusTool, RestartProcessTool
 from .utils.cleanup import cleanup_manager
 from .utils.logging import get_logger
 
@@ -29,13 +27,6 @@ mcp: FastMCP = FastMCP("openroad-mcp")
 # Global manager instance
 manager = OpenROADManager()
 
-# Initialize tool instances
-execute_command_tool = ExecuteCommandTool(manager)
-get_status_tool = GetStatusTool(manager)
-restart_process_tool = RestartProcessTool(manager)
-get_command_history_tool = GetCommandHistoryTool(manager)
-get_context_tool = GetContextTool(manager)
-
 # Initialize interactive tool instances
 interactive_shell_tool = InteractiveShellTool(manager)
 list_sessions_tool = ListSessionsTool(manager)
@@ -44,36 +35,6 @@ terminate_session_tool = TerminateSessionTool(manager)
 inspect_session_tool = InspectSessionTool(manager)
 session_history_tool = SessionHistoryTool(manager)
 session_metrics_tool = SessionMetricsTool(manager)
-
-
-@mcp.tool()
-async def execute_openroad_command(command: str, timeout: float | None = None) -> str:
-    """Execute a command in the OpenROAD interactive process and return the output."""
-    return await execute_command_tool.execute(command, timeout)
-
-
-@mcp.tool()
-async def get_openroad_status() -> str:
-    """Get the current status of the OpenROAD process."""
-    return await get_status_tool.execute()
-
-
-@mcp.tool()
-async def restart_openroad() -> str:
-    """Restart the OpenROAD interactive process."""
-    return await restart_process_tool.execute()
-
-
-@mcp.tool()
-async def get_command_history() -> str:
-    """Get the command history from the OpenROAD session."""
-    return await get_command_history_tool.execute()
-
-
-@mcp.tool()
-async def get_openroad_context() -> str:
-    """Get comprehensive context information including status, recent output, and command history."""
-    return await get_context_tool.execute()
 
 
 # Interactive session tools
