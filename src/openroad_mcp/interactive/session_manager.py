@@ -132,6 +132,7 @@ class InteractiveSessionManager:
 
         try:
             await session.terminate(force)
+            await session.cleanup()
             logger.info(f"Terminated session {session_id}")
 
             # Remove from sessions dict after cleanup
