@@ -217,6 +217,9 @@ class InteractiveSession:
             await self._update_performance_metrics()
             self.last_activity = datetime.now()
 
+            # Detect OpenROAD errors in output
+            error_message = self._detect_openroad_errors(output)
+
             result = InteractiveExecResult(
                 output=output,
                 session_id=self.session_id,
@@ -224,6 +227,7 @@ class InteractiveSession:
                 execution_time=execution_time,
                 command_count=self.command_count,
                 buffer_size=buffer_size,
+                error=error_message,
             )
 
             if execution_time > SLOW_OPERATION_THRESHOLD or len(output) > LARGE_IO_THRESHOLD:
@@ -369,6 +373,59 @@ class InteractiveSession:
                 self._shutdown_event.set()
         finally:
             logger.debug(f"Exit monitor ended for session {self.session_id}")
+
+    def _detect_openroad_errors(self, output: str) -> str | None:
+        """Detect OpenROAD error patterns in command output.
+
+        Returns error message if errors are detected, None otherwise.
+        This follows MCP best practices where tool errors should be reported
+        within the result object for AI visibility.
+        """
+        if not output:
+            return None
+
+        # Clean output for analysis (remove ANSI escape sequences)
+        clean_output = re.sub(r"\x1b\[[0-9;]*[mGKH]", "", output)
+
+        # OpenROAD error patterns (in order of specificity)
+        error_patterns = [
+            # Command errors
+            (r'invalid command name "([^"]+)"', "Invalid command: {0}"),
+            (r'wrong # args: should be "([^"]+)"', "Wrong arguments for command: {0}"),
+            (r'can\'t read file "?([^".\s]+)"?\.?\s*$', "Cannot read file: {0}"),
+            (r"cannot read file ([^\s.]+)\.?\s*$", "Cannot read file: {0}"),
+            # File/path errors
+            (r"No such file or directory: ([^\s]+)", "File not found: {0}"),
+            (r"Permission denied: ([^\s]+)", "Permission denied: {0}"),
+            # Library/technology errors
+            (r"Error: ([^.]+\.lib[^.]*)\s+not found", "Liberty file not found: {0}"),
+            (r"Error: ([^.]+\.lef[^.]*)\s+not found", "LEF file not found: {0}"),
+            # Design/netlist errors
+            (r"Error: design ([^\s]+) not found", "Design not found: {0}"),
+            (r"Error: instance ([^\s]+) not found", "Instance not found: {0}"),
+            (r"Error: net ([^\s]+) not found", "Net not found: {0}"),
+            # Timing analysis errors
+            (r"Error: clock ([^\s]+) not found", "Clock not found: {0}"),
+            (r"Error: no clocks defined", "No clocks defined"),
+            # Generic error patterns
+            (r"Error: (.+?)(?:\r?\n|$)", "Error: {0}"),
+            (r"ERROR: (.+?)(?:\r?\n|$)", "Error: {0}"),
+            (r"FATAL: (.+?)(?:\r?\n|$)", "Fatal error: {0}"),
+            (r"while evaluating (.+?)(?:\r?\n|$)", "Command evaluation failed: {0}"),
+        ]
+
+        # Check each pattern
+        for pattern, message_template in error_patterns:
+            match = re.search(pattern, clean_output, re.IGNORECASE | re.MULTILINE)
+            if match:
+                # Extract the matched group(s) for the error message
+                if match.groups():
+                    error_detail = match.group(1).strip()
+                    return message_template.format(error_detail)
+                else:
+                    return message_template
+
+        return None
 
     async def _wait_for_tasks(self) -> None:
         """Wait for all background tasks to complete with proper error handling."""
