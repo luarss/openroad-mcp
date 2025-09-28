@@ -20,8 +20,8 @@ set_output_delay [expr $clk_period * $clk_io_pct] -clock $clk_name [all_outputs]
 
 
 # Realistic I/O constraints
-set_input_delay -clock clk -max 1.0 [all_inputs]
-set_output_delay -clock clk -max 1.0 [all_outputs]
+set_input_delay -clock clk -max 1.0 [get_ports {a b req}]
+set_output_delay -clock clk -max 1.0 [get_ports {z ack}]
 
 # Proper false path declarations
 set_false_path -from [get_ports reset]

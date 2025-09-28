@@ -11,12 +11,12 @@ create_clock -name clk -period 5.0 [get_ports clk]
 set_clock_uncertainty 0.1 [get_clocks clk]
 
 # Input Constraints
-set_input_delay -clock clk -max 2.0 [all_inputs]
-set_input_delay -clock clk -min 0.2 [all_inputs]
+set_input_delay -clock clk -max 2.0 [get_ports {a b req}]
+set_input_delay -clock clk -min 0.2 [get_ports {a b req}]
 
 # Output Constraints
-set_output_delay -clock clk -max 2.0 [all_outputs]
-set_output_delay -clock clk -min 0.2 [all_outputs]
+set_output_delay -clock clk -max 2.0 [get_ports {z ack}]
+set_output_delay -clock clk -min 0.2 [get_ports {z ack}]
 
 # Scenario-Specific Constraints
 
