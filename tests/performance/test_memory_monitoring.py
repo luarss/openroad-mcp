@@ -297,7 +297,8 @@ class TestMemoryLeakDetection:
             # Verify cleanup releases memory (if any was allocated)
             total_growth = creation_diff["rss_diff_mb"] + activity_diff["rss_diff_mb"]
             if total_growth > 0.1:  # Only check cleanup ratio if significant memory was allocated
-                cleanup_ratio = abs(cleanup_diff["rss_diff_mb"]) / max(total_growth, 1.0)
+                # cleanup_diff should be negative (memory freed), so negate it for ratio
+                cleanup_ratio = -cleanup_diff["rss_diff_mb"] / max(total_growth, 1.0)
 
                 # RSS may not decrease immediately in containerized environments
                 # Accept if RSS ratio > 0.2 OR other resources were properly cleaned
