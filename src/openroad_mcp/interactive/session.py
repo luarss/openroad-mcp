@@ -17,6 +17,7 @@ from ..config.constants import (
 )
 from ..config.settings import settings
 from ..core.models import InteractiveExecResult, InteractiveSessionInfo, SessionState
+from ..utils.ansi_decoder import ANSIDecoder
 from ..utils.logging import get_logger
 from .buffer import CircularBuffer
 from .models import (
@@ -220,8 +221,12 @@ class InteractiveSession:
             # Detect OpenROAD errors in output
             error_message = self._detect_openroad_errors(output)
 
+            # Clean ANSI escape codes for better readability
+            output_clean = ANSIDecoder.clean_openroad_output(output)
+
             result = InteractiveExecResult(
                 output=output,
+                output_clean=output_clean,
                 session_id=self.session_id,
                 timestamp=datetime.now().isoformat(),
                 execution_time=execution_time,

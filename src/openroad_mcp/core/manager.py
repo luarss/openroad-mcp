@@ -24,6 +24,11 @@ class OpenROADManager:
 
     _instance: "OpenROADManager | None" = None
 
+    @staticmethod
+    def safe_decode(data: bytes, encoding: str = "utf-8", errors: str = "replace") -> str:
+        """Safely decode bytes to string with error handling for unicode issues."""
+        return data.decode(encoding, errors=errors)
+
     def __new__(cls) -> "OpenROADManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -234,7 +239,7 @@ class OpenROADManager:
                 if not line_bytes:
                     break
 
-                line = line_bytes.decode().strip()
+                line = self.safe_decode(line_bytes).strip()
                 if line:
                     self.stdout_buffer.append(line)
                     if len(self.stdout_buffer) > self.max_buffer_size:
@@ -253,7 +258,7 @@ class OpenROADManager:
                 if not line_bytes:
                     break
 
-                line = line_bytes.decode().strip()
+                line = self.safe_decode(line_bytes).strip()
                 if line:
                     self.stderr_buffer.append(line)
                     if len(self.stderr_buffer) > self.max_buffer_size:
