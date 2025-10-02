@@ -70,12 +70,9 @@ class ANSIDecoder:
         Returns:
             Human-readable description of the escape sequence
         """
-        # Normalize the sequence for matching
-        normalized = repr(sequence).strip("'\"")
-
-        # Check exact matches first
+        # Check exact matches first using the actual escape characters
         for pattern, description in ANSIDecoder.ESCAPE_SEQUENCES.items():
-            if re.match(pattern, normalized):
+            if re.match(pattern, sequence):
                 return description
 
         # Handle specific bracketed paste mode sequences
