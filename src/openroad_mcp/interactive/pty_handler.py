@@ -24,6 +24,36 @@ class PTYHandler:
         self.process: asyncio.subprocess.Process | None = None
         self._original_attrs: list | None = None
 
+    def _validate_command(self, command: list[str]) -> None:
+        """Validate command against allowlist to prevent command injection."""
+        if not settings.ENABLE_COMMAND_VALIDATION:
+            logger.warning("Command validation is disabled - this is a security risk")
+            return
+
+        if not command:
+            raise PTYError("Command list cannot be empty")
+
+        executable = command[0]
+
+        absolute_executable = os.path.basename(executable) if os.path.isabs(executable) else executable
+
+        if absolute_executable not in settings.ALLOWED_COMMANDS:
+            allowed_list = ", ".join(settings.ALLOWED_COMMANDS)
+            raise PTYError(
+                f"Command '{absolute_executable}' is not in the allowed commands list. "
+                f"Allowed commands: {allowed_list}. "
+                f"To add this command, set OPENROAD_ALLOWED_COMMANDS environment variable."
+            )
+
+        for i, arg in enumerate(command):
+            if any(char in arg for char in [";", "&", "|", "$", "`", "\n", "\r"]):
+                raise PTYError(f"Command argument {i} contains shell metacharacters which are not allowed: {arg!r}")
+
+            if arg.startswith(">") or arg.startswith("<"):
+                raise PTYError(f"Command argument {i} contains redirection operators which are not allowed: {arg!r}")
+
+        logger.debug(f"Command validation passed for: {' '.join(command)}")
+
     async def __aenter__(self) -> "PTYHandler":
         """Async context manager entry."""
         return self
@@ -42,7 +72,8 @@ class PTYHandler:
     ) -> None:
         """Create PTY pair and spawn process with terminal emulation."""
         try:
-            # Create PTY pair
+            self._validate_command(command)
+
             self.master_fd, self.slave_fd = pty.openpty()
             logger.debug(f"Created PTY pair: master={self.master_fd}, slave={self.slave_fd}")
 
