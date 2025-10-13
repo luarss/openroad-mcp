@@ -28,12 +28,19 @@ skip_fd_issues = pytest.mark.skipif(
 class TestPTYHandler:
     """Test suite for PTYHandler."""
 
+    @pytest.fixture(autouse=True)
+    def disable_command_validation(self):
+        """Disable command validation for unit tests."""
+        from openroad_mcp.config.settings import settings
+
+        with patch.object(settings, "ENABLE_COMMAND_VALIDATION", False):
+            yield
+
     @pytest.fixture
     def pty_handler(self):
         """Create a test PTY handler."""
         handler = PTYHandler()
         yield handler
-        # Ensure cleanup - reset any file descriptors to None to prevent destructor issues
         handler.master_fd = None
         handler.slave_fd = None
         handler.process = None
@@ -347,8 +354,10 @@ class TestPTYHandlerAsync:
 
     async def test_pty_handler_lifecycle(self):
         """Test complete PTY handler lifecycle."""
-        # Mock all the system calls for testing
+        from openroad_mcp.config.settings import settings
+
         with (
+            patch.object(settings, "ENABLE_COMMAND_VALIDATION", False),
             patch("openroad_mcp.interactive.pty_handler.pty.openpty") as mock_openpty,
             patch("openroad_mcp.interactive.pty_handler.termios.tcgetattr") as mock_tcgetattr,
             patch("openroad_mcp.interactive.pty_handler.termios.tcsetattr"),
