@@ -19,7 +19,7 @@ def pty_handler():
 @pytest.fixture
 def default_allowed_commands():
     """Default allowed commands list."""
-    return ["openroad", "or", "sta"]
+    return ["openroad"]
 
 
 class TestCommandValidation:
@@ -28,8 +28,6 @@ class TestCommandValidation:
     def test_validate_allowed_command(self, pty_handler):
         """Test validation passes for allowed commands."""
         pty_handler._validate_command(["openroad", "-no_init"])
-        pty_handler._validate_command(["sta", "--help"])
-        pty_handler._validate_command(["or", "-version"])
 
     def test_validate_empty_command(self, pty_handler):
         """Test validation fails for empty command list."""
@@ -50,7 +48,6 @@ class TestCommandValidation:
     def test_validate_absolute_path_allowed(self, pty_handler):
         """Test validation passes for absolute paths to allowed commands."""
         pty_handler._validate_command(["/usr/bin/openroad", "-no_init"])
-        pty_handler._validate_command(["/opt/openroad/bin/sta"])
 
     def test_validate_absolute_path_disallowed(self, pty_handler):
         """Test validation fails for absolute paths to disallowed commands."""
@@ -111,12 +108,10 @@ class TestCommandValidation:
         """Test validation passes for valid arguments with file paths."""
         pty_handler._validate_command(["openroad", "-no_init", "script.tcl"])
         pty_handler._validate_command(["openroad", "-cmd", "read_lef design.lef"])
-        pty_handler._validate_command(["sta", "--file", "/path/to/design.sdc"])
 
     def test_validate_valid_arguments_with_flags(self, pty_handler):
         """Test validation passes for valid arguments with flags."""
         pty_handler._validate_command(["openroad", "-no_init", "-exit"])
-        pty_handler._validate_command(["sta", "--verbose", "--debug"])
 
     @patch("openroad_mcp.interactive.pty_handler.settings")
     def test_validation_disabled(self, mock_settings, pty_handler):
@@ -232,8 +227,6 @@ class TestEnvironmentConfiguration:
         with patch.dict(os.environ, {}, clear=True):
             settings = Settings.from_env()
             assert "openroad" in settings.ALLOWED_COMMANDS
-            assert "or" in settings.ALLOWED_COMMANDS
-            assert "sta" in settings.ALLOWED_COMMANDS
 
     def test_default_validation_enabled(self):
         """Test validation is enabled by default."""
