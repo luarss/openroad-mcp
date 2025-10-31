@@ -1,11 +1,7 @@
 """OpenROAD process manager."""
 
-from typing import TYPE_CHECKING
-
+from ..interactive.session_manager import InteractiveSessionManager
 from ..utils.logging import get_logger
-
-if TYPE_CHECKING:
-    from ..interactive.session_manager import InteractiveSessionManager
 
 
 class OpenROADManager:
@@ -32,12 +28,9 @@ class OpenROADManager:
             self._interactive_manager: InteractiveSessionManager | None = None
 
     @property
-    def interactive_manager(self) -> "InteractiveSessionManager":
+    def interactive_manager(self) -> InteractiveSessionManager:
         """Get or create interactive session manager."""
         if self._interactive_manager is None:
-            # Lazy import to avoid circular dependencies
-            from ..interactive.session_manager import InteractiveSessionManager
-
             self._interactive_manager = InteractiveSessionManager()
             self.logger.info("Initialized interactive session manager")
         return self._interactive_manager
