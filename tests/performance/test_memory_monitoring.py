@@ -8,8 +8,8 @@ import time
 import psutil
 import pytest
 
+from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.interactive.buffer import CircularBuffer
-from openroad_mcp.interactive.session_manager import InteractiveSessionManager as SessionManager
 
 
 class MemoryMonitor:
@@ -77,7 +77,7 @@ class TestMemoryLeakDetection:
 
     async def test_session_creation_memory_leak(self, memory_monitor):
         """Test for memory leaks in session creation/destruction."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             memory_monitor.take_snapshot("start")
@@ -112,7 +112,7 @@ class TestMemoryLeakDetection:
             assert diff["rss_diff_mb"] < 5.0, f"Excessive RSS growth: {diff['rss_diff_mb']:.2f}MB"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_buffer_memory_usage(self, memory_monitor):
         """Test buffer memory usage and cleanup."""
@@ -175,7 +175,7 @@ class TestMemoryLeakDetection:
 
     async def test_long_running_session_memory(self, memory_monitor):
         """Test memory usage in long-running sessions."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             memory_monitor.take_snapshot("start")
@@ -225,11 +225,11 @@ class TestMemoryLeakDetection:
             assert cleanup_diff["rss_diff_mb"] <= 2.0, f"Memory not released: {cleanup_diff['rss_diff_mb']:.2f}MB"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_concurrent_session_memory_usage(self, memory_monitor):
         """Test memory usage with concurrent sessions."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             memory_monitor.take_snapshot("start")
@@ -270,7 +270,7 @@ class TestMemoryLeakDetection:
             memory_monitor.take_snapshot("activity_complete")
 
             # Cleanup all sessions
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
             # Give more time for memory cleanup and force garbage collection
             import gc
@@ -320,7 +320,7 @@ class TestMemoryLeakDetection:
                 print(f"Minimal memory allocated ({total_growth:.2f}MB), skipping cleanup ratio check")
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_memory_limit_handling(self, memory_monitor):
         """Test graceful handling of memory limits."""
@@ -390,7 +390,7 @@ class TestMemoryLeakDetection:
         if not hasattr(memory_monitor.process, "num_fds"):
             pytest.skip("File descriptor monitoring not available on this platform")
 
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             memory_monitor.take_snapshot("start")
@@ -416,7 +416,7 @@ class TestMemoryLeakDetection:
             memory_monitor.print_report(diff, "File Descriptor Leak Test")
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
 
 @pytest.mark.asyncio
@@ -426,7 +426,7 @@ class TestStabilityMonitoring:
     async def test_stability_simulation(self):
         """Simulate 24-hour stability test (accelerated)."""
         memory_monitor = MemoryMonitor()
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             memory_monitor.take_snapshot("start")
@@ -495,7 +495,7 @@ class TestStabilityMonitoring:
                 assert hourly_growth < 0.5, f"Hour {hour}: Excessive growth {hourly_growth:.3f} MB/hour"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
 
 if __name__ == "__main__":

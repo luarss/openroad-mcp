@@ -38,7 +38,7 @@ if "OPENROAD_MAX_MEMORY_MB" not in os.environ:
     os.environ["OPENROAD_MAX_MEMORY_MB"] = "500"
 
 # Import after path setup
-from openroad_mcp.server import mcp, shutdown_openroad, startup_openroad  # noqa: E402
+from openroad_mcp.server import mcp, shutdown_openroad  # noqa: E402
 from openroad_mcp.utils.cleanup import cleanup_manager  # noqa: E402
 from openroad_mcp.utils.logging import get_logger, setup_logging  # noqa: E402
 
@@ -55,9 +55,6 @@ async def main() -> None:
         # Register cleanup handlers
         cleanup_manager.register_async_cleanup_handler(shutdown_openroad)
         cleanup_manager.setup_signal_handlers()
-
-        # Start OpenROAD process automatically
-        await startup_openroad()
 
         # Run the FastMCP server with STDIO transport
         logger.info("Starting FastMCP server with STDIO transport for Claude Code")

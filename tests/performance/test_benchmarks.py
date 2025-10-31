@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.interactive.buffer import CircularBuffer
-from openroad_mcp.interactive.session_manager import InteractiveSessionManager as SessionManager
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ class TestPerformanceBenchmarks:
 
     async def test_session_creation_latency(self, benchmark_timeout):
         """Test session creation latency benchmark."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
         creation_times = []
 
         try:
@@ -52,7 +52,7 @@ class TestPerformanceBenchmarks:
             assert max_time < 0.05, f"Max creation time {max_time:.3f}s exceeds 50ms limit"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_output_streaming_throughput(self, benchmark_timeout):
         """Test output streaming throughput."""
@@ -89,7 +89,7 @@ class TestPerformanceBenchmarks:
 
     async def test_concurrent_session_scalability(self, benchmark_timeout):
         """Test concurrent session scalability."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             # TICKET-020 requirement: Support 20+ concurrent sessions
@@ -150,7 +150,7 @@ class TestPerformanceBenchmarks:
             assert execution_time < 2.0, f"Concurrent execution took {execution_time:.3f}s (>2s)"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_memory_usage_profiling(self, benchmark_timeout):
         """Test memory usage profiling."""
@@ -161,7 +161,7 @@ class TestPerformanceBenchmarks:
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / (1024 * 1024)  # MB
 
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
         # buffers list not needed for this test
 
         try:
@@ -189,7 +189,7 @@ class TestPerformanceBenchmarks:
             print(f"  Per session: {memory_increase / session_count:.2f}MB")
 
             # Cleanup sessions
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
             # Allow garbage collection
             await asyncio.sleep(0.1)
@@ -207,7 +207,7 @@ class TestPerformanceBenchmarks:
             assert memory_leaked < 50, f"Memory leak {memory_leaked:.2f}MB exceeds 50MB threshold"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_buffer_overflow_performance(self, benchmark_timeout):
         """Test buffer overflow and eviction performance."""
@@ -252,7 +252,7 @@ class TestPerformanceBenchmarks:
 
     async def test_command_execution_latency(self, benchmark_timeout):
         """Test command execution latency."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             session_id = await session_manager.create_session()
@@ -293,7 +293,7 @@ class TestPerformanceBenchmarks:
                 assert max_time < 0.05, f"Max latency {max_time * 1000:.2f}ms exceeds 50ms"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
 
 @pytest.mark.asyncio
@@ -302,7 +302,7 @@ class TestStressTests:
 
     async def test_long_running_session_stability(self):
         """Test long-running session stability."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             session_id = await session_manager.create_session()
@@ -355,11 +355,11 @@ class TestStressTests:
                 print(f"Long-running session executed {command_count} commands successfully")
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_resource_exhaustion_handling(self):
         """Test handling of resource exhaustion scenarios."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             # Test maximum-sized sessions
@@ -384,18 +384,18 @@ class TestStressTests:
 
             # Test cleanup under resource pressure
             cleanup_start = time.perf_counter()
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
             cleanup_time = time.perf_counter() - cleanup_start
 
             print(f"Cleanup completed in {cleanup_time:.3f}s")
             assert cleanup_time < 10.0, f"Cleanup took {cleanup_time:.3f}s (>10s)"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
     async def test_large_output_handling(self):
         """Test handling of large output data."""
-        session_manager = SessionManager(max_sessions=50)
+        session_manager = SessionManager()
 
         try:
             # Test maximum-sized session
@@ -437,7 +437,7 @@ class TestStressTests:
             assert total_written >= 5 * 1024 * 1024, "Should have written at least 5MB of data"
 
         finally:
-            await session_manager.cleanup()
+            await session_manager.cleanup_all()
 
 
 if __name__ == "__main__":

@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.core.models import SessionState
 from openroad_mcp.interactive.models import SessionNotFoundError, SessionTerminatedError
-from openroad_mcp.interactive.session_manager import InteractiveSessionManager as SessionManager
 
 skip_hanging_tests = pytest.mark.skip(reason="Temporarily disabled - hanging due to background task issues")
 
@@ -38,7 +38,7 @@ class TestSessionManager:
         assert len(result) == 0
 
     @skip_hanging_tests
-    @patch("openroad_mcp.interactive.session_manager.InteractiveSession")
+    @patch("openroad_mcp.core.manager.InteractiveSession")
     async def test_create_session_default(self, mock_session_class, session_manager):
         """Test creating session with default parameters."""
         # Create a proper mock that responds to session_id assignment

@@ -1,26 +1,18 @@
-"""OpenROAD process manager."""
+"""OpenROAD process manager with integrated session management."""
 
 import asyncio
+import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from ..config.constants import LAST_COMMANDS_COUNT, PROCESS_SHUTDOWN_TIMEOUT, RECENT_OUTPUT_LINES
 from ..config.settings import settings
+from ..core.models import InteractiveExecResult, InteractiveSessionInfo
+from ..interactive.models import SessionError, SessionNotFoundError
+from ..interactive.session import InteractiveSession
 from ..utils.logging import get_logger
-from .exceptions import (
-    CommandExecutionError,
-    ProcessNotRunningError,
-    ProcessShutdownError,
-    ProcessStartupError,
-)
-from .models import CommandRecord, CommandResult, ContextInfo, ProcessState, ProcessStatus
-
-if TYPE_CHECKING:
-    from ..interactive.session_manager import InteractiveSessionManager
 
 
 class OpenROADManager:
-    """Singleton class to manage OpenROAD subprocess lifecycle."""
+    """Singleton class to manage OpenROAD subprocess lifecycle and sessions."""
 
     _instance: "OpenROADManager | None" = None
 
@@ -36,265 +28,332 @@ class OpenROADManager:
 
     def __init__(self) -> None:
         if not hasattr(self, "initialized"):
-            self.process: asyncio.subprocess.Process | None = None
-            self.state = ProcessState.STOPPED
-            self.command_queue: asyncio.Queue = asyncio.Queue()
-            self.stdout_buffer: list[str] = []
-            self.stderr_buffer: list[str] = []
-            self.command_history: list[CommandRecord] = []
-            self.max_buffer_size = settings.MAX_BUFFER_SIZE
             self.initialized = True
             self.logger = get_logger("manager")
-            self._process_start_time: float | None = None
 
-            # Interactive session management (lazy initialization)
-            self._interactive_manager: InteractiveSessionManager | None = None
+            self._sessions: dict[str, InteractiveSession | None] = {}
+            self._max_sessions = settings.MAX_SESSIONS
+            self._default_timeout_ms = int(settings.COMMAND_TIMEOUT * 1000)
+            self._default_buffer_size = settings.DEFAULT_BUFFER_SIZE
+            self._cleanup_lock = asyncio.Lock()
 
-    async def start_process(self) -> CommandResult:
-        """Start the OpenROAD process."""
-        if self.state == ProcessState.RUNNING:
-            return CommandResult(status="already_running", message="OpenROAD process is already running")
+            self.logger.info(f"Initialized OpenROADManager with max_sessions={self._max_sessions}")
 
-        try:
-            self.state = ProcessState.STARTING
-            self.process = await asyncio.create_subprocess_exec(
-                settings.OPENROAD_BINARY,
-                "-no_splash",
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+    async def create_session(
+        self,
+        session_id: str | None = None,
+        command: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        cwd: str | None = None,
+        buffer_size: int | None = None,
+    ) -> str:
+        """Create a new interactive session."""
+        if session_id is None:
+            session_id = str(uuid.uuid4())[:8]
 
-            self.state = ProcessState.RUNNING
-            self._process_start_time = asyncio.get_event_loop().time()
+        async with self._cleanup_lock:
+            await self._cleanup_terminated_sessions()
 
-            # Start background tasks to read stdout/stderr
-            asyncio.create_task(self._read_stdout())
-            asyncio.create_task(self._read_stderr())
+            if session_id in self._sessions:
+                raise SessionError(f"Session {session_id} already exists", session_id)
 
-            self.logger.info(f"OpenROAD process started with PID {self.process.pid}")
-            return CommandResult(
-                status="started", message=f"OpenROAD process started with PID {self.process.pid}", pid=self.process.pid
-            )
+            active_count = len([s for s in self._sessions.values() if s is not None and s.is_alive()])
+            if active_count >= self._max_sessions:
+                raise SessionError(
+                    f"Maximum session limit reached ({self._max_sessions}). Currently {active_count} active sessions.",
+                    session_id,
+                )
 
-        except FileNotFoundError as e:
-            self.state = ProcessState.ERROR
-            error_msg = f"OpenROAD binary not found: {settings.OPENROAD_BINARY}"
-            self.logger.error(error_msg)
-            raise ProcessStartupError(error_msg) from e
-        except Exception as e:
-            self.state = ProcessState.ERROR
-            error_msg = f"Failed to start OpenROAD process: {str(e)}"
-            self.logger.error(error_msg)
-            raise ProcessStartupError(error_msg) from e
+            self._sessions[session_id] = None
 
-    async def execute_command(self, command: str, timeout: float | None = None) -> CommandResult:
-        """Execute a command in the OpenROAD process."""
-        if self.state != ProcessState.RUNNING or not self.process:
-            raise ProcessNotRunningError("OpenROAD process is not running")
-
-        try:
-            # Use config default timeout if not provided
-            actual_timeout = timeout or settings.COMMAND_TIMEOUT
-
-            # Record command in history
-            cmd_record = CommandRecord(
-                command=command, timestamp=datetime.now().isoformat(), id=len(self.command_history)
-            )
-            self.command_history.append(cmd_record)
-
-            # Capture initial buffer positions
-            initial_stdout_count = len(self.stdout_buffer)
-            initial_stderr_count = len(self.stderr_buffer)
-
-            # Send command
-            if self.process.stdin:
-                self.process.stdin.write(f"{command}\n".encode())
-                await self.process.stdin.drain()
-
-            # Wait for output with polling
-            start_time = asyncio.get_event_loop().time()
-            last_output_time = start_time
-
-            while (asyncio.get_event_loop().time() - start_time) < actual_timeout:
-                await asyncio.sleep(settings.OUTPUT_POLLING_INTERVAL)
-
-                # Check if we got new output
-                current_stdout_count = len(self.stdout_buffer)
-                current_stderr_count = len(self.stderr_buffer)
-
-                if current_stdout_count > initial_stdout_count or current_stderr_count > initial_stderr_count:
-                    last_output_time = asyncio.get_event_loop().time()
-
-                # If no new output for completion delay, consider command complete
-                if (asyncio.get_event_loop().time() - last_output_time) > settings.COMMAND_COMPLETION_DELAY:
-                    break
-
-            # Capture new output since command was sent
-            new_stdout = self.stdout_buffer[initial_stdout_count:]
-            new_stderr = self.stderr_buffer[initial_stderr_count:]
-
-            execution_time = asyncio.get_event_loop().time() - start_time
-
-            return CommandResult(
-                status="executed",
-                message=f"Command executed in {execution_time:.2f}s",
-                stdout=new_stdout,
-                stderr=new_stderr,
-                execution_time=execution_time,
-                pid=self.process.pid,
-            )
-
-        except Exception as e:
-            error_msg = f"Failed to execute command '{command}': {str(e)}"
-            self.logger.error(error_msg)
-            raise CommandExecutionError(error_msg) from e
-
-    async def stop_process(self) -> CommandResult:
-        """Stop the OpenROAD process gracefully."""
-        if self.state == ProcessState.STOPPED:
-            return CommandResult(status="already_stopped", message="OpenROAD process is already stopped")
-
-        if not self.process:
-            self.state = ProcessState.STOPPED
-            return CommandResult(status="stopped", message="OpenROAD process was not running")
-
-        try:
-            # Send exit command
-            if self.process.stdin and not self.process.stdin.is_closing():
-                self.process.stdin.write(b"exit\n")
-                await self.process.stdin.drain()
-                self.process.stdin.close()
-
-            # Wait for graceful shutdown
             try:
-                await asyncio.wait_for(self.process.wait(), timeout=settings.SHUTDOWN_TIMEOUT)
-            except TimeoutError:
-                self.process.terminate()
-                await asyncio.wait_for(self.process.wait(), timeout=PROCESS_SHUTDOWN_TIMEOUT)
+                actual_buffer_size = buffer_size or self._default_buffer_size
+                session = InteractiveSession(session_id, buffer_size=actual_buffer_size)
+                await session.start(command, env, cwd)
 
-            self.state = ProcessState.STOPPED
-            self.process = None
-            self._process_start_time = None
+                self._sessions[session_id] = session
+                self.logger.info(f"Created session {session_id}, total sessions: {len(self._sessions)}")
 
-            return CommandResult(status="stopped", message="OpenROAD process stopped successfully")
+                return session_id
 
-        except Exception as e:
-            error_msg = f"Error stopping OpenROAD process: {str(e)}"
-            self.logger.error(error_msg)
-            raise ProcessShutdownError(error_msg) from e
+            except Exception as e:
+                if session_id in self._sessions:
+                    del self._sessions[session_id]
+                self.logger.exception(f"Failed to create session {session_id}")
+                raise SessionError(f"Failed to create session: {e}", session_id) from e
 
-    async def restart_process(self) -> CommandResult:
-        """Restart the OpenROAD process."""
-        try:
-            if self.state == ProcessState.RUNNING:
-                await self.stop_process()
-
-            return await self.start_process()
-
-        except Exception as e:
-            error_msg = f"Failed to restart OpenROAD process: {str(e)}"
-            self.logger.error(error_msg)
-            raise ProcessStartupError(error_msg) from e
-
-    async def get_status(self) -> ProcessStatus:
-        """Get the current status of the OpenROAD process."""
-        uptime = None
-        if self.state == ProcessState.RUNNING and self._process_start_time:
-            uptime = asyncio.get_event_loop().time() - self._process_start_time
-
-        return ProcessStatus(
-            state=self.state,
-            pid=self.process.pid if self.process else None,
-            uptime=uptime,
-            command_count=len(self.command_history),
-            buffer_stdout_size=len(self.stdout_buffer),
-            buffer_stderr_size=len(self.stderr_buffer),
-        )
-
-    async def get_context(self) -> ContextInfo:
-        """Get comprehensive context information."""
-        status = await self.get_status()
-
-        # Get recent output
-        recent_stdout = self.stdout_buffer[-RECENT_OUTPUT_LINES:] if self.stdout_buffer else []
-        recent_stderr = self.stderr_buffer[-RECENT_OUTPUT_LINES:] if self.stderr_buffer else []
-
-        return ContextInfo(
-            status=status,
-            recent_stdout=recent_stdout,
-            recent_stderr=recent_stderr,
-            command_count=len(self.command_history),
-            last_commands=self.command_history[-LAST_COMMANDS_COUNT:] if self.command_history else [],
-        )
-
-    async def _read_stdout(self) -> None:
-        """Background task to read stdout."""
-        if not self.process or not self.process.stdout:
-            return
+    async def execute_command(
+        self, session_id: str, command: str, timeout_ms: int | None = None
+    ) -> InteractiveExecResult:
+        """Execute a command in the specified session."""
+        session = self._get_session(session_id)
+        actual_timeout = timeout_ms or self._default_timeout_ms
 
         try:
-            while True:
-                line_bytes = await self.process.stdout.readline()
-                if not line_bytes:
-                    break
+            await session.send_command(command)
+            result = await session.read_output(actual_timeout)
 
-                line = self.safe_decode(line_bytes).strip()
-                if line:
-                    self.stdout_buffer.append(line)
-                    if len(self.stdout_buffer) > self.max_buffer_size:
-                        self.stdout_buffer.pop(0)
-        except Exception as e:
-            self.logger.error(f"Error reading stdout: {e}")
+            self.logger.debug(f"Executed command in session {session_id}: {command.strip()}")
+            return result
 
-    async def _read_stderr(self) -> None:
-        """Background task to read stderr."""
-        if not self.process or not self.process.stderr:
-            return
+        except Exception:
+            self.logger.exception("Failed to execute command in session %s", session_id)
+            raise
+
+    async def get_session_info(self, session_id: str) -> InteractiveSessionInfo:
+        """Get information about a specific session."""
+        session = self._get_session(session_id)
+        return await session.get_info()
+
+    async def list_sessions(self) -> list[InteractiveSessionInfo]:
+        """List all sessions with their information."""
+        await self._cleanup_terminated_sessions_with_lock()
+
+        session_infos = []
+        for session in self._sessions.values():
+            if session is None:
+                continue
+            try:
+                info = await session.get_info()
+                session_infos.append(info)
+            except Exception as e:
+                self.logger.warning(f"Failed to get info for session {session.session_id}: {e}")
+
+        return session_infos
+
+    async def terminate_session(self, session_id: str, force: bool = False) -> None:
+        """Terminate a specific session."""
+        session = self._get_session(session_id)
 
         try:
-            while True:
-                line_bytes = await self.process.stderr.readline()
-                if not line_bytes:
-                    break
+            await session.terminate(force)
+            await session.cleanup()
+            self.logger.info(f"Terminated session {session_id}")
 
-                line = self.safe_decode(line_bytes).strip()
-                if line:
-                    self.stderr_buffer.append(line)
-                    if len(self.stderr_buffer) > self.max_buffer_size:
-                        self.stderr_buffer.pop(0)
-        except Exception as e:
-            self.logger.error(f"Error reading stderr: {e}")
+            async with self._cleanup_lock:
+                if session_id in self._sessions:
+                    del self._sessions[session_id]
 
-    @property
-    def interactive_manager(self) -> "InteractiveSessionManager":
-        """Get or create interactive session manager."""
-        if self._interactive_manager is None:
-            # Lazy import to avoid circular dependencies
-            from ..interactive.session_manager import InteractiveSessionManager
+        except Exception:
+            self.logger.exception("Failed to terminate session %s", session_id)
+            raise
 
-            self._interactive_manager = InteractiveSessionManager()
-            self.logger.info("Initialized interactive session manager")
-        return self._interactive_manager
+    async def terminate_all_sessions(self, force: bool = False) -> int:
+        """Terminate all sessions."""
+        session_ids = list(self._sessions.keys())
+        terminated_count = 0
+
+        for session_id in session_ids:
+            try:
+                await self.terminate_session(session_id, force)
+                terminated_count += 1
+            except Exception:
+                self.logger.exception("Failed to terminate session %s", session_id)
+
+        self.logger.info(f"Terminated {terminated_count}/{len(session_ids)} sessions")
+        return terminated_count
+
+    async def inspect_session(self, session_id: str) -> dict:
+        """Get detailed session inspection data."""
+        session = self._get_session(session_id)
+        return await session.get_detailed_metrics()
+
+    async def get_session_history(
+        self, session_id: str, limit: int | None = None, search: str | None = None
+    ) -> list[dict]:
+        """Get command history for a session."""
+        session = self._get_session(session_id)
+        return await session.get_command_history(limit, search)
+
+    async def replay_command(self, session_id: str, command_number: int) -> str:
+        """Replay a command from session history."""
+        session = self._get_session(session_id)
+        return await session.replay_command(command_number)
+
+    async def filter_session_output(self, session_id: str, pattern: str, max_lines: int = 1000) -> list[str]:
+        """Filter session output by pattern."""
+        session = self._get_session(session_id)
+        return await session.filter_output(pattern, max_lines)
+
+    async def set_session_timeout(self, session_id: str, timeout_seconds: float) -> None:
+        """Set timeout for a session."""
+        session = self._get_session(session_id)
+        session.set_timeout(timeout_seconds)
+
+    async def session_metrics(self) -> dict:
+        """Get comprehensive metrics for all sessions."""
+        await self._cleanup_terminated_sessions_with_lock()
+
+        total_sessions = len(self._sessions)
+        active_sessions = self.get_active_session_count()
+        terminated_sessions = total_sessions - active_sessions
+
+        session_details = []
+        total_commands = 0
+        total_cpu_time = 0.0
+        total_memory_mb = 0.0
+
+        for session in self._sessions.values():
+            if session is None:
+                continue
+            try:
+                metrics = await session.get_detailed_metrics()
+                session_details.append(metrics)
+                total_commands += metrics["commands"]["total_executed"]
+                total_cpu_time += metrics["performance"]["total_cpu_time"]
+                total_memory_mb += metrics["performance"]["current_memory_mb"]
+            except Exception as e:
+                self.logger.warning(f"Failed to get metrics for session {session.session_id}: {e}")
+
+        return {
+            "manager": {
+                "total_sessions": total_sessions,
+                "active_sessions": active_sessions,
+                "terminated_sessions": terminated_sessions,
+                "max_sessions": self._max_sessions,
+                "utilization_percent": (active_sessions / self._max_sessions) * 100 if self._max_sessions > 0 else 0,
+            },
+            "aggregate": {
+                "total_commands": total_commands,
+                "total_cpu_time": total_cpu_time,
+                "total_memory_mb": total_memory_mb,
+                "avg_memory_per_session": total_memory_mb / active_sessions if active_sessions > 0 else 0,
+            },
+            "sessions": session_details,
+        }
+
+    async def cleanup_idle_sessions(self, idle_threshold_seconds: float = 300, force: bool = False) -> int:
+        """Clean up sessions that have been idle too long."""
+        cleaned_count = 0
+        session_ids = list(self._sessions.keys())
+
+        for session_id in session_ids:
+            try:
+                session = self._sessions[session_id]
+                if session is None:
+                    continue
+                if await session.is_idle_timeout(idle_threshold_seconds):
+                    await self.terminate_session(session_id, force)
+                    cleaned_count += 1
+                    self.logger.info(f"Cleaned up idle session {session_id}")
+            except Exception:
+                self.logger.exception("Error checking idle status for session %s", session_id)
+
+        return cleaned_count
+
+    def get_resource_utilization(self) -> dict:
+        """Get current resource utilization statistics."""
+        active_count = self.get_active_session_count()
+        total_count = self.get_session_count()
+
+        return {
+            "sessions": {
+                "active": active_count,
+                "total": total_count,
+                "max_allowed": self._max_sessions,
+                "utilization_percent": (active_count / self._max_sessions) * 100 if self._max_sessions > 0 else 0,
+                "available_slots": max(0, self._max_sessions - active_count),
+            },
+            "resource_limits": {
+                "approaching_limit": active_count >= (self._max_sessions * 0.8),
+                "at_limit": active_count >= self._max_sessions,
+            },
+        }
 
     async def cleanup_all(self) -> None:
-        """Clean up both subprocess and interactive sessions."""
-        self.logger.info("Starting comprehensive OpenROAD cleanup")
+        """Clean up all sessions and resources."""
+        self.logger.info("Starting OpenROAD cleanup")
 
-        # Clean up interactive sessions first
-        if self._interactive_manager is not None:
+        try:
+            await self.terminate_all_sessions(force=True)
+
+            async with self._cleanup_lock:
+                for session in list(self._sessions.values()):
+                    if session is None:
+                        continue
+                    try:
+                        await session.cleanup()
+                    except Exception as e:
+                        self.logger.warning(f"Error during session cleanup: {e}")
+
+                self._sessions.clear()
+
+            self.logger.info("OpenROAD cleanup completed")
+
+        except Exception:
+            self.logger.exception("Error during cleanup")
+            raise
+
+    def get_session_count(self) -> int:
+        """Get the current number of sessions."""
+        return len(self._sessions)
+
+    def get_active_session_count(self) -> int:
+        """Get the number of active sessions."""
+        return len([s for s in self._sessions.values() if s is not None and s.is_alive()])
+
+    def _get_session(self, session_id: str) -> InteractiveSession:
+        """Get session by ID, raising error if not found or still being created."""
+        if session_id not in self._sessions:
+            raise SessionNotFoundError(f"Session {session_id} not found", session_id)
+
+        session = self._sessions[session_id]
+        if session is None:
+            raise SessionError(f"Session {session_id} is still being created", session_id)
+
+        return session
+
+    async def _cleanup_terminated_sessions_with_lock(self, force_cleanup_after_seconds: float = 60.0) -> int:
+        """Clean up terminated sessions with lock acquisition."""
+        async with self._cleanup_lock:
+            return await self._cleanup_terminated_sessions(force_cleanup_after_seconds)
+
+    async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
+        """Clean up terminated sessions with graceful degradation."""
+        terminated_ids = []
+        current_time = datetime.now()
+
+        for session_id, session in self._sessions.items():
+            if session is None:
+                continue
+            if not session.is_alive():
+                time_since_death = (current_time - session.last_activity).total_seconds()
+                if time_since_death > force_cleanup_after_seconds:
+                    terminated_ids.append((session_id, True))
+                else:
+                    terminated_ids.append((session_id, False))
+
+        cleaned_count = 0
+        for session_id, force_cleanup in terminated_ids:
             try:
-                await self._interactive_manager.cleanup()
-                self.logger.info("Interactive sessions cleaned up")
-            except Exception:
-                self.logger.exception("Error cleaning up interactive sessions")
+                session = self._sessions[session_id]
+                if session is None:
+                    del self._sessions[session_id]
+                    cleaned_count += 1
+                    continue
 
-        # Clean up subprocess
-        if self.state == ProcessState.RUNNING:
-            try:
-                await self.stop_process()
-                self.logger.info("Subprocess cleaned up")
-            except Exception:
-                self.logger.exception("Error cleaning up subprocess")
+                if force_cleanup:
+                    self.logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
+                    try:
+                        await session.cleanup()
+                    except Exception as cleanup_error:
+                        self.logger.error(f"Force cleanup failed for session {session_id}: {cleanup_error}")
+                    finally:
+                        del self._sessions[session_id]
+                        cleaned_count += 1
+                else:
+                    await session.cleanup()
+                    del self._sessions[session_id]
+                    cleaned_count += 1
+                    self.logger.debug(f"Cleaned up terminated session {session_id}")
+            except Exception as e:
+                self.logger.error(f"Error during session {session_id} cleanup: {e}")
+                if force_cleanup and session_id in self._sessions:
+                    self.logger.warning(f"Force removing session {session_id} from tracking after cleanup error")
+                    del self._sessions[session_id]
+                    cleaned_count += 1
 
-        self.logger.info("Comprehensive OpenROAD cleanup completed")
+        if cleaned_count > 0:
+            self.logger.info(f"Cleaned up {cleaned_count} terminated sessions")
+
+        return cleaned_count
