@@ -1,6 +1,7 @@
 """Configuration settings for OpenROAD MCP server."""
 
 import os
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -49,10 +50,20 @@ class Settings(BaseModel):
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", description="Log format string"
     )
 
+    # Security settings
+    ALLOWED_COMMANDS: list[str] = Field(
+        default=["openroad"],
+        description="List of allowed command executables for interactive sessions",
+    )
+    ENABLE_COMMAND_VALIDATION: bool = Field(
+        default=True,
+        description="Enable command validation to prevent command injection",
+    )
+
     @classmethod
     def from_env(cls) -> "Settings":
         """Create settings from environment variables."""
-        env_values = {}
+        env_values: dict[str, Any] = {}
 
         # Map environment variables to settings with type conversion
         env_mapping = {
@@ -76,6 +87,14 @@ class Settings(BaseModel):
             "LOG_LEVEL": ("LOG_LEVEL", str),
             "LOG_FORMAT": ("LOG_FORMAT", str),
         }
+
+        allowed_commands_env = os.getenv("OPENROAD_ALLOWED_COMMANDS")
+        if allowed_commands_env:
+            env_values["ALLOWED_COMMANDS"] = [cmd.strip() for cmd in allowed_commands_env.split(",")]
+
+        enable_validation_env = os.getenv("OPENROAD_ENABLE_COMMAND_VALIDATION")
+        if enable_validation_env is not None:
+            env_values["ENABLE_COMMAND_VALIDATION"] = enable_validation_env.lower() in ("true", "1", "yes")
 
         for setting_key, (env_key, type_converter) in env_mapping.items():
             env_value = os.getenv(env_key)

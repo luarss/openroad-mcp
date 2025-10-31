@@ -2,9 +2,11 @@
 
 import asyncio
 import os
+from unittest.mock import patch
 
 import pytest
 
+from openroad_mcp.config.settings import settings
 from openroad_mcp.interactive.models import PTYError
 from openroad_mcp.interactive.pty_handler import PTYHandler
 
@@ -28,6 +30,12 @@ skip_if_no_pty = pytest.mark.skipif(not can_create_pty(), reason="PTY not suppor
 @pytest.mark.asyncio
 class TestPTYIntegration:
     """Integration tests for PTY functionality with real processes."""
+
+    @pytest.fixture(autouse=True)
+    def disable_command_validation(self):
+        """Disable command validation for integration tests."""
+        with patch.object(settings, "ENABLE_COMMAND_VALIDATION", False):
+            yield
 
     @pytest.fixture
     async def pty_handler(self):
