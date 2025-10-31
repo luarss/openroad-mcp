@@ -85,26 +85,11 @@ async def get_session_metrics() -> str:
     return await session_metrics_tool.execute()
 
 
-async def startup_openroad() -> None:
-    """Automatically start OpenROAD process on application startup."""
-    try:
-        logger.info("Starting OpenROAD process automatically...")
-        result = await manager.start_process()
-
-        if result.status == "started":
-            logger.info(f"OpenROAD process started with PID {result.pid}")
-        else:
-            logger.warning(f"Failed to start OpenROAD process: {result.message}")
-    except Exception:
-        logger.exception("Error during automatic OpenROAD startup")
-
-
 async def shutdown_openroad() -> None:
-    """Gracefully shutdown OpenROAD process and interactive sessions."""
+    """Gracefully shutdown interactive OpenROAD sessions."""
     try:
         logger.info("Initiating graceful shutdown of OpenROAD services...")
 
-        # Use the comprehensive cleanup method that handles both subprocess and interactive sessions
         await manager.cleanup_all()
 
         logger.info("OpenROAD services shutdown completed successfully")
@@ -124,9 +109,6 @@ async def run_server(config: CLIConfig) -> None:
         cleanup_manager.register_async_cleanup_handler(shutdown_openroad)
         cleanup_manager.setup_signal_handlers()
         cleanup_manager.set_shutdown_event(shutdown_event)
-
-        # Start OpenROAD process automatically
-        await startup_openroad()
 
         # Run the MCP server with the configured transport in a task
         if config.transport.mode == "stdio":
