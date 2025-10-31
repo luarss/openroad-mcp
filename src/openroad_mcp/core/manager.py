@@ -139,16 +139,22 @@ class OpenROADManager:
             raise
 
     async def terminate_all_sessions(self, force: bool = False) -> int:
-        """Terminate all sessions."""
+        """Terminate all sessions in parallel for faster shutdown."""
         session_ids = list(self._sessions.keys())
-        terminated_count = 0
 
-        for session_id in session_ids:
+        if not session_ids:
+            return 0
+
+        async def safe_terminate(session_id: str) -> bool:
             try:
                 await self.terminate_session(session_id, force)
-                terminated_count += 1
+                return True
             except Exception:
                 self.logger.exception("Failed to terminate session %s", session_id)
+                return False
+
+        results = await asyncio.gather(*[safe_terminate(sid) for sid in session_ids], return_exceptions=False)
+        terminated_count = sum(1 for result in results if result)
 
         self.logger.info(f"Terminated {terminated_count}/{len(session_ids)} sessions")
         return terminated_count
