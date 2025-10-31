@@ -24,14 +24,10 @@ class InteractiveShellTool(BaseTool):
     async def execute(self, command: str, session_id: str | None = None, timeout_ms: int | None = None) -> str:
         """Execute a command in an interactive session."""
         try:
-            interactive_manager = self.manager.interactive_manager
-
-            # Create session if not provided
             if session_id is None:
-                session_id = await interactive_manager.create_session()
+                session_id = await self.manager.create_session()
 
-            # Execute command
-            result = await interactive_manager.execute_command(session_id, command, timeout_ms)
+            result = await self.manager.execute_command(session_id, command, timeout_ms)
 
             return self._format_result(result)
 
@@ -78,8 +74,7 @@ class ListSessionsTool(BaseTool):
     async def execute(self) -> str:
         """List all interactive sessions."""
         try:
-            interactive_manager = self.manager.interactive_manager
-            sessions = await interactive_manager.list_sessions()
+            sessions = await self.manager.list_sessions()
 
             # Count active sessions
             active_count = sum(1 for session in sessions if session.is_alive)
@@ -114,13 +109,9 @@ class CreateSessionTool(BaseTool):
     ) -> str:
         """Create a new interactive session."""
         try:
-            interactive_manager = self.manager.interactive_manager
+            created_session_id = await self.manager.create_session(session_id, command, env, cwd)
 
-            # Create session
-            created_session_id = await interactive_manager.create_session(session_id, command, env, cwd)
-
-            # Get session info
-            session_info = await interactive_manager.get_session_info(created_session_id)
+            session_info = await self.manager.get_session_info(created_session_id)
 
             return self._format_result(session_info)
 
@@ -157,17 +148,13 @@ class TerminateSessionTool(BaseTool):
     async def execute(self, session_id: str, force: bool = False) -> str:
         """Terminate an interactive session."""
         try:
-            interactive_manager = self.manager.interactive_manager
-
-            # Get session info before termination
             try:
-                session_info = await interactive_manager.get_session_info(session_id)
+                session_info = await self.manager.get_session_info(session_id)
                 was_alive = session_info.is_alive
             except SessionNotFoundError:
                 was_alive = False
 
-            # Terminate session
-            await interactive_manager.terminate_session(session_id, force)
+            await self.manager.terminate_session(session_id, force)
 
             result = SessionTerminationResult(session_id=session_id, terminated=True, was_alive=was_alive, force=force)
 
@@ -202,8 +189,7 @@ class InspectSessionTool(BaseTool):
     async def execute(self, session_id: str) -> str:
         """Get detailed session inspection data."""
         try:
-            interactive_manager = self.manager.interactive_manager
-            metrics = await interactive_manager.inspect_session(session_id)
+            metrics = await self.manager.inspect_session(session_id)
             return self._format_result(SessionInspectionResult(session_id=session_id, metrics=metrics))
 
         except SessionNotFoundError as e:
@@ -233,8 +219,7 @@ class SessionHistoryTool(BaseTool):
     async def execute(self, session_id: str, limit: int | None = None, search: str | None = None) -> str:
         """Get command history for a session."""
         try:
-            interactive_manager = self.manager.interactive_manager
-            history = await interactive_manager.get_session_history(session_id, limit, search)
+            history = await self.manager.get_session_history(session_id, limit, search)
 
             result = SessionHistoryResult(
                 session_id=session_id,
@@ -278,8 +263,7 @@ class SessionMetricsTool(BaseTool):
     async def execute(self) -> str:
         """Get comprehensive metrics for all sessions."""
         try:
-            interactive_manager = self.manager.interactive_manager
-            metrics = await interactive_manager.session_metrics()
+            metrics = await self.manager.session_metrics()
             return self._format_result(SessionMetricsResult(metrics=metrics))
 
         except Exception as e:

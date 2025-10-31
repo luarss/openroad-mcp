@@ -23,9 +23,7 @@ class TestInteractiveShellTool:
     @pytest.fixture
     def mock_manager(self):
         """Create a mock OpenROADManager."""
-        manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
-        return manager
+        return AsyncMock()
 
     @pytest.fixture
     def tool(self, mock_manager):
@@ -35,7 +33,7 @@ class TestInteractiveShellTool:
     async def test_execute_with_new_session(self, tool, mock_manager):
         """Test executing command with automatic session creation."""
         # Setup mocks
-        mock_manager.interactive_manager.create_session.return_value = "session-1"
+        mock_manager.create_session.return_value = "session-1"
         mock_result = InteractiveExecResult(
             output="test output",
             session_id="session-1",
@@ -43,14 +41,14 @@ class TestInteractiveShellTool:
             execution_time=0.1,
             command_count=1,
         )
-        mock_manager.interactive_manager.execute_command.return_value = mock_result
+        mock_manager.execute_command.return_value = mock_result
 
         # Execute command
         result_json = await tool.execute("test command")
 
         # Verify session creation and execution
-        mock_manager.interactive_manager.create_session.assert_called_once()
-        mock_manager.interactive_manager.execute_command.assert_called_once_with("session-1", "test command", None)
+        mock_manager.create_session.assert_called_once()
+        mock_manager.execute_command.assert_called_once_with("session-1", "test command", None)
 
         # Verify result format
         assert "test output" in result_json
@@ -66,21 +64,19 @@ class TestInteractiveShellTool:
             execution_time=0.05,
             command_count=5,
         )
-        mock_manager.interactive_manager.execute_command.return_value = mock_result
+        mock_manager.execute_command.return_value = mock_result
 
         # Execute command
         await tool.execute("test command", session_id="existing-session", timeout_ms=5000)
 
         # Verify no session creation
-        mock_manager.interactive_manager.create_session.assert_not_called()
-        mock_manager.interactive_manager.execute_command.assert_called_once_with(
-            "existing-session", "test command", 5000
-        )
+        mock_manager.create_session.assert_not_called()
+        mock_manager.execute_command.assert_called_once_with("existing-session", "test command", 5000)
 
     async def test_execute_session_not_found_error(self, tool, mock_manager):
         """Test handling session not found error."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.execute_command.side_effect = SessionNotFoundError("Session not found")
+        mock_manager.execute_command.side_effect = SessionNotFoundError("Session not found")
 
         # Execute command
         result_json = await tool.execute("test", session_id="non-existent")
@@ -92,7 +88,7 @@ class TestInteractiveShellTool:
     async def test_execute_session_terminated_error(self, tool, mock_manager):
         """Test handling session terminated error."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.execute_command.side_effect = SessionTerminatedError("Session terminated")
+        mock_manager.execute_command.side_effect = SessionTerminatedError("Session terminated")
 
         # Execute command
         result_json = await tool.execute("test", session_id="terminated-session")
@@ -103,7 +99,7 @@ class TestInteractiveShellTool:
     async def test_execute_unexpected_error(self, tool, mock_manager):
         """Test handling unexpected errors."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.execute_command.side_effect = ValueError("Unexpected error")
+        mock_manager.execute_command.side_effect = ValueError("Unexpected error")
 
         # Execute command
         result_json = await tool.execute("test", session_id="some-session")
@@ -118,9 +114,7 @@ class TestCreateSessionTool:
     @pytest.fixture
     def mock_manager(self):
         """Create a mock OpenROADManager."""
-        manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
-        return manager
+        return AsyncMock()
 
     @pytest.fixture
     def tool(self, mock_manager):
@@ -130,7 +124,7 @@ class TestCreateSessionTool:
     async def test_create_session_default(self, tool, mock_manager):
         """Test creating session with default parameters."""
         # Setup mocks
-        mock_manager.interactive_manager.create_session.return_value = "session-1"
+        mock_manager.create_session.return_value = "session-1"
 
         # Create a proper InteractiveSessionInfo object instead of AsyncMock
         from openroad_mcp.core.models import InteractiveSessionInfo
@@ -144,19 +138,19 @@ class TestCreateSessionTool:
             uptime_seconds=0.0,
             state="creating",
         )
-        mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
+        mock_manager.get_session_info.return_value = mock_session_info
 
         # Create session
         result_json = await tool.execute()
 
         # Verify session creation
-        mock_manager.interactive_manager.create_session.assert_called_once_with(None, None, None, None)
+        mock_manager.create_session.assert_called_once_with(None, None, None, None)
         assert "session-1" in result_json
 
     async def test_create_session_with_params(self, tool, mock_manager):
         """Test creating session with custom parameters."""
         # Setup mocks
-        mock_manager.interactive_manager.create_session.return_value = "custom-session"
+        mock_manager.create_session.return_value = "custom-session"
 
         # Create a proper InteractiveSessionInfo object instead of AsyncMock
         from openroad_mcp.core.models import InteractiveSessionInfo
@@ -170,21 +164,19 @@ class TestCreateSessionTool:
             uptime_seconds=0.0,
             state="creating",
         )
-        mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
+        mock_manager.get_session_info.return_value = mock_session_info
 
         # Create session with parameters
         result_json = await tool.execute(command=["openroad", "-v"], env={"DEBUG": "1"}, cwd="/workspace")
 
         # Verify session creation with parameters
-        mock_manager.interactive_manager.create_session.assert_called_once_with(
-            None, ["openroad", "-v"], {"DEBUG": "1"}, "/workspace"
-        )
+        mock_manager.create_session.assert_called_once_with(None, ["openroad", "-v"], {"DEBUG": "1"}, "/workspace")
         assert "custom-session" in result_json
 
     async def test_create_session_error(self, tool, mock_manager):
         """Test handling session creation error."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.create_session.side_effect = Exception("Creation failed")
+        mock_manager.create_session.side_effect = Exception("Creation failed")
 
         # Create session
         result_json = await tool.execute()
@@ -199,9 +191,7 @@ class TestInspectSessionTool:
     @pytest.fixture
     def mock_manager(self):
         """Create a mock OpenROADManager."""
-        manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
-        return manager
+        return AsyncMock()
 
     @pytest.fixture
     def tool(self, mock_manager):
@@ -221,13 +211,13 @@ class TestInspectSessionTool:
             "memory_usage": {"rss_mb": 25.5, "vms_mb": 50.0},
             "performance": {"commands_per_second": 2.5},
         }
-        mock_manager.interactive_manager.inspect_session.return_value = mock_metrics
+        mock_manager.inspect_session.return_value = mock_metrics
 
         # Inspect session
         result_json = await tool.execute("test-session")
 
         # Verify call
-        mock_manager.interactive_manager.inspect_session.assert_called_once_with("test-session")
+        mock_manager.inspect_session.assert_called_once_with("test-session")
 
         # Verify result
         assert "test-session" in result_json
@@ -236,7 +226,7 @@ class TestInspectSessionTool:
     async def test_inspect_session_not_found(self, tool, mock_manager):
         """Test inspecting non-existent session."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.inspect_session.side_effect = SessionNotFoundError("Session not found")
+        mock_manager.inspect_session.side_effect = SessionNotFoundError("Session not found")
 
         # Inspect session
         result_json = await tool.execute("non-existent")
@@ -247,7 +237,7 @@ class TestInspectSessionTool:
     async def test_inspect_session_unexpected_error(self, tool, mock_manager):
         """Test handling unexpected errors."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.inspect_session.side_effect = Exception("Inspection error")
+        mock_manager.inspect_session.side_effect = Exception("Inspection error")
 
         # Inspect session
         result_json = await tool.execute("some-session")
@@ -262,9 +252,7 @@ class TestListSessionsTool:
     @pytest.fixture
     def mock_manager(self):
         """Create a mock OpenROADManager."""
-        manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
-        return manager
+        return AsyncMock()
 
     @pytest.fixture
     def tool(self, mock_manager):
@@ -275,13 +263,13 @@ class TestListSessionsTool:
         """Test listing sessions when none exist."""
         # Setup mock
         mock_sessions = []
-        mock_manager.interactive_manager.list_sessions.return_value = mock_sessions
+        mock_manager.list_sessions.return_value = mock_sessions
 
         # List sessions
         result_json = await tool.execute()
 
         # Verify call
-        mock_manager.interactive_manager.list_sessions.assert_called_once()
+        mock_manager.list_sessions.assert_called_once()
 
         # Verify result
         assert "total_count" in result_json or "0" in result_json
@@ -312,7 +300,7 @@ class TestListSessionsTool:
         )
 
         mock_sessions = [session1, session2]
-        mock_manager.interactive_manager.list_sessions.return_value = mock_sessions
+        mock_manager.list_sessions.return_value = mock_sessions
 
         # List sessions
         result_json = await tool.execute()
@@ -324,7 +312,7 @@ class TestListSessionsTool:
     async def test_list_sessions_error(self, tool, mock_manager):
         """Test handling list sessions error."""
         # Setup mock to raise error
-        mock_manager.interactive_manager.list_sessions.side_effect = Exception("List error")
+        mock_manager.list_sessions.side_effect = Exception("List error")
 
         # List sessions (should handle error gracefully)
         result_json = await tool.execute()
@@ -339,9 +327,7 @@ class TestTerminateSessionTool:
     @pytest.fixture
     def mock_manager(self):
         """Create a mock OpenROADManager."""
-        manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
-        return manager
+        return AsyncMock()
 
     @pytest.fixture
     def tool(self, mock_manager):
@@ -353,14 +339,14 @@ class TestTerminateSessionTool:
         # Setup mock session info
         mock_session_info = AsyncMock()
         mock_session_info.is_alive = True
-        mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
+        mock_manager.get_session_info.return_value = mock_session_info
 
         # Terminate session
         result_json = await tool.execute("test-session", force=False)
 
         # Verify calls
-        mock_manager.interactive_manager.get_session_info.assert_called_once_with("test-session")
-        mock_manager.interactive_manager.terminate_session.assert_called_once_with("test-session", False)
+        mock_manager.get_session_info.assert_called_once_with("test-session")
+        mock_manager.terminate_session.assert_called_once_with("test-session", False)
 
         # Verify result
         assert "test-session" in result_json
@@ -371,13 +357,13 @@ class TestTerminateSessionTool:
         # Setup mock session info
         mock_session_info = AsyncMock()
         mock_session_info.is_alive = True
-        mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
+        mock_manager.get_session_info.return_value = mock_session_info
 
         # Terminate session with force
         result_json = await tool.execute("test-session", force=True)
 
         # Verify calls
-        mock_manager.interactive_manager.terminate_session.assert_called_once_with("test-session", True)
+        mock_manager.terminate_session.assert_called_once_with("test-session", True)
 
         # Verify result
         assert "test-session" in result_json
@@ -386,7 +372,7 @@ class TestTerminateSessionTool:
     async def test_terminate_session_not_found(self, tool, mock_manager):
         """Test terminating non-existent session."""
         # Setup mock to raise error on get_session_info but succeed on terminate
-        mock_manager.interactive_manager.get_session_info.side_effect = SessionNotFoundError("Session not found")
+        mock_manager.get_session_info.side_effect = SessionNotFoundError("Session not found")
         # terminate_session just succeeds silently even for non-existent sessions
 
         # Terminate session
@@ -402,10 +388,10 @@ class TestTerminateSessionTool:
         # Setup mock session info
         mock_session_info = AsyncMock()
         mock_session_info.is_alive = True
-        mock_manager.interactive_manager.get_session_info.return_value = mock_session_info
+        mock_manager.get_session_info.return_value = mock_session_info
 
         # Setup mock to raise error on terminate
-        mock_manager.interactive_manager.terminate_session.side_effect = Exception("Termination failed")
+        mock_manager.terminate_session.side_effect = Exception("Termination failed")
 
         # Terminate session
         result_json = await tool.execute("some-session")
@@ -422,7 +408,6 @@ class TestInteractiveToolsIntegration:
         """Test complete workflow using all interactive tools."""
         # Mock manager
         manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
 
         # Setup tools
         create_tool = CreateSessionTool(manager)
@@ -431,7 +416,7 @@ class TestInteractiveToolsIntegration:
         terminate_tool = TerminateSessionTool(manager)
 
         # Mock responses
-        manager.interactive_manager.create_session.return_value = "workflow-session"
+        manager.create_session.return_value = "workflow-session"
 
         # Create proper InteractiveSessionInfo object
         from openroad_mcp.core.models import InteractiveSessionInfo
@@ -445,7 +430,7 @@ class TestInteractiveToolsIntegration:
             uptime_seconds=10.0,
             state="active",
         )
-        manager.interactive_manager.get_session_info.return_value = mock_session_info
+        manager.get_session_info.return_value = mock_session_info
 
         mock_exec_result = InteractiveExecResult(
             output="command executed",
@@ -454,10 +439,10 @@ class TestInteractiveToolsIntegration:
             execution_time=0.1,
             command_count=1,
         )
-        manager.interactive_manager.execute_command.return_value = mock_exec_result
+        manager.execute_command.return_value = mock_exec_result
 
         mock_sessions = [mock_session_info]
-        manager.interactive_manager.list_sessions.return_value = mock_sessions
+        manager.list_sessions.return_value = mock_sessions
 
         # Execute workflow
         create_result = await create_tool.execute()
@@ -476,7 +461,6 @@ class TestInteractiveToolsIntegration:
         """Test concurrent operations across tools."""
         # Mock manager
         manager = AsyncMock()
-        manager.interactive_manager = AsyncMock()
 
         # Setup multiple shell tools
         tools = []
@@ -499,8 +483,8 @@ class TestInteractiveToolsIntegration:
                 command_count=1,
             )
 
-        manager.interactive_manager.create_session.side_effect = mock_create_session
-        manager.interactive_manager.execute_command.side_effect = mock_execute_command
+        manager.create_session.side_effect = mock_create_session
+        manager.execute_command.side_effect = mock_execute_command
 
         # Execute concurrent operations
         tasks = []
