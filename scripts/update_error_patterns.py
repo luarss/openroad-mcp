@@ -7,12 +7,12 @@ This script extracts error message patterns from:
 2. OpenROAD source code (logger calls) - via git clone or local repo
 
 Usage:
-    python scripts/update_error_patterns.py --source github [--clone-dir /tmp/openroad]
-    python scripts/update_error_patterns.py --source local --repo-path /path/to/OpenROAD
-    python scripts/update_error_patterns.py --source docs  # scrape documentation only
+    python scripts/update_error_patterns.py                # Scrape docs (fast, recommended)
+    python scripts/update_error_patterns.py --source github  # Scrape everything (docs + source code)
+    python scripts/update_error_patterns.py --dry-run       # Preview without writing
 
 Requirements:
-    pip install beautifulsoup4 requests gitpython
+    uv add beautifulsoup4 requests --dev
 """
 
 import argparse
@@ -139,7 +139,7 @@ def extract_patterns_from_tcl_source(repo_path: Path) -> list[tuple[str, str, st
     patterns = []
 
     tcl_files = list(repo_path.rglob("*.tcl"))
-    cpp_files_with_tcl = []
+    cpp_files_with_tcl: list[Path] = []
 
     for src_dir in [repo_path / "src"]:
         if src_dir.exists():
@@ -191,7 +191,7 @@ def write_patterns_file(patterns: list[tuple[str, str, str]], output_file: Path)
         f.write("# Patterns are checked in order, so put specific patterns before generic ones\n")
         f.write("\n")
 
-        by_category = {}
+        by_category: dict[str, list[tuple[str, str]]] = {}
         for regex, message, category in patterns:
             if category not in by_category:
                 by_category[category] = []
@@ -204,23 +204,20 @@ def write_patterns_file(patterns: list[tuple[str, str, str]], output_file: Path)
             f.write("\n")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Update OpenROAD error patterns")
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Update OpenROAD error patterns by scraping official sources",
+        epilog="Examples:\n"
+        "  %(prog)s                         # Scrape from docs (fast, recommended)\n"
+        "  %(prog)s --source github         # Clone repo and scrape everything\n"
+        "  %(prog)s --dry-run               # Preview without writing",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--source",
-        choices=["github", "local", "docs", "tcl"],
+        choices=["docs", "github"],
         default="docs",
-        help="Source to extract patterns from (default: docs)",
-    )
-    parser.add_argument(
-        "--repo-path",
-        type=Path,
-        help="Path to local OpenROAD repository (for --source local)",
-    )
-    parser.add_argument(
-        "--clone-dir",
-        type=Path,
-        help="Directory to clone OpenROAD repo (for --source github)",
+        help="docs: scrape documentation only (fast), github: clone repo and scrape source code + docs (comprehensive)",
     )
     parser.add_argument(
         "--output",
@@ -228,12 +225,13 @@ def main():
         default=Path(__file__).parent.parent / "src/openroad_mcp/config/openroad_error_patterns.txt",
         help="Output file path",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Print patterns without writing file")
-    parser.add_argument("--keep-clone", action="store_true", help="Keep cloned repository after extraction")
+    parser.add_argument("--dry-run", action="store_true", help="Preview patterns without writing file")
+    parser.add_argument("--keep-clone", action="store_true", help="Keep cloned repository after scraping (github only)")
 
     args = parser.parse_args()
 
-    print(f"Extracting error patterns from source: {args.source}")
+    print(f"Scraping OpenROAD error patterns from: {args.source}")
+    print()
 
     all_patterns = []
     temp_dir = None
@@ -243,29 +241,13 @@ def main():
             all_patterns.extend(scrape_openroad_docs())
 
         elif args.source == "github":
-            if args.clone_dir:
-                clone_dir = args.clone_dir
-            else:
-                temp_dir = tempfile.mkdtemp(prefix="openroad_")
-                clone_dir = Path(temp_dir)
+            temp_dir = tempfile.mkdtemp(prefix="openroad_")
+            clone_dir = Path(temp_dir)
 
             if clone_openroad_repo(clone_dir):
                 all_patterns.extend(scrape_openroad_docs())
                 all_patterns.extend(scrape_source_code(clone_dir))
                 all_patterns.extend(extract_patterns_from_tcl_source(clone_dir))
-
-        elif args.source == "local":
-            if not args.repo_path:
-                print("Error: --repo-path required for --source local")
-                return 1
-
-            if not args.repo_path.exists():
-                print(f"Error: Repository path does not exist: {args.repo_path}")
-                return 1
-
-            all_patterns.extend(scrape_openroad_docs())
-            all_patterns.extend(scrape_source_code(args.repo_path))
-            all_patterns.extend(extract_patterns_from_tcl_source(args.repo_path))
 
         all_patterns = deduplicate_patterns(all_patterns)
 
@@ -282,7 +264,7 @@ def main():
             print(f"✓ Written to: {args.output}")
 
         print("\nPattern distribution:")
-        categories = {}
+        categories: dict[str, int] = {}
         for _, _, category in all_patterns:
             categories[category] = categories.get(category, 0) + 1
         for cat, count in sorted(categories.items()):

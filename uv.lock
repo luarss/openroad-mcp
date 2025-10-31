@@ -747,6 +747,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "types-psutil" },
+    { name = "types-requests" },
 ]
 
 [package.dev-dependencies]
@@ -768,6 +769,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.5" },
     { name = "types-psutil", marker = "extra == 'dev'", specifier = ">=7.0.0.20250822" },
+    { name = "types-requests", marker = "extra == 'dev'", specifier = ">=2.32.4.20250913" },
 ]
 provides-extras = ["dev"]
 
@@ -1282,6 +1284,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6d/aa/09699c829d7cc4624138d3ae67eecd4de9574e55729b1c63ca3e5a657f86/types_psutil-7.0.0.20250822.tar.gz", hash = "sha256:226cbc0c0ea9cc0a50b8abcc1d91a26c876dcb40be238131f697883690419698", size = 20358 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7d/46/45006309e20859e12c024d91bb913e6b89a706cd6f9377031c9f7e274ece/types_psutil-7.0.0.20250822-py3-none-any.whl", hash = "sha256:81c82f01aba5a4510b9d8b28154f577b780be75a08954aed074aa064666edc09", size = 23110 },
+]
+
+[[package]]
+name = "types-requests"
+version = "2.32.4.20250913"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/27/489922f4505975b11de2b5ad07b4fe1dca0bca9be81a703f26c5f3acfce5/types_requests-2.32.4.20250913.tar.gz", hash = "sha256:abd6d4f9ce3a9383f269775a9835a4c24e5cd6b9f647d64f88aa4613c33def5d", size = 23113 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/20/9a227ea57c1285986c4cf78400d0a91615d25b24e257fd9e2969606bdfae/types_requests-2.32.4.20250913-py3-none-any.whl", hash = "sha256:78c9c1fffebbe0fa487a418e0fa5252017e9c60d1a2da394077f1780f655d7e1", size = 20658 },
 ]
 
 [[package]]
