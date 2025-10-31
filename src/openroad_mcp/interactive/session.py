@@ -4,6 +4,7 @@ import asyncio
 import re
 import time
 from datetime import datetime
+from pathlib import Path
 
 import psutil
 
@@ -28,6 +29,41 @@ from .models import (
 from .pty_handler import PTYHandler
 
 logger = get_logger("interactive_session")
+
+
+def _load_error_patterns() -> list[tuple[re.Pattern[str], str]]:
+    """Load and compile error patterns from config file."""
+    config_dir = Path(__file__).parent.parent / "config"
+    pattern_file = config_dir / "openroad_error_patterns.txt"
+
+    patterns: list[tuple[re.Pattern[str], str]] = []
+    flags = re.IGNORECASE | re.MULTILINE
+
+    if not pattern_file.exists():
+        logger.warning(f"Error pattern file not found: {pattern_file}")
+        return patterns
+
+    with open(pattern_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            if "|" not in line:
+                continue
+
+            regex_str, message_template = line.split("|", 1)
+            try:
+                pattern = re.compile(regex_str, flags)
+                patterns.append((pattern, message_template))
+            except re.error as e:
+                logger.warning(f"Invalid regex pattern: {regex_str} - {e}")
+
+    return patterns
+
+
+_ERROR_PATTERNS = _load_error_patterns()
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*[mGKH]")
 
 
 class InteractiveSession:
@@ -389,41 +425,11 @@ class InteractiveSession:
         if not output:
             return None
 
-        # Clean output for analysis (remove ANSI escape sequences)
-        clean_output = re.sub(r"\x1b\[[0-9;]*[mGKH]", "", output)
+        clean_output = _ANSI_ESCAPE.sub("", output)
 
-        # OpenROAD error patterns (in order of specificity)
-        error_patterns = [
-            # Command errors
-            (r'invalid command name "([^"]+)"', "Invalid command: {0}"),
-            (r'wrong # args: should be "([^"]+)"', "Wrong arguments for command: {0}"),
-            (r'can\'t read file "?([^".\s]+)"?\.?\s*$', "Cannot read file: {0}"),
-            (r"cannot read file ([^\s.]+)\.?\s*$", "Cannot read file: {0}"),
-            # File/path errors
-            (r"No such file or directory: ([^\s]+)", "File not found: {0}"),
-            (r"Permission denied: ([^\s]+)", "Permission denied: {0}"),
-            # Library/technology errors
-            (r"Error: ([^.]+\.lib[^.]*)\s+not found", "Liberty file not found: {0}"),
-            (r"Error: ([^.]+\.lef[^.]*)\s+not found", "LEF file not found: {0}"),
-            # Design/netlist errors
-            (r"Error: design ([^\s]+) not found", "Design not found: {0}"),
-            (r"Error: instance ([^\s]+) not found", "Instance not found: {0}"),
-            (r"Error: net ([^\s]+) not found", "Net not found: {0}"),
-            # Timing analysis errors
-            (r"Error: clock ([^\s]+) not found", "Clock not found: {0}"),
-            (r"Error: no clocks defined", "No clocks defined"),
-            # Generic error patterns
-            (r"Error: (.+?)(?:\r?\n|$)", "Error: {0}"),
-            (r"ERROR: (.+?)(?:\r?\n|$)", "Error: {0}"),
-            (r"FATAL: (.+?)(?:\r?\n|$)", "Fatal error: {0}"),
-            (r"while evaluating (.+?)(?:\r?\n|$)", "Command evaluation failed: {0}"),
-        ]
-
-        # Check each pattern
-        for pattern, message_template in error_patterns:
-            match = re.search(pattern, clean_output, re.IGNORECASE | re.MULTILINE)
+        for pattern, message_template in _ERROR_PATTERNS:
+            match = pattern.search(clean_output)
             if match:
-                # Extract the matched group(s) for the error message
                 if match.groups():
                     error_detail = match.group(1).strip()
                     return message_template.format(error_detail)

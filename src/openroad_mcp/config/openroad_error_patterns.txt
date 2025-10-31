@@ -1,0 +1,32 @@
+# OpenROAD Error Patterns
+# Format: regex_pattern|message_template
+# Lines starting with # are comments
+
+# Command errors
+invalid command name "([^"]+)"|Invalid command: {0}
+wrong # args: should be "([^"]+)"|Wrong arguments for command: {0}
+can't read file "?([^".\s]+)"?\.?\s*$|Cannot read file: {0}
+cannot read file ([^\s.]+)\.?\s*$|Cannot read file: {0}
+
+# File/path errors
+No such file or directory: ([^\s]+)|File not found: {0}
+Permission denied: ([^\s]+)|Permission denied: {0}
+
+# Library/technology errors
+Error: ([^.]+\.lib[^.]*)\s+not found|Liberty file not found: {0}
+Error: ([^.]+\.lef[^.]*)\s+not found|LEF file not found: {0}
+
+# Design/netlist errors
+Error: design ([^\s]+) not found|Design not found: {0}
+Error: instance ([^\s]+) not found|Instance not found: {0}
+Error: net ([^\s]+) not found|Net not found: {0}
+
+# Timing analysis errors
+Error: clock ([^\s]+) not found|Clock not found: {0}
+Error: no clocks defined|No clocks defined
+
+# Generic error patterns
+Error: (.+?)(?:\r?\n|$)|Error: {0}
+ERROR: (.+?)(?:\r?\n|$)|Error: {0}
+FATAL: (.+?)(?:\r?\n|$)|Fatal error: {0}
+while evaluating (.+?)(?:\r?\n|$)|Command evaluation failed: {0}
