@@ -9,9 +9,7 @@ Usage with FastMCP:
 
 Environment Variables:
     FASTMCP_MASK_ERROR_DETAILS=true    # Enable production error masking
-    OPENROAD_RATE_LIMIT_PER_MIN=60     # Rate limit per minute
     OPENROAD_MAX_SESSIONS=10           # Maximum concurrent sessions
-    OPENROAD_MAX_MEMORY_MB=500         # Memory limit in MB
 """
 
 import asyncio
@@ -28,14 +26,8 @@ sys.path.insert(0, str(src_path))
 if "FASTMCP_MASK_ERROR_DETAILS" not in os.environ:
     os.environ["FASTMCP_MASK_ERROR_DETAILS"] = "true"
 
-if "OPENROAD_RATE_LIMIT_PER_MIN" not in os.environ:
-    os.environ["OPENROAD_RATE_LIMIT_PER_MIN"] = "60"
-
 if "OPENROAD_MAX_SESSIONS" not in os.environ:
     os.environ["OPENROAD_MAX_SESSIONS"] = "10"
-
-if "OPENROAD_MAX_MEMORY_MB" not in os.environ:
-    os.environ["OPENROAD_MAX_MEMORY_MB"] = "500"
 
 # Import after path setup
 from openroad_mcp.server import mcp, shutdown_openroad  # noqa: E402
