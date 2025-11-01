@@ -5,14 +5,6 @@ Scrape OpenROAD error patterns from documentation and source code.
 This script extracts error message patterns from:
 1. OpenROAD Messages Glossary (documentation) - via web scraping
 2. OpenROAD source code (logger calls) - via git clone or local repo
-
-Usage:
-    python scripts/update_error_patterns.py                # Scrape docs (fast, recommended)
-    python scripts/update_error_patterns.py --source github  # Scrape everything (docs + source code)
-    python scripts/update_error_patterns.py --dry-run       # Preview without writing
-
-Requirements:
-    uv add beautifulsoup4 requests --dev
 """
 
 import argparse
@@ -22,13 +14,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-try:
-    import requests
-    from bs4 import BeautifulSoup
-except ImportError:
-    print("Error: Missing dependencies. Install with:")
-    print("  pip install beautifulsoup4 requests")
-    exit(1)
+import requests
+from bs4 import BeautifulSoup
 
 
 def scrape_openroad_docs() -> list[tuple[str, str, str]]:
@@ -71,9 +58,13 @@ def scrape_openroad_docs() -> list[tuple[str, str, str]]:
 
 def clone_openroad_repo(clone_dir: Path) -> bool:
     """Clone OpenROAD repository."""
-    if clone_dir.exists():
+    if clone_dir.exists() and (clone_dir / "src").exists():
         print(f"Repository already exists at {clone_dir}")
         return True
+
+    if clone_dir.exists():
+        print(f"Removing incomplete clone at {clone_dir}")
+        shutil.rmtree(clone_dir, ignore_errors=True)
 
     print(f"Cloning OpenROAD repository to {clone_dir}...")
     try:
@@ -197,11 +188,13 @@ def write_patterns_file(patterns: list[tuple[str, str, str]], output_file: Path)
                 by_category[category] = []
             by_category[category].append((regex, message))
 
-        for category in sorted(by_category.keys()):
+        categories = sorted(by_category.keys())
+        for i, category in enumerate(categories):
             f.write(f"# {category.upper()} ERRORS\n")
             for regex, message in by_category[category]:
                 f.write(f"{regex}|{message}\n")
-            f.write("\n")
+            if i < len(categories) - 1:
+                f.write("\n")
 
 
 def main() -> int:
@@ -209,15 +202,15 @@ def main() -> int:
         description="Update OpenROAD error patterns by scraping official sources",
         epilog="Examples:\n"
         "  %(prog)s                         # Scrape from docs (fast, recommended)\n"
-        "  %(prog)s --source github         # Clone repo and scrape everything\n"
+        "  %(prog)s --source all            # Clone repo and scrape everything\n"
         "  %(prog)s --dry-run               # Preview without writing",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--source",
-        choices=["docs", "github"],
+        choices=["docs", "all"],
         default="docs",
-        help="docs: scrape documentation only (fast), github: clone repo and scrape source code + docs (comprehensive)",
+        help="docs: scrape documentation only (fast), all: clone repo and scrape source code + docs (comprehensive)",
     )
     parser.add_argument(
         "--output",
@@ -226,7 +219,9 @@ def main() -> int:
         help="Output file path",
     )
     parser.add_argument("--dry-run", action="store_true", help="Preview patterns without writing file")
-    parser.add_argument("--keep-clone", action="store_true", help="Keep cloned repository after scraping (github only)")
+    parser.add_argument(
+        "--keep-clone", action="store_true", help="Keep cloned repository after scraping (--source all only)"
+    )
 
     args = parser.parse_args()
 
@@ -240,7 +235,7 @@ def main() -> int:
         if args.source == "docs":
             all_patterns.extend(scrape_openroad_docs())
 
-        elif args.source == "github":
+        elif args.source == "all":
             temp_dir = tempfile.mkdtemp(prefix="openroad_")
             clone_dir = Path(temp_dir)
 

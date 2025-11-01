@@ -1469,3 +1469,54 @@
 \[UTL-0101\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[UTL-0101] Error: {0}
 \[UTL-0102\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[UTL-0102] Error: {0}
 \[UTL-0200\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[UTL-0200] Error: {0}
+
+# SOURCE ERRORS
+\[RCX-0239\].*?Zero\ rseg\ wire\ property\ \{\}\ on\ |[RCX-0239] Error: {0}
+\[RCX-0240\].*?GndCap:\ cannot\ find\ rseg\ for\ r|[RCX-0240] Error: {0}
+\[RCX-0252\].*?Ext\ object\ on\ dbBlock\ is\ nullp|[RCX-0252] Error: {0}
+\[GPL-0134\].*?Master\ \{\}\ is\ not\ marked\ as\ a\ B|[GPL-0134] Error: {0}
+\[GPL-0001\].*?\{\}\ toplevel\ port\ is\ not\ placed|[GPL-0001] Error: {0}
+\[DRT-0005\].*?Unsupported\ region\ query\ add\.|[DRT-0005] Error: {0}
+\[DRT-0006\].*?Unsupported\ region\ query\ add\.|[DRT-0006] Error: {0}
+\[DRT-0007\].*?Unsupported\ region\ query\ add\.|[DRT-0007] Error: {0}
+\[DRT-0031\].*?Unsupported\ region\ query\ add\.|[DRT-0031] Error: {0}
+\[DRT-0513\].*?Unsupported\ region\ addBlockObj|[DRT-0513] Error: {0}
+\[DRT-0512\].*?Unsupported\ region\ removeBlock|[DRT-0512] Error: {0}
+\[DRT-0008\].*?Unsupported\ region\ query\ add\.|[DRT-0008] Error: {0}
+\[DRT-0009\].*?Unsupported\ region\ query\ add\.|[DRT-0009] Error: {0}
+\[DRT-0010\].*?Unsupported\ region\ query\ add\.|[DRT-0010] Error: {0}
+\[DRT-0011\].*?Unsupported\ region\ query\ add\.|[DRT-0011] Error: {0}
+\[DRT-0012\].*?Unsupported\ region\ query\ add\.|[DRT-0012] Error: {0}
+\[DRT-0013\].*?Unsupported\ region\ query\ add\.|[DRT-0013] Error: {0}
+\[DRT-0014\].*?Unsupported\ region\ query\ add\.|[DRT-0014] Error: {0}
+\[DRT-0015\].*?Unsupported\ region\ query\ add\.|[DRT-0015] Error: {0}
+\[DRT-0016\].*?Unsupported\ region\ query\ add\ o|[DRT-0016] Error: {0}
+\[DRT-0017\].*?Unsupported\ region\ query\ add\.|[DRT-0017] Error: {0}
+\[DRT-0228\].*?genGuides_merge\ cannot\ find\ br|[DRT-0228] Error: {0}
+\[ODB-0450\].*?Could\ not\ open\ file\ \{\}|[ODB-0450] Error: {0}
+\[ODB-0451\].*?Corrupted\ GDS,\ Expected:\ \{\}\ Go|[ODB-0451] Error: {0}
+\[ODB-0452\].*?Corrupted\ GDS,\ Expected\ data\ t|[ODB-0452] Error: {0}
+\[ODB-0447\].*?Could\ not\ open\ file\ \{\}|[ODB-0447] Error: {0}
+\[ODB-0448\].*?Invalid\ data\ type|[ODB-0448] Error: {0}
+\[ODB-0449\].*?Invalid\ data\ type|[ODB-0449] Error: {0}
+\[UTL-0001\].*?seeking\ file\ to\ start\ \{\}|[UTL-0001] Error: {0}
+\[UTL-0002\].*?error\ reading\ \{\}\ bytes\ from\ fi|[UTL-0002] Error: {0}
+\[UTL-0003\].*?read\ no\ bytes\ from\ file\ at\ off|[UTL-0003] Error: {0}
+\[UTL-0004\].*?error\ writing\ \{\}\ bytes\ from\ fi|[UTL-0004] Error: {0}
+\[MPL-0037\].*?Attempting\ to\ create\ fixed\ sof|[MPL-0037] Error: {0}
+\[RSZ-1007\].*?unhandled\ BufferedNet\ type|[RSZ-1007] Error: {0}
+
+# TCL ERRORS
+No\ liberty\ file\ in\ \\\$liberty_files\ for\ corner\ \$cor|No liberty file in \$liberty_files for corner $corner_name.
+unknown\ comparison\ operator|unknown comparison operator
+FAIL:\ \$description:\ Command\ \\\{\$test\\\}\\n\$msg|FAIL: $description: Command \{$test\}\n$msg
+FAIL:\ \$description:\ Expected\ \$expected_value,\ got\ |FAIL: $description: Expected $expected_value, got $return_value
+Design\ has\ unrouted\ nets\.|Design has unrouted nets.
+\-buffer_cell|-buffer_cell
+\-instances|-instances
+db\ is\ not\ defined|db is not defined
+chip\ is\ not\ defined|chip is not defined
+block\ is\ not\ defined|block is not defined
+ERROR:\ \$description:\ Command\ \\\{\$test\\\}\\n\$msg|ERROR: $description: Command \{$test\}\n$msg
+ERROR:\ \$description:\ Expected\ \$expected_value,\ got|ERROR: $description: Expected $expected_value, got $return_value
+Cannot\ define\ getPeakRSS\(\ \)\ or\ getCurrentRSS\(\ \)\ fo|Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS.
