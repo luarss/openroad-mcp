@@ -19,6 +19,7 @@ from ..core.models import (
     SessionMetricsResult,
     SessionTerminationResult,
 )
+from ..timing.models import LoadResult, TimingResult, TimingSummary
 
 
 class BaseTool(ABC):
@@ -47,6 +48,9 @@ class BaseTool(ABC):
             | SessionInspectionResult
             | SessionHistoryResult
             | SessionMetricsResult
+            | LoadResult
+            | TimingResult
+            | TimingSummary
         ),
     ) -> str:
         """Format result as JSON string."""

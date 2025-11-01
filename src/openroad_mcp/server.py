@@ -16,6 +16,11 @@ from .tools.interactive import (
     SessionMetricsTool,
     TerminateSessionTool,
 )
+from .tools.timing import (
+    ExecuteTimingQueryTool,
+    GetTimingSummaryTool,
+    LoadTimingDesignTool,
+)
 from .utils.cleanup import cleanup_manager
 from .utils.logging import get_logger
 
@@ -35,6 +40,11 @@ terminate_session_tool = TerminateSessionTool(manager)
 inspect_session_tool = InspectSessionTool(manager)
 session_history_tool = SessionHistoryTool(manager)
 session_metrics_tool = SessionMetricsTool(manager)
+
+# Initialize timing tool instances
+load_timing_design_tool = LoadTimingDesignTool(manager)
+execute_timing_query_tool = ExecuteTimingQueryTool(manager)
+get_timing_summary_tool = GetTimingSummaryTool(manager)
 
 
 # Interactive session tools
@@ -83,6 +93,24 @@ async def get_session_history(session_id: str, limit: int | None = None, search:
 async def get_session_metrics() -> str:
     """Get comprehensive metrics for all interactive OpenROAD sessions."""
     return await session_metrics_tool.execute()
+
+
+@mcp.tool()
+async def load_timing_design(odb_path: str, sdc_path: str | None = None, session_id: str | None = None) -> str:
+    """Load ODB file and SDC constraints for timing analysis."""
+    return await load_timing_design_tool.execute(odb_path, sdc_path, session_id)
+
+
+@mcp.tool()
+async def execute_timing_query(command: str, session_id: str | None = None, use_cache: bool = True) -> str:
+    """Execute OpenSTA timing command on loaded design."""
+    return await execute_timing_query_tool.execute(command, session_id, use_cache)
+
+
+@mcp.tool()
+async def get_timing_summary(session_id: str | None = None) -> str:
+    """Get quick timing summary (WNS, TNS, path counts)."""
+    return await get_timing_summary_tool.execute(session_id)
 
 
 async def shutdown_openroad() -> None:
