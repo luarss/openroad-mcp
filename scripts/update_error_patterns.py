@@ -261,6 +261,14 @@ def main() -> int:
 
         print(f"Extracted {len(all_patterns)} unique patterns")
 
+        if len(all_patterns) == 0:
+            print("\nERROR: No patterns were extracted!", file=sys.stderr)
+            print(
+                "This would result in an empty pattern file. Aborting to prevent overwriting valid config.",
+                file=sys.stderr,
+            )
+            return 1
+
         if args.dry_run:
             print("\n=== Pattern Preview ===")
             for regex, message, category in all_patterns[:50]:
