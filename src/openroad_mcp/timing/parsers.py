@@ -9,8 +9,8 @@ from .models import PathInfo
 class BasicTimingParser:
     """Simple parser for core timing command outputs"""
 
-    WNS_PATTERN = re.compile(r"wns\s+([-\d.]+)", re.IGNORECASE)
-    TNS_PATTERN = re.compile(r"tns\s+([-\d.]+)", re.IGNORECASE)
+    WNS_PATTERN = re.compile(r"wns\s+(?:max|min)?\s*([-\d.]+)", re.IGNORECASE)
+    TNS_PATTERN = re.compile(r"tns\s+(?:max|min)?\s*([-\d.]+)", re.IGNORECASE)
 
     PATH_START_PATTERN = re.compile(r"Startpoint:\s+(\S+)", re.MULTILINE)
     PATH_END_PATTERN = re.compile(r"Endpoint:\s+(\S+)", re.MULTILINE)
