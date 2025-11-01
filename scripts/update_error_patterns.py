@@ -11,6 +11,7 @@ import argparse
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -244,10 +245,17 @@ def main() -> int:
             temp_dir = tempfile.mkdtemp(prefix="openroad_")
             clone_dir = Path(temp_dir)
 
-            if clone_openroad_repo(clone_dir):
-                all_patterns.extend(scrape_openroad_docs())
-                all_patterns.extend(scrape_source_code(clone_dir))
-                all_patterns.extend(extract_patterns_from_tcl_source(clone_dir))
+            if not clone_openroad_repo(clone_dir):
+                print("\nERROR: Failed to clone OpenROAD repository.", file=sys.stderr)
+                print(
+                    "Cannot proceed with source code scraping. Aborting to prevent publishing incomplete patterns.",
+                    file=sys.stderr,
+                )
+                return 1
+
+            all_patterns.extend(scrape_openroad_docs())
+            all_patterns.extend(scrape_source_code(clone_dir))
+            all_patterns.extend(extract_patterns_from_tcl_source(clone_dir))
 
         all_patterns = deduplicate_patterns(all_patterns)
 
