@@ -13,7 +13,6 @@ on:
         options:
           - docs
           - github
-          - local
 
 permissions:
   contents: write
