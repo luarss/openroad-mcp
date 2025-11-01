@@ -86,7 +86,8 @@ def scrape_source_code(repo_path: Path) -> list[tuple[str, str, str]]:
     patterns = []
 
     logger_error_pattern = re.compile(
-        r'logger[_\-]?>(?:error|warn|critical)\s*\(\s*(\w+)\s*,\s*(\d+)\s*,\s*["\']([^"\']+)["\']', re.IGNORECASE
+        r'logger[_\-]?>(?:error|warn|critical)\s*\(\s*(?:\w+::)?(\w+)\s*,\s*(\d+)\s*,\s*["\'](.+?)["\']',
+        re.IGNORECASE | re.MULTILINE | re.DOTALL,
     )
 
     ord_error_pattern = re.compile(r'ord::(?:error|warn)\s*\(["\']([^"\']+)["\']', re.IGNORECASE)
@@ -107,8 +108,12 @@ def scrape_source_code(repo_path: Path) -> list[tuple[str, str, str]]:
 
                     for match in logger_error_pattern.finditer(content):
                         tool, code, msg = match.groups()
-                        regex = rf"\[{tool}-{code.zfill(4)}\].*?{re.escape(msg[:30])}"
-                        message_template = f"[{tool}-{code.zfill(4)}] Error: {{0}}"
+                        msg_clean = msg.replace("\n", " ").replace("\\n", " ").strip()
+                        msg_clean = " ".join(msg_clean.split())
+
+                        error_code = f"{tool}-{code.zfill(4)}"
+                        regex = rf"\[{error_code}\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)"
+                        message_template = f"[{error_code}] Error: {msg_clean}"
                         patterns.append((regex, message_template, "source"))
 
                     for match in ord_error_pattern.finditer(content):
