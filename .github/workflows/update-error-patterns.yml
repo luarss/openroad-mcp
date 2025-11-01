@@ -2,7 +2,7 @@ name: Update OpenROAD Error Patterns
 
 on:
   schedule:
-    - cron: '0 0 1 * *'  # Monthly on the 1st at midnight UTC
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
   workflow_dispatch:      # Allow manual trigger
     inputs:
       source:
@@ -12,7 +12,7 @@ on:
         type: choice
         options:
           - docs
-          - github
+          - all
 
 permissions:
   contents: write
