@@ -23,11 +23,13 @@ openroad-mcp = "openroad_mcp.main:main"
 
 [project.optional-dependencies]
 dev = [
+    "beautifulsoup4>=4.14.2",
     "mypy>=1.17.0",
     "pre-commit>=4.2.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=7.0.0",
+    "requests>=2.32.5",
     "ruff>=0.12.5",
     "types-psutil>=7.0.0.20250822",
     "types-requests>=2.32.4.20250913",
@@ -75,9 +77,3 @@ indent-style = "space"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-
-[dependency-groups]
-dev = [
-    "beautifulsoup4>=4.14.2",
-    "requests>=2.32.5",
-]
