@@ -12,8 +12,10 @@ from ..core.models import (
     InteractiveExecResult,
     InteractiveSessionInfo,
     InteractiveSessionListResult,
+    ListImagesResult,
     ProcessRestartResult,
     ProcessStatus,
+    ReadImageResult,
     SessionHistoryResult,
     SessionInspectionResult,
     SessionMetricsResult,
@@ -47,6 +49,8 @@ class BaseTool(ABC):
             | SessionInspectionResult
             | SessionHistoryResult
             | SessionMetricsResult
+            | ListImagesResult
+            | ReadImageResult
         ),
     ) -> str:
         """Format result as JSON string."""
