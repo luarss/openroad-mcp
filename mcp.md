@@ -6,6 +6,7 @@
 |------------|--------|------------------|-------|
 | Claude Code | ✅ | STDIO | Full support for all features |
 | Claude Desktop | ⚠️ | STDIO only | Local execution only - must run on same machine as Claude Desktop |
+| Gemini CLI | ✅ | STDIO | Full support for all features |
 | Other MCP clients | ❌ | - | Unsupported, open for contributions |
 
 ## Configuration for Claude Code

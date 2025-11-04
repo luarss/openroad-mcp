@@ -48,7 +48,11 @@ See [mcp.md](mcp.md) for MCP client configuration and available tools.
 
 ## Contributing
 
-TBD
+We welcome contributions to OpenROAD MCP! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions on how to get started, our development workflow, and code standards.
+
+## Support
+
+If you encounter any issues or have questions, please open an issue on our [GitHub issue tracker](https://github.com/jlowin/openroad-mcp/issues).
 
 ## License
 
