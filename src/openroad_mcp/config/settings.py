@@ -40,6 +40,12 @@ class Settings(BaseModel):
         description="Enable command validation to prevent command injection",
     )
 
+    # ORFS integration settings
+    ORFS_FLOW_PATH: str = Field(
+        default=os.path.expanduser("~/OpenROAD-flow-scripts/flow"),
+        description="Path to OpenROAD-flow-scripts flow directory",
+    )
+
     @classmethod
     def from_env(cls) -> "Settings":
         """Create settings from environment variables."""
@@ -56,6 +62,7 @@ class Settings(BaseModel):
             "READ_CHUNK_SIZE": ("OPENROAD_READ_CHUNK_SIZE", int),
             "LOG_LEVEL": ("LOG_LEVEL", str),
             "LOG_FORMAT": ("LOG_FORMAT", str),
+            "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),
         }
 
         allowed_commands_env = os.getenv("OPENROAD_ALLOWED_COMMANDS")
