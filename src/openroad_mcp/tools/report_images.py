@@ -1,6 +1,7 @@
 """Report image reading tools for OpenROAD MCP server."""
 
 import base64
+import io
 from datetime import datetime
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from ..utils.logging import get_logger
 from .base import BaseTool
 
 logger = get_logger("report_images")
+
+MAX_BASE64_SIZE_KB = 15
 
 
 IMAGE_TYPE_MAPPING = {
@@ -45,6 +48,73 @@ def classify_image_type(filename: str) -> tuple[str, str]:
     image_type = IMAGE_TYPE_MAPPING.get(base_name, "unknown")
 
     return stage, image_type
+
+
+def load_and_compress_image(
+    image_path: Path, max_size_kb: int = MAX_BASE64_SIZE_KB
+) -> tuple[bytes, bool, int, int, int, int, int | None, int | None]:
+    """Load image and compress if base64-encoded size would exceed threshold.
+
+    Args:
+        image_path: Path to the image file
+        max_size_kb: Maximum size in KB for base64-encoded data
+
+    Returns:
+        Tuple of (image_bytes, compression_applied, original_size, compressed_size,
+                 original_width, original_height, width, height)
+    """
+    original_size = image_path.stat().st_size
+    estimated_b64_size = (original_size * 4) // 3
+
+    try:
+        with Image.open(image_path) as img:
+            original_width, original_height = img.size
+
+            if estimated_b64_size <= max_size_kb * 1024:
+                with open(image_path, "rb") as f:
+                    return (
+                        f.read(),
+                        False,
+                        original_size,
+                        original_size,
+                        original_width,
+                        original_height,
+                        original_width,
+                        original_height,
+                    )
+
+            logger.info(f"Image {image_path.name} ({original_size} bytes) exceeds threshold, compressing...")
+
+            target_bytes = max_size_kb * 1024 * 3 // 4
+            scale = (target_bytes / original_size) ** 0.5
+
+            new_width = max(int(original_width * scale), 256)
+            new_height = max(int(original_height * scale), 256)
+
+            logger.info(f"Resizing from {original_width}x{original_height} to {new_width}x{new_height}")
+
+            resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+            buffer = io.BytesIO()
+            resized.save(buffer, format="WEBP", quality=85)
+            compressed_bytes = buffer.getvalue()
+
+            logger.info(f"Compressed from {original_size} to {len(compressed_bytes)} bytes")
+
+            return (
+                compressed_bytes,
+                True,
+                original_size,
+                len(compressed_bytes),
+                original_width,
+                original_height,
+                new_width,
+                new_height,
+            )
+    except Exception as e:
+        logger.warning(f"Failed to process image with PIL: {e}. Reading as raw bytes.")
+        with open(image_path, "rb") as f:
+            return f.read(), False, original_size, original_size, 0, 0, None, None
 
 
 class ListReportImagesTool(BaseTool):
@@ -202,31 +272,38 @@ class ReadReportImageTool(BaseTool):
                     )
                 )
 
-            with open(image_path, "rb") as f:
-                image_bytes = f.read()
+            (
+                image_bytes,
+                compression_applied,
+                original_size,
+                compressed_size,
+                original_width,
+                original_height,
+                width,
+                height,
+            ) = load_and_compress_image(image_path)
 
             image_data_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
             stat = image_path.stat()
             file_stage, file_type = classify_image_type(image_name)
 
-            width = None
-            height = None
-            try:
-                with Image.open(image_path) as img:
-                    width, height = img.size
-            except Exception as e:
-                logger.warning(f"Failed to extract image dimensions: {e}")
+            compression_ratio = compressed_size / original_size if compression_applied else None
 
             metadata = ImageMetadata(
                 filename=image_name,
                 format="webp",
-                size_bytes=stat.st_size,
+                size_bytes=compressed_size,
                 width=width,
                 height=height,
                 modified_time=datetime.fromtimestamp(stat.st_mtime).isoformat(),
                 stage=file_stage,
                 type=file_type,
+                compression_applied=compression_applied,
+                original_size_bytes=original_size if compression_applied else None,
+                original_width=original_width if compression_applied else None,
+                original_height=original_height if compression_applied else None,
+                compression_ratio=compression_ratio,
             )
 
             result = ReadImageResult(

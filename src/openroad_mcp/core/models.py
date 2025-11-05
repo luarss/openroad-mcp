@@ -186,6 +186,11 @@ class ImageMetadata(BaseModel):
     modified_time: str
     stage: str
     type: str
+    compression_applied: bool = False
+    original_size_bytes: int | None = None
+    original_width: int | None = None
+    original_height: int | None = None
+    compression_ratio: float | None = None
 
 
 class ReadImageResult(BaseResult):
