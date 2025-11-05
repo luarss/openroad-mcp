@@ -33,14 +33,7 @@ IMAGE_TYPE_MAPPING = {
 
 
 def classify_image_type(filename: str) -> tuple[str, str]:
-    """Classify image by stage and type based on filename.
-
-    Args:
-        filename: Image filename (e.g., "final_all.webp")
-
-    Returns:
-        Tuple of (stage, type) where stage is "cts" or "final" and type describes the image
-    """
+    """Classify image by stage and type based on filename."""
     base_name = filename.rsplit(".", 1)[0]
 
     stage = base_name.split("_")[0] if "_" in base_name else "unknown"
@@ -53,16 +46,7 @@ def classify_image_type(filename: str) -> tuple[str, str]:
 def load_and_compress_image(
     image_path: Path, max_size_kb: int = MAX_BASE64_SIZE_KB
 ) -> tuple[bytes, bool, int, int, int | None, int | None, int | None, int | None]:
-    """Load image and compress if base64-encoded size would exceed threshold.
-
-    Args:
-        image_path: Path to the image file
-        max_size_kb: Maximum size in KB for base64-encoded data
-
-    Returns:
-        Tuple of (image_bytes, compression_applied, original_size, compressed_size,
-                 original_width, original_height, width, height)
-    """
+    """Load image and compress if base64-encoded size would exceed threshold."""
     original_size = image_path.stat().st_size
     estimated_b64_size = (original_size * 4) // 3
 
@@ -121,17 +105,7 @@ class ListReportImagesTool(BaseTool):
     """Tool for listing available report images from ORFS runs."""
 
     async def execute(self, platform: str, design: str, run_slug: str, stage: str = "all") -> str:
-        """List available report images for a specific run.
-
-        Args:
-            platform: Platform name (e.g., "nangate45")
-            design: Design name (e.g., "gcd")
-            run_slug: Run identifier (e.g., "5b5d17f3-a40b-4a9a-ab26-77160b16f27b-_CORE_ASPECT_RATIO_0.5")
-            stage: Filter by stage ("cts", "final", or "all")
-
-        Returns:
-            JSON formatted result with list of images organized by stage
-        """
+        """List available report images for a specific run."""
         try:
             orfs_flow_path = Path(settings.ORFS_FLOW_PATH).expanduser()
 
@@ -222,17 +196,7 @@ class ReadReportImageTool(BaseTool):
     """Tool for reading report images and returning base64-encoded data with metadata."""
 
     async def execute(self, platform: str, design: str, run_slug: str, image_name: str) -> str:
-        """Read a specific report image and return base64-encoded data.
-
-        Args:
-            platform: Platform name (e.g., "nangate45")
-            design: Design name (e.g., "gcd")
-            run_slug: Run identifier
-            image_name: Image filename (e.g., "final_all.webp")
-
-        Returns:
-            JSON formatted result with base64-encoded image data and metadata
-        """
+        """Read a specific report image and return base64-encoded data."""
         try:
             orfs_flow_path = Path(settings.ORFS_FLOW_PATH).expanduser()
 
