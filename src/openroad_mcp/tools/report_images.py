@@ -52,7 +52,7 @@ def classify_image_type(filename: str) -> tuple[str, str]:
 
 def load_and_compress_image(
     image_path: Path, max_size_kb: int = MAX_BASE64_SIZE_KB
-) -> tuple[bytes, bool, int, int, int, int, int | None, int | None]:
+) -> tuple[bytes, bool, int, int, int | None, int | None, int | None, int | None]:
     """Load image and compress if base64-encoded size would exceed threshold.
 
     Args:
@@ -114,7 +114,7 @@ def load_and_compress_image(
     except Exception as e:
         logger.warning(f"Failed to process image with PIL: {e}. Reading as raw bytes.")
         with open(image_path, "rb") as f:
-            return f.read(), False, original_size, original_size, 0, 0, None, None
+            return f.read(), False, original_size, original_size, None, None, None, None
 
 
 class ListReportImagesTool(BaseTool):
