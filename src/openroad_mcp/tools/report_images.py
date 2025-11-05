@@ -11,6 +11,7 @@ from ..config.settings import settings
 from ..core.exceptions import ValidationError
 from ..core.models import ImageInfo, ImageMetadata, ListImagesResult, ReadImageResult
 from ..utils.logging import get_logger
+from ..utils.path_security import validate_path_segment, validate_safe_path_containment
 from .base import BaseTool
 
 logger = get_logger("report_images")
@@ -130,8 +131,12 @@ class ListReportImagesTool(BaseTool):
         """List available report images for a specific run."""
         try:
             validate_platform_design(platform, design)
+            validate_path_segment(run_slug, "run_slug")
+
             reports_base = settings.flow_path / "reports" / platform / design
             run_path = reports_base / run_slug
+
+            validate_safe_path_containment(run_path, reports_base, "run directory")
 
             if not run_path.exists():
                 logger.warning(f"Run slug not found: {run_slug}")
@@ -210,8 +215,16 @@ class ReadReportImageTool(BaseTool):
         """Read a specific report image and return base64-encoded data."""
         try:
             validate_platform_design(platform, design)
+            validate_path_segment(run_slug, "run_slug")
+            validate_path_segment(image_name, "image_name")
+
+            if not image_name.endswith(".webp"):
+                raise ValidationError(f"Image filename must have .webp extension: {image_name}")
+
             reports_base = settings.flow_path / "reports" / platform / design
             run_path = reports_base / run_slug
+
+            validate_safe_path_containment(run_path, reports_base, "run directory")
 
             if not run_path.exists():
                 logger.warning(f"Run slug not found: {run_slug}")
@@ -223,8 +236,11 @@ class ReadReportImageTool(BaseTool):
                     )
                 )
 
-            image_files = list(run_path.rglob(image_name))
-            if not image_files:
+            image_path = run_path / image_name
+
+            validate_safe_path_containment(image_path, run_path, "image file")
+
+            if not image_path.exists():
                 logger.warning(f"Image not found: {image_name}")
                 available_images = [f.name for f in run_path.rglob("*.webp")]
                 return self._format_result(
@@ -236,7 +252,14 @@ class ReadReportImageTool(BaseTool):
                     )
                 )
 
-            image_path = image_files[0]
+            if not image_path.is_file():
+                logger.warning(f"Image path is not a file: {image_path}")
+                return self._format_result(
+                    ReadImageResult(
+                        error="InvalidImagePath",
+                        message=f"Image path {image_name} is not a regular file.",
+                    )
+                )
             file_size_mb = image_path.stat().st_size / (1024 * 1024)
             if file_size_mb > MAX_IMAGE_SIZE_MB:
                 logger.warning(f"Image too large: {file_size_mb:.2f}MB > {MAX_IMAGE_SIZE_MB}MB")

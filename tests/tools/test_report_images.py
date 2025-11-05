@@ -336,6 +336,115 @@ class TestSettingsPlatformDesignDiscovery:
 
 
 @pytest.mark.asyncio
+class TestPathTraversalSecurity:
+    """Test suite for path traversal security in report images tools."""
+
+    @pytest.fixture
+    def mock_settings(self, tmp_path):
+        """Mock settings with test ORFS path."""
+        with patch("openroad_mcp.tools.report_images.settings") as mock:
+            mock.ORFS_FLOW_PATH = str(tmp_path)
+            mock.flow_path = tmp_path
+            mock.platforms = ["nangate45"]
+            mock.designs = lambda p: ["gcd"] if p == "nangate45" else []
+            yield mock
+
+    @pytest.fixture
+    def list_tool(self):
+        """Create ListReportImagesTool."""
+        return ListReportImagesTool(AsyncMock())
+
+    @pytest.fixture
+    def read_tool(self):
+        """Create ReadReportImagesTool."""
+        return ReadReportImageTool(AsyncMock())
+
+    async def test_list_run_slug_traversal_rejected(self, list_tool, mock_settings, tmp_path):
+        """Test path traversal in run_slug is rejected."""
+        reports_dir = tmp_path / "reports" / "nangate45" / "gcd"
+        reports_dir.mkdir(parents=True)
+
+        result_json = await list_tool.execute("nangate45", "gcd", "../../../etc/passwd")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "cannot contain path separators" in result["message"]
+
+    async def test_list_run_slug_dot_dot_rejected(self, list_tool, mock_settings, tmp_path):
+        """Test '..' in run_slug is rejected."""
+        reports_dir = tmp_path / "reports" / "nangate45" / "gcd"
+        reports_dir.mkdir(parents=True)
+
+        result_json = await list_tool.execute("nangate45", "gcd", "..")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "cannot be '.' or '..'" in result["message"]
+
+    async def test_list_run_slug_glob_rejected(self, list_tool, mock_settings, tmp_path):
+        """Test glob characters in run_slug are rejected."""
+        reports_dir = tmp_path / "reports" / "nangate45" / "gcd"
+        reports_dir.mkdir(parents=True)
+
+        result_json = await list_tool.execute("nangate45", "gcd", "*")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "glob characters" in result["message"]
+
+    async def test_read_image_traversal_rejected(self, read_tool, mock_settings, tmp_path):
+        """Test path traversal in image_name is rejected."""
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
+        run_path.mkdir(parents=True)
+
+        result_json = await read_tool.execute("nangate45", "gcd", "run-123", "../../../etc/passwd")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "cannot contain path separators" in result["message"]
+
+    async def test_read_image_non_webp_rejected(self, read_tool, mock_settings, tmp_path):
+        """Test non-webp extension is rejected."""
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
+        run_path.mkdir(parents=True)
+
+        result_json = await read_tool.execute("nangate45", "gcd", "run-123", "malicious.exe")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert ".webp" in result["message"]
+
+    async def test_read_image_null_byte_rejected(self, read_tool, mock_settings, tmp_path):
+        """Test null byte in image_name is rejected."""
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
+        run_path.mkdir(parents=True)
+
+        result_json = await read_tool.execute("nangate45", "gcd", "run-123", "image\x00.webp")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "null bytes" in result["message"]
+
+    async def test_read_symlink_escape_blocked(self, read_tool, mock_settings, tmp_path):
+        """Test symlink that escapes base directory is blocked."""
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
+        run_path.mkdir(parents=True)
+
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        secret_file = outside / "secret.webp"
+        secret_file.write_bytes(b"secret data")
+
+        evil_symlink = run_path / "evil.webp"
+        evil_symlink.symlink_to(secret_file)
+
+        result_json = await read_tool.execute("nangate45", "gcd", "run-123", "evil.webp")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "not contained within" in result["message"]
+
+
 class TestPlatformDesignValidationInTools:
     """Test platform/design validation in actual tools."""
 
