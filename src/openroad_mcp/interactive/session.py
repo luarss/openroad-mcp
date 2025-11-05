@@ -241,9 +241,12 @@ class InteractiveSession:
                         break  # Timeout waiting for data
 
             # Convert chunks to string
-            output = CircularBuffer.to_string(collected_chunks, errors="replace")
+            raw_output = CircularBuffer.to_string(collected_chunks, errors="replace")
             execution_time = asyncio.get_event_loop().time() - start_time
             buffer_size = await self.output_buffer.get_size()
+
+            # Clean ANSI escape codes for better readability
+            output = ANSIDecoder.clean_openroad_output(raw_output)
 
             # Update command history with execution time if we have a recent command
             if self.command_history and "execution_time" not in self.command_history[-1]:
@@ -254,15 +257,11 @@ class InteractiveSession:
             await self._update_performance_metrics()
             self.last_activity = datetime.now()
 
-            # Detect OpenROAD errors in output
-            error_message = self._detect_openroad_errors(output)
-
-            # Clean ANSI escape codes for better readability
-            output_clean = ANSIDecoder.clean_openroad_output(output)
+            # Detect OpenROAD errors in output (use raw output for pattern matching)
+            error_message = self._detect_openroad_errors(raw_output)
 
             result = InteractiveExecResult(
                 output=output,
-                output_clean=output_clean,
                 session_id=self.session_id,
                 timestamp=datetime.now().isoformat(),
                 execution_time=execution_time,

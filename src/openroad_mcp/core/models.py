@@ -108,7 +108,6 @@ class InteractiveExecResult(BaseResult):
     """Result from interactive command execution for MCP tools."""
 
     output: str
-    output_clean: str | None = None
     session_id: str | None
     timestamp: str
     execution_time: float
