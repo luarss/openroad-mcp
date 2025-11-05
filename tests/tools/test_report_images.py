@@ -90,7 +90,7 @@ class TestListReportImagesTool:
 
     async def test_list_images_no_webp_files(self, tool, mock_settings, tmp_path):
         """Test listing when no webp images exist."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
@@ -106,7 +106,7 @@ class TestListReportImagesTool:
 
     async def test_list_images_success_all_stages(self, tool, mock_settings, tmp_path):
         """Test successful listing of all images."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         (run_path / "cts_clk.webp").write_bytes(b"fake cts image")
@@ -134,7 +134,7 @@ class TestListReportImagesTool:
 
     async def test_list_images_filter_by_stage(self, tool, mock_settings, tmp_path):
         """Test filtering images by stage."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         (run_path / "cts_clk.webp").write_bytes(b"fake cts image")
@@ -202,7 +202,7 @@ class TestReadReportImageTool:
 
     async def test_read_image_not_found(self, tool, mock_settings, tmp_path):
         """Test error when image doesn't exist."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         (run_path / "existing.webp").write_bytes(b"fake image")
@@ -220,7 +220,7 @@ class TestReadReportImageTool:
 
     async def test_read_image_success(self, tool, mock_settings, tmp_path):
         """Test successful image reading."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         test_image_data = b"fake webp image data"
@@ -256,7 +256,7 @@ class TestReadReportImageTool:
 
     async def test_read_image_dimensions_extraction_failure(self, tool, mock_settings, tmp_path):
         """Test handling when image dimensions cannot be extracted."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         test_image_data = b"fake webp image data"
@@ -280,7 +280,7 @@ class TestReadReportImageTool:
 
     async def test_read_image_file_too_large(self, tool, mock_settings, tmp_path):
         """Test handling of files that exceed size limit."""
-        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "run-123"
         run_path.mkdir(parents=True)
 
         large_image = run_path / "large.webp"
