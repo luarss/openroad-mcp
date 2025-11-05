@@ -131,22 +131,20 @@ class ListReportImagesTool(BaseTool):
         try:
             validate_platform_design(platform, design)
             reports_base = settings.flow_path / "reports" / platform / design
+            run_path = reports_base / run_slug
 
-            run_dirs = list(reports_base.glob(f"*/{run_slug}"))
-            if not run_dirs:
+            if not run_path.exists():
                 logger.warning(f"Run slug not found: {run_slug}")
-                available_runs = [d.name for d in reports_base.rglob("*") if d.is_dir() and "-" in d.name]
+                available_runs = [d.name for d in reports_base.iterdir() if d.is_dir()]
                 return self._format_result(
                     ListImagesResult(
                         error="RunSlugNotFound",
                         message=f"Run slug '{run_slug}' not found in {reports_base}. "
-                        f"Available run slugs: {', '.join(available_runs[:5]) if available_runs else 'none'}",
+                        f"Available run slugs: {', '.join(sorted(available_runs)[:5]) if available_runs else 'none'}",
                     )
                 )
 
-            run_path = run_dirs[0]
-
-            webp_files = list(run_path.glob("*.webp"))
+            webp_files = list(run_path.rglob("*.webp"))
 
             if not webp_files:
                 logger.warning(f"No webp images found in {run_path}")
@@ -213,9 +211,9 @@ class ReadReportImageTool(BaseTool):
         try:
             validate_platform_design(platform, design)
             reports_base = settings.flow_path / "reports" / platform / design
+            run_path = reports_base / run_slug
 
-            run_dirs = list(reports_base.glob(f"*/{run_slug}"))
-            if not run_dirs:
+            if not run_path.exists():
                 logger.warning(f"Run slug not found: {run_slug}")
                 return self._format_result(
                     ReadImageResult(
@@ -225,12 +223,10 @@ class ReadReportImageTool(BaseTool):
                     )
                 )
 
-            run_path = run_dirs[0]
-            image_path = run_path / image_name
-
-            if not image_path.exists():
-                logger.warning(f"Image not found: {image_path}")
-                available_images = [f.name for f in run_path.glob("*.webp")]
+            image_files = list(run_path.rglob(image_name))
+            if not image_files:
+                logger.warning(f"Image not found: {image_name}")
+                available_images = [f.name for f in run_path.rglob("*.webp")]
                 return self._format_result(
                     ReadImageResult(
                         error="ImageNotFound",
@@ -240,6 +236,7 @@ class ReadReportImageTool(BaseTool):
                     )
                 )
 
+            image_path = image_files[0]
             file_size_mb = image_path.stat().st_size / (1024 * 1024)
             if file_size_mb > MAX_IMAGE_SIZE_MB:
                 logger.warning(f"Image too large: {file_size_mb:.2f}MB > {MAX_IMAGE_SIZE_MB}MB")
