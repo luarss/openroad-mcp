@@ -7,31 +7,7 @@ class OpenROADError(Exception):
     pass
 
 
-class ProcessNotRunningError(OpenROADError):
-    """Raised when attempting to interact with a non-running process."""
-
-    pass
-
-
-class ProcessStartupError(OpenROADError):
-    """Raised when OpenROAD process fails to start."""
-
-    pass
-
-
-class ProcessShutdownError(OpenROADError):
-    """Raised when OpenROAD process fails to shutdown gracefully."""
-
-    pass
-
-
-class CommandExecutionError(OpenROADError):
-    """Raised when command execution fails."""
-
-    pass
-
-
-class ConfigurationError(OpenROADError):
-    """Raised when configuration is invalid."""
+class ValidationError(OpenROADError):
+    """Raised when validation fails."""
 
     pass
