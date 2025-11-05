@@ -16,6 +16,7 @@ from .tools.interactive import (
     SessionMetricsTool,
     TerminateSessionTool,
 )
+from .tools.report_images import ListReportImagesTool, ReadReportImageTool
 from .utils.cleanup import cleanup_manager
 from .utils.logging import get_logger
 
@@ -35,6 +36,10 @@ terminate_session_tool = TerminateSessionTool(manager)
 inspect_session_tool = InspectSessionTool(manager)
 session_history_tool = SessionHistoryTool(manager)
 session_metrics_tool = SessionMetricsTool(manager)
+
+# Initialize report image tool instances
+list_report_images_tool = ListReportImagesTool(manager)
+read_report_image_tool = ReadReportImageTool(manager)
 
 
 # Interactive session tools
@@ -83,6 +88,19 @@ async def get_session_history(session_id: str, limit: int | None = None, search:
 async def get_session_metrics() -> str:
     """Get comprehensive metrics for all interactive OpenROAD sessions."""
     return await session_metrics_tool.execute()
+
+
+# Report image tools
+@mcp.tool()
+async def list_report_images(platform: str, design: str, run_slug: str, stage: str = "all") -> str:
+    """List available report images from ORFS runs organized by stage."""
+    return await list_report_images_tool.execute(platform, design, run_slug, stage)
+
+
+@mcp.tool()
+async def read_report_image(platform: str, design: str, run_slug: str, image_name: str) -> str:
+    """Read a report image and return base64-encoded data with metadata."""
+    return await read_report_image_tool.execute(platform, design, run_slug, image_name)
 
 
 async def shutdown_openroad() -> None:

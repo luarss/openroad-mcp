@@ -153,3 +153,48 @@ class SessionMetricsResult(BaseResult):
     """Result from session metrics retrieval."""
 
     metrics: dict | None = None
+
+
+class ImageInfo(BaseModel):
+    """Information about a single report image."""
+
+    filename: str
+    path: str
+    size_bytes: int
+    modified_time: str
+    type: str
+
+
+class ListImagesResult(BaseResult):
+    """Result from listing report images."""
+
+    run_path: str | None = None
+    total_images: int | None = None
+    images_by_stage: dict[str, list[ImageInfo]] | None = None
+    message: str | None = None
+
+
+class ImageMetadata(BaseModel):
+    """Metadata for a report image."""
+
+    filename: str
+    format: str
+    size_bytes: int
+    width: int | None = None
+    height: int | None = None
+    modified_time: str
+    stage: str
+    type: str
+    compression_applied: bool = False
+    original_size_bytes: int | None = None
+    original_width: int | None = None
+    original_height: int | None = None
+    compression_ratio: float | None = None
+
+
+class ReadImageResult(BaseResult):
+    """Result from reading a report image."""
+
+    image_data: str | None = None
+    metadata: ImageMetadata | None = None
+    message: str | None = None
