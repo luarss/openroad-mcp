@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from openroad_mcp.config.settings import Settings
 from openroad_mcp.tools.report_images import (
     ListReportImagesTool,
     ReadReportImageTool,
@@ -54,19 +55,23 @@ class TestListReportImagesTool:
         return ListReportImagesTool(mock_manager)
 
     @pytest.fixture
-    def mock_settings(self):
+    def mock_settings(self, tmp_path):
         """Mock settings with test ORFS path."""
         with patch("openroad_mcp.tools.report_images.settings") as mock:
-            mock.ORFS_FLOW_PATH = "/test/orfs/flow"
+            mock.ORFS_FLOW_PATH = str(tmp_path)
+            mock.flow_path = tmp_path
+            mock.platforms = []
+            mock.designs = lambda p: []
             yield mock
 
     async def test_list_images_reports_directory_not_found(self, tool, mock_settings):
-        """Test error when reports directory doesn't exist."""
+        """Test error when platforms directory doesn't exist."""
         result_json = await tool.execute("nangate45", "gcd", "run-123")
         result = json.loads(result_json)
 
-        assert result["error"] == "ReportsDirectoryNotFound"
-        assert "Reports directory not found" in result["message"]
+        assert result["error"] == "ValidationError"
+        assert "nangate45" in result["message"]
+        assert "Available: none" in result["message"]
 
     async def test_list_images_run_slug_not_found(self, tool, mock_settings, tmp_path):
         """Test error when run slug doesn't exist."""
@@ -74,6 +79,8 @@ class TestListReportImagesTool:
         reports_dir.mkdir(parents=True)
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         result_json = await tool.execute("nangate45", "gcd", "nonexistent-run")
         result = json.loads(result_json)
@@ -87,6 +94,8 @@ class TestListReportImagesTool:
         run_path.mkdir(parents=True)
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         result_json = await tool.execute("nangate45", "gcd", "run-123")
         result = json.loads(result_json)
@@ -105,6 +114,8 @@ class TestListReportImagesTool:
         (run_path / "final_routing.webp").write_bytes(b"fake routing image")
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         result_json = await tool.execute("nangate45", "gcd", "run-123", "all")
         result = json.loads(result_json)
@@ -130,6 +141,8 @@ class TestListReportImagesTool:
         (run_path / "final_all.webp").write_bytes(b"fake final image")
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         result_json = await tool.execute("nangate45", "gcd", "run-123", "cts")
         result = json.loads(result_json)
@@ -137,17 +150,6 @@ class TestListReportImagesTool:
         assert result["total_images"] == 1
         assert "cts" in result["images_by_stage"]
         assert "final" not in result["images_by_stage"]
-
-    async def test_list_images_unexpected_error(self, tool, mock_settings):
-        """Test handling of unexpected errors."""
-        with patch("openroad_mcp.tools.report_images.Path") as mock_path:
-            mock_path.side_effect = Exception("Unexpected filesystem error")
-
-            result_json = await tool.execute("nangate45", "gcd", "run-123")
-            result = json.loads(result_json)
-
-            assert result["error"] == "UnexpectedError"
-            assert "Unexpected filesystem error" in result["message"]
 
 
 @pytest.mark.asyncio
@@ -165,19 +167,23 @@ class TestReadReportImageTool:
         return ReadReportImageTool(mock_manager)
 
     @pytest.fixture
-    def mock_settings(self):
+    def mock_settings(self, tmp_path):
         """Mock settings with test ORFS path."""
         with patch("openroad_mcp.tools.report_images.settings") as mock:
-            mock.ORFS_FLOW_PATH = "/test/orfs/flow"
+            mock.ORFS_FLOW_PATH = str(tmp_path)
+            mock.flow_path = tmp_path
+            mock.platforms = []
+            mock.designs = lambda p: []
             yield mock
 
     async def test_read_image_reports_directory_not_found(self, tool, mock_settings):
-        """Test error when reports directory doesn't exist."""
+        """Test error when platforms directory doesn't exist."""
         result_json = await tool.execute("nangate45", "gcd", "run-123", "final_all.webp")
         result = json.loads(result_json)
 
-        assert result["error"] == "ReportsDirectoryNotFound"
-        assert "Reports directory not found" in result["message"]
+        assert result["error"] == "ValidationError"
+        assert "nangate45" in result["message"]
+        assert "Available: none" in result["message"]
 
     async def test_read_image_run_slug_not_found(self, tool, mock_settings, tmp_path):
         """Test error when run slug doesn't exist."""
@@ -185,6 +191,8 @@ class TestReadReportImageTool:
         reports_dir.mkdir(parents=True)
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         result_json = await tool.execute("nangate45", "gcd", "nonexistent-run", "final_all.webp")
         result = json.loads(result_json)
@@ -200,6 +208,8 @@ class TestReadReportImageTool:
         (run_path / "existing.webp").write_bytes(b"fake image")
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         result_json = await tool.execute("nangate45", "gcd", "run-123", "missing.webp")
         result = json.loads(result_json)
@@ -218,6 +228,8 @@ class TestReadReportImageTool:
         image_file.write_bytes(test_image_data)
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         with patch("openroad_mcp.tools.report_images.Image") as mock_image:
             mock_img = MagicMock()
@@ -252,6 +264,8 @@ class TestReadReportImageTool:
         image_file.write_bytes(test_image_data)
 
         mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
 
         with patch("openroad_mcp.tools.report_images.Image") as mock_image:
             mock_image.open.side_effect = Exception("Cannot read image")
@@ -264,13 +278,159 @@ class TestReadReportImageTool:
             assert metadata["width"] is None
             assert metadata["height"] is None
 
-    async def test_read_image_unexpected_error(self, tool, mock_settings):
-        """Test handling of unexpected errors."""
-        with patch("openroad_mcp.tools.report_images.Path") as mock_path:
-            mock_path.side_effect = Exception("Unexpected filesystem error")
+    async def test_read_image_file_too_large(self, tool, mock_settings, tmp_path):
+        """Test handling of files that exceed size limit."""
+        run_path = tmp_path / "reports" / "nangate45" / "gcd" / "sweep-2025" / "run-123"
+        run_path.mkdir(parents=True)
 
-            result_json = await tool.execute("nangate45", "gcd", "run-123", "final_all.webp")
-            result = json.loads(result_json)
+        large_image = run_path / "large.webp"
+        large_image.write_bytes(b"x" * (51 * 1024 * 1024))
 
-            assert result["error"] == "UnexpectedError"
-            assert "Unexpected filesystem error" in result["message"]
+        mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
+
+        result_json = await tool.execute("nangate45", "gcd", "run-123", "large.webp")
+        result = json.loads(result_json)
+
+        assert result["error"] == "FileTooLarge"
+        assert "exceeds maximum allowed size" in result["message"]
+
+
+class TestSettingsPlatformDesignDiscovery:
+    """Test suite for Settings.platforms and Settings.designs methods."""
+
+    def test_platforms_empty(self, tmp_path):
+        """Test getting platforms when platforms directory doesn't exist."""
+        settings_obj = Settings(ORFS_FLOW_PATH=str(tmp_path))
+        assert settings_obj.platforms == []
+
+    def test_platforms_success(self, tmp_path):
+        """Test getting available platforms."""
+        platforms_dir = tmp_path / "platforms"
+        platforms_dir.mkdir()
+        (platforms_dir / "nangate45").mkdir()
+        (platforms_dir / "sky130hd").mkdir()
+        (platforms_dir / "asap7").mkdir()
+        (platforms_dir / "file.txt").touch()
+
+        settings_obj = Settings(ORFS_FLOW_PATH=str(tmp_path))
+        assert set(settings_obj.platforms) == {"nangate45", "sky130hd", "asap7"}
+
+    def test_designs_empty(self, tmp_path):
+        """Test getting designs when platform directory doesn't exist."""
+        settings_obj = Settings(ORFS_FLOW_PATH=str(tmp_path))
+        assert settings_obj.designs("nonexistent") == []
+
+    def test_designs_success(self, tmp_path):
+        """Test getting available designs for a platform."""
+        designs_dir = tmp_path / "designs" / "nangate45"
+        designs_dir.mkdir(parents=True)
+        (designs_dir / "gcd").mkdir()
+        (designs_dir / "aes").mkdir()
+        (designs_dir / "jpeg").mkdir()
+        (designs_dir / "file.txt").touch()
+
+        settings_obj = Settings(ORFS_FLOW_PATH=str(tmp_path))
+        assert set(settings_obj.designs("nangate45")) == {"gcd", "aes", "jpeg"}
+
+
+@pytest.mark.asyncio
+class TestPlatformDesignValidationInTools:
+    """Test platform/design validation in actual tools."""
+
+    @pytest.fixture
+    def mock_settings(self, tmp_path):
+        """Mock settings with test ORFS path."""
+        with patch("openroad_mcp.tools.report_images.settings") as mock:
+            mock.ORFS_FLOW_PATH = str(tmp_path)
+            mock.flow_path = tmp_path
+            mock.platforms = []
+            mock.designs = lambda p: []
+            yield mock
+
+    @pytest.fixture
+    def list_tool(self):
+        """Create ListReportImagesTool."""
+        return ListReportImagesTool(AsyncMock())
+
+    @pytest.fixture
+    def read_tool(self):
+        """Create ReadReportImagesTool."""
+        return ReadReportImageTool(AsyncMock())
+
+    async def test_list_invalid_platform(self, list_tool, mock_settings, tmp_path):
+        """Test error when platform doesn't exist."""
+        platforms_dir = tmp_path / "platforms"
+        platforms_dir.mkdir()
+        (platforms_dir / "nangate45").mkdir()
+
+        mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+
+        result_json = await list_tool.execute("invalid_platform", "gcd", "run-123")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "invalid_platform" in result["message"]
+        assert "nangate45" in result["message"]
+
+    async def test_list_invalid_design(self, list_tool, mock_settings, tmp_path):
+        """Test error when design doesn't exist for platform."""
+        platforms_dir = tmp_path / "platforms"
+        platforms_dir.mkdir()
+        (platforms_dir / "nangate45").mkdir()
+
+        designs_dir = tmp_path / "designs" / "nangate45"
+        designs_dir.mkdir(parents=True)
+        (designs_dir / "gcd").mkdir()
+        (designs_dir / "aes").mkdir()
+
+        mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd", "aes"] if p == "nangate45" else []
+
+        result_json = await list_tool.execute("nangate45", "invalid_design", "run-123")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "invalid_design" in result["message"]
+        assert "gcd" in result["message"]
+        assert "aes" in result["message"]
+
+    async def test_read_invalid_platform(self, read_tool, mock_settings, tmp_path):
+        """Test error when platform doesn't exist."""
+        platforms_dir = tmp_path / "platforms"
+        platforms_dir.mkdir()
+        (platforms_dir / "nangate45").mkdir()
+
+        mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+
+        result_json = await read_tool.execute("invalid_platform", "gcd", "run-123", "final.webp")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "invalid_platform" in result["message"]
+        assert "nangate45" in result["message"]
+
+    async def test_read_invalid_design(self, read_tool, mock_settings, tmp_path):
+        """Test error when design doesn't exist for platform."""
+        platforms_dir = tmp_path / "platforms"
+        platforms_dir.mkdir()
+        (platforms_dir / "nangate45").mkdir()
+
+        designs_dir = tmp_path / "designs" / "nangate45"
+        designs_dir.mkdir(parents=True)
+        (designs_dir / "gcd").mkdir()
+
+        mock_settings.ORFS_FLOW_PATH = str(tmp_path)
+        mock_settings.platforms = ["nangate45"]
+        mock_settings.designs = lambda p: ["gcd"] if p == "nangate45" else []
+
+        result_json = await read_tool.execute("nangate45", "invalid_design", "run-123", "final.webp")
+        result = json.loads(result_json)
+
+        assert result["error"] == "ValidationError"
+        assert "invalid_design" in result["message"]
+        assert "gcd" in result["message"]

@@ -1,6 +1,7 @@
 """Configuration settings for OpenROAD MCP server."""
 
 import os
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -45,6 +46,26 @@ class Settings(BaseModel):
         default=os.path.expanduser("~/OpenROAD-flow-scripts/flow"),
         description="Path to OpenROAD-flow-scripts flow directory",
     )
+
+    @property
+    def flow_path(self) -> Path:
+        """Get ORFS flow path as expanded Path object."""
+        return Path(self.ORFS_FLOW_PATH).expanduser()
+
+    @property
+    def platforms(self) -> list[str]:
+        """Get list of available platforms from ORFS flow directory."""
+        platforms_dir = self.flow_path / "platforms"
+        if not platforms_dir.exists():
+            return []
+        return [d.name for d in platforms_dir.iterdir() if d.is_dir()]
+
+    def designs(self, platform: str) -> list[str]:
+        """Get list of available designs for a platform from ORFS flow directory."""
+        designs_dir = self.flow_path / "designs" / platform
+        if not designs_dir.exists():
+            return []
+        return [d.name for d in designs_dir.iterdir() if d.is_dir()]
 
     @classmethod
     def from_env(cls) -> "Settings":

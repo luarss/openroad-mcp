@@ -8,6 +8,7 @@ from pathlib import Path
 from PIL import Image
 
 from ..config.settings import settings
+from ..core.exceptions import ValidationError
 from ..core.models import ImageInfo, ImageMetadata, ListImagesResult, ReadImageResult
 from ..utils.logging import get_logger
 from .base import BaseTool
@@ -15,7 +16,7 @@ from .base import BaseTool
 logger = get_logger("report_images")
 
 MAX_BASE64_SIZE_KB = 15
-
+MAX_IMAGE_SIZE_MB = 50
 
 IMAGE_TYPE_MAPPING = {
     "cts_clk": "clock_visualization",
@@ -43,10 +44,31 @@ def classify_image_type(filename: str) -> tuple[str, str]:
     return stage, image_type
 
 
+def validate_platform_design(platform: str, design: str) -> None:
+    """Validate platform and design exist in ORFS structure."""
+    if platform not in settings.platforms:
+        raise ValidationError(
+            f"Platform '{platform}' not found. Available: {', '.join(sorted(settings.platforms)) or 'none'}"
+        )
+
+    if design not in settings.designs(platform):
+        raise ValidationError(
+            f"Design '{design}' not found for platform '{platform}'. "
+            f"Available: {', '.join(sorted(settings.designs(platform))) or 'none'}"
+        )
+
+
 def load_and_compress_image(
     image_path: Path, max_size_kb: int = MAX_BASE64_SIZE_KB
 ) -> tuple[bytes, bool, int, int, int | None, int | None, int | None, int | None]:
-    """Load image and compress if base64-encoded size would exceed threshold."""
+    """Load image and compress if base64-encoded size would exceed threshold.
+
+    Compression strategy:
+    - Threshold: 15KB base64 (~11KB binary) balances quality vs MCP message size
+    - Resampling: LANCZOS provides best quality during downscaling
+    - Format: WEBP with quality=85 for good compression with minimal artifacts
+    - Minimum dimensions: 256px preserves readability of chip layout visualizations
+    """
     original_size = image_path.stat().st_size
     estimated_b64_size = (original_size * 4) // 3
 
@@ -107,18 +129,8 @@ class ListReportImagesTool(BaseTool):
     async def execute(self, platform: str, design: str, run_slug: str, stage: str = "all") -> str:
         """List available report images for a specific run."""
         try:
-            orfs_flow_path = Path(settings.ORFS_FLOW_PATH).expanduser()
-
-            reports_base = orfs_flow_path / "reports" / platform / design
-            if not reports_base.exists():
-                logger.warning(f"Reports directory not found: {reports_base}")
-                return self._format_result(
-                    ListImagesResult(
-                        error="ReportsDirectoryNotFound",
-                        message=f"Reports directory not found: {reports_base}. "
-                        "Check ORFS_FLOW_PATH configuration and ensure ORFS has been run.",
-                    )
-                )
+            validate_platform_design(platform, design)
+            reports_base = settings.flow_path / "reports" / platform / design
 
             run_dirs = list(reports_base.glob(f"*/{run_slug}"))
             if not run_dirs:
@@ -181,7 +193,8 @@ class ListReportImagesTool(BaseTool):
             )
 
             return self._format_result(result)
-
+        except ValidationError as e:
+            return self._format_result(ListImagesResult(error=type(e).__name__, message=str(e)))
         except Exception as e:
             logger.exception(f"Failed to list report images: {e}")
             return self._format_result(
@@ -198,17 +211,8 @@ class ReadReportImageTool(BaseTool):
     async def execute(self, platform: str, design: str, run_slug: str, image_name: str) -> str:
         """Read a specific report image and return base64-encoded data."""
         try:
-            orfs_flow_path = Path(settings.ORFS_FLOW_PATH).expanduser()
-
-            reports_base = orfs_flow_path / "reports" / platform / design
-            if not reports_base.exists():
-                logger.warning(f"Reports directory not found: {reports_base}")
-                return self._format_result(
-                    ReadImageResult(
-                        error="ReportsDirectoryNotFound",
-                        message=f"Reports directory not found: {reports_base}. Check ORFS_FLOW_PATH configuration.",
-                    )
-                )
+            validate_platform_design(platform, design)
+            reports_base = settings.flow_path / "reports" / platform / design
 
             run_dirs = list(reports_base.glob(f"*/{run_slug}"))
             if not run_dirs:
@@ -233,6 +237,17 @@ class ReadReportImageTool(BaseTool):
                         message=f"Image '{image_name}' not found in {run_path}. "
                         f"Available images: {', '.join(available_images) if available_images else 'none'}. "
                         "Use list_report_images to see all available images.",
+                    )
+                )
+
+            file_size_mb = image_path.stat().st_size / (1024 * 1024)
+            if file_size_mb > MAX_IMAGE_SIZE_MB:
+                logger.warning(f"Image too large: {file_size_mb:.2f}MB > {MAX_IMAGE_SIZE_MB}MB")
+                return self._format_result(
+                    ReadImageResult(
+                        error="FileTooLarge",
+                        message=f"Image size ({file_size_mb:.2f}MB) exceeds maximum "
+                        f"allowed size ({MAX_IMAGE_SIZE_MB}MB).",
                     )
                 )
 
@@ -276,7 +291,8 @@ class ReadReportImageTool(BaseTool):
             )
 
             return self._format_result(result)
-
+        except ValidationError as e:
+            return self._format_result(ReadImageResult(error=type(e).__name__, message=str(e)))
         except Exception as e:
             logger.exception(f"Failed to read report image: {e}")
             return self._format_result(
