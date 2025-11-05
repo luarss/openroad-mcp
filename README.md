@@ -52,7 +52,7 @@ We welcome contributions to OpenROAD MCP! Please see [CONTRIBUTING.md](CONTRIBUT
 
 ## Support
 
-If you encounter any issues or have questions, please open an issue on our [GitHub issue tracker](https://github.com/jlowin/openroad-mcp/issues).
+If you encounter any issues or have questions, please open an issue on our [GitHub issue tracker](https://github.com/luarss/openroad-mcp/issues).
 
 ## License
 
