@@ -176,6 +176,21 @@ def deduplicate_patterns(patterns: list[tuple[str, str, str]]) -> list[tuple[str
     return unique
 
 
+def _extract_sort_key(regex: str) -> tuple[str, int, str]:
+    """Extract sorting key from regex pattern for stable ordering.
+
+    Returns tuple of (tool_name, error_code_number, full_pattern) for sorting.
+    Error codes like [ODB-0123] sort as ('ODB', 123, pattern).
+    Non-error-code patterns sort last alphabetically.
+    """
+    error_code_match = re.match(r".*?\[([A-Z]+)-(\d+)\]", regex)
+    if error_code_match:
+        tool = error_code_match.group(1)
+        code = int(error_code_match.group(2))
+        return (tool, code, regex)
+    return ("ZZZ", 999999, regex)
+
+
 def write_patterns_file(patterns: list[tuple[str, str, str]], output_file: Path) -> None:
     """Write patterns to output file with nice formatting."""
     with open(output_file, "w") as f:
@@ -186,6 +201,7 @@ def write_patterns_file(patterns: list[tuple[str, str, str]], output_file: Path)
         f.write("#\n")
         f.write("# Message templates use {0}, {1}, etc. for regex capture groups\n")
         f.write("# Patterns are checked in order, so put specific patterns before generic ones\n")
+        f.write("# Within each category, patterns are sorted by error code for stable diffs\n")
         f.write("\n")
 
         by_category: dict[str, list[tuple[str, str]]] = {}
@@ -197,7 +213,8 @@ def write_patterns_file(patterns: list[tuple[str, str, str]], output_file: Path)
         categories = sorted(by_category.keys())
         for i, category in enumerate(categories):
             f.write(f"# {category.upper()} ERRORS\n")
-            for regex, message in by_category[category]:
+            sorted_patterns = sorted(by_category[category], key=lambda x: _extract_sort_key(x[0]))
+            for regex, message in sorted_patterns:
                 f.write(f"{regex}|{message}\n")
             if i < len(categories) - 1:
                 f.write("\n")
