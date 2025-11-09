@@ -853,9 +853,11 @@
 \[ODB-0420\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0420] Error: {0}
 \[ODB-0421\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0421] Error: {0}
 \[ODB-0422\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0422] Error: {0}
+\[ODB-0424\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ODB-0424] Critical: {0}
 \[ODB-0426\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ODB-0426] Critical: {0}
 \[ODB-0427\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0427] Error: {0}
 \[ODB-0428\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0428] Error: {0}
+\[ODB-0429\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0429] Error: {0}
 \[ODB-0430\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0430] Error: {0}
 \[ODB-0431\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0431] Error: {0}
 \[ODB-0432\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0432] Error: {0}
@@ -863,6 +865,7 @@
 \[ODB-0434\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0434] Error: {0}
 \[ODB-0435\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0435] Error: {0}
 \[ODB-0436\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0436] Error: {0}
+\[ODB-0438\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ODB-0438] Critical: {0}
 \[ODB-0439\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0439] Error: {0}
 \[ODB-0440\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0440] Error: {0}
 \[ODB-0441\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ODB-0441] Critical: {0}
@@ -881,6 +884,7 @@
 \[ODB-0456\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0456] Error: {0}
 \[ODB-0457\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0457] Error: {0}
 \[ODB-0458\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0458] Error: {0}
+\[ODB-0459\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ODB-0459] Critical: {0}
 \[ODB-0460\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0460] Error: {0}
 \[ODB-0461\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0461] Error: {0}
 \[ODB-0462\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0462] Error: {0}
@@ -1427,6 +1431,8 @@
 \[STT-0005\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[STT-0005] Error: {0}
 \[STT-0006\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[STT-0006] Error: {0}
 \[STT-0007\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[STT-0007] Error: {0}
+\[STT-0008\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[STT-0008] Error: {0}
+\[STT-0009\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[STT-0009] Error: {0}
 \[TAP-0001\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[TAP-0001] Error: {0}
 \[TAP-0002\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[TAP-0002] Error: {0}
 \[TAP-0006\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[TAP-0006] Error: {0}
@@ -1471,13 +1477,15 @@
 \[UTL-0200\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[UTL-0200] Error: {0}
 
 # SOURCE ERRORS
-\[RCX-0239\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0239] Error: Zero rseg wire property {} on main net {} {}
-\[RCX-0240\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0240] Error: GndCap: cannot find rseg for rsegId {} on net {} {}
-\[RCX-0252\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0252] Error: Ext object on dbBlock is nullptr!
-\[RCX-0428\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0428] Error: Cannot open file {} for \
-\[RCX-0424\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0424] Error: Cannot zero/negative number of chars
-\[RCX-0429\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0429] Error: Syntax Error at line {} ({})
-\[RCX-0046\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0046] Error: Can not find net {}
+\[GUI-0043\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0043] Error: Unable to decode color: {}
+\[GUI-0042\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0042] Error: Color not recognized: {}
+\[GUI-0045\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0045] Error: Anchor not recognized: {}
+\[GUI-0010\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0010] Error: File path does not end with a valid extension, new path is: {}
+\[GUI-0011\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0011] Error: Failed to write image: {}
+\[GUI-0012\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0012] Error: Image size is not valid: {}px x {}px
+\[STT-0007\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[STT-0007] Error: Invalid driver index {}.
+\[STT-0008\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[STT-0008] Error: x size ({}) != y size ({})
+\[STT-0009\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[STT-0009] Error: Invalid request for an empty Steiner tree.
 \[UPF-0001\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UPF-0001] Error: Creation of {} power domain failed
 \[UPF-0002\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UPF-0002] Error: Couldn
 \[UPF-0003\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UPF-0003] Error: Creation of {} logic port failed
@@ -1524,18 +1532,6 @@
 \[UPF-0042\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UPF-0042] Error: Couldn
 \[UPF-0059\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UPF-0059] Error: Couldn
 \[UPF-0060\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UPF-0060] Error: Couldn
-\[DFT-0031\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0031] Error: Error while attempting to create new port {}: an
-\[DFT-0018\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0018] Error: Failed to create port: a port named
-\[DFT-0004\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0004] Error: Clock mix config requested is not supported
-\[DFT-0011\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0011] Error: Cell master
-\[DFT-0049\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0049] Error: Can
-\[DFT-0005\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0005] Error: Cell
-\[DFT-0007\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0007] Error: Cell
-\[DFT-0010\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0010] Error: Couldn
-\[GPL-0134\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GPL-0134] Error: Master {} is not marked as a BLOCK in LEF but is more
-\[GPL-0001\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GPL-0001] Error: {} toplevel port is not placed.
-\[RMP-1032\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RMP-1032] Error: Logic cut is empty after extraction, nothing to do.
-\[RMP-0049\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RMP-0049] Error: Cannot find buffer cell in abc library (ensure buffer
 \[CUT-0047\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[CUT-0047] Error: constant vertex: {} should have exactly one constant driver.
 \[CUT-0024\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[CUT-0024] Error: cell: {} was not found in the ABC library. Please report
 \[CUT-0025\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[CUT-0025] Error: Cannot find instance {} in abc instance map. Please
@@ -1560,6 +1556,8 @@
 \[CUT-0044\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[CUT-0044] Error: cannot find 1 valued constant tie cell.
 \[CUT-0045\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[CUT-0045] Error: abc_network has no mapping, please report this internal error.
 \[CUT-0046\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[CUT-0046] Error: abc_network is not a netlist, please report this internal error.
+\[RMP-0049\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RMP-0049] Error: Cannot find buffer cell in abc library (ensure buffer
+\[RMP-1032\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RMP-1032] Error: Logic cut is empty after extraction, nothing to do.
 \[DRT-0005\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DRT-0005] Error: Unsupported region query add.
 \[DRT-0006\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DRT-0006] Error: Unsupported region query add.
 \[DRT-0007\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DRT-0007] Error: Unsupported region query add.
@@ -1577,107 +1575,6 @@
 \[DRT-0016\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DRT-0016] Error: Unsupported region query add of blockage in instance {}.
 \[DRT-0017\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DRT-0017] Error: Unsupported region query add.
 \[DRT-0228\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DRT-0228] Error: genGuides_merge cannot find bridge layer.
-\[ODB-0450\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0450] Error: Could not open file {}
-\[ODB-0451\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0451] Error: Corrupted GDS, Expected: {} Got: {}
-\[ODB-0452\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0452] Error: Corrupted GDS, Expected data type: {} Got: {}
-\[ODB-0527\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0527] Error: 3DBV Parser Error: Invalid chip type: {}
-\[ODB-0528\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0528] Error: 3DBV Parser Error: Invalid chip region side: {}
-\[ODB-0386\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0386] Error: {} contains {} placed instances and will not be cut.
-\[ODB-0092\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0092] Error: error: unknown library cell referenced ({}) for instance ({})
-\[ODB-0093\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0093] Error: error: duplicate instance definition({})
-\[ODB-0117\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0117] Error: PIN {} missing right bus character.
-\[ODB-0118\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0118] Error: PIN {} missing left bus character.
-\[ODB-0119\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0119] Error: error: Cannot specify effective width and minimum spacing
-\[ODB-0120\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0120] Error: error: Cannot specify effective width and minimum spacing
-\[ODB-0121\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0121] Error: error: undefined layer ({}) referenced
-\[ODB-0122\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0122] Error: error: Cannot find PIN {}
-\[ODB-0123\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0123] Error: error: Cannot find PIN {}
-\[ODB-0095\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0095] Error: error: undefined layer ({}) referenced
-\[ODB-0152\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0152] Error: Region \
-\[ODB-0111\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0111] Error: error: Duplicate NONDEFAULTRULE {}
-\[ODB-0112\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0112] Error: error: Cannot find tech-via {}
-\[ODB-0113\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0113] Error: error: Cannot find tech-via-generate rule {}
-\[ODB-0114\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0114] Error: error: Cannot find layer {}
-\[ODB-0115\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0115] Error: error: Cannot find layer {}
-\[ODB-0116\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0116] Error: error: Duplicate layer rule ({}) in non-default-rule statement.
-\[ODB-0387\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0387] Error: error: Non-default rule ({}) has no rule for layer {}.
-\[ODB-0157\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0157] Error: error: netlist component ({}) is not defined
-\[ODB-0158\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0158] Error: error: netlist component-pin ({}, {}) is not defined
-\[ODB-0159\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0159] Error: error: undefined layer ({}) referenced
-\[ODB-0160\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0160] Error: error: undefined layer ({}) referenced
-\[ODB-0161\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0161] Error: error: SHIELD net ({}) does not exists.
-\[ODB-0162\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0162] Error: error: undefined layer ({}) referenced
-\[ODB-0163\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0163] Error: error: undefined via ({}) referenced
-\[ODB-0164\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0164] Error: error: undefined via ({}) referenced
-\[ODB-0425\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0425] Error: error: undefined layer ({}) referenced
-\[ODB-0088\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0088] Error: error: undefined layer ({}) referenced
-\[ODB-0089\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0089] Error: error: undefined component ({}) referenced
-\[ODB-0090\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0090] Error: error: undefined component ({}) referenced
-\[ODB-0091\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0091] Error: warning: Blockage max density {} not in [0, 100] will be ignored
-\[ODB-0274\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0274] Error: Zero length path segment ({},{}) ({},{})
-\[ODB-0241\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0241] Error: error: Cannot create a via instance, via ({}) has no shapes
-\[ODB-0242\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0242] Error: error: Can not determine which direction to continue path,
-\[ODB-0244\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0244] Error: error: Cannot create a via instance, via ({}) has no shapes
-\[ODB-0245\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0245] Error: error: Net {}: Can not determine which direction to continue path,
-\[ODB-0166\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0166] Error: error: duplicate via ({})
-\[ODB-0167\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0167] Error: error: cannot file VIA GENERATE rule in technology ({}).
-\[ODB-0168\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0168] Error: error: undefined layer ({}) referenced
-\[ODB-0169\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0169] Error: error: undefined layer ({}) referenced
-\[ODB-0170\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0170] Error: error: undefined layer ({}) referenced
-\[ODB-0171\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0171] Error: error: undefined layer ({}) referenced
-\[ODB-0299\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0299] Error: Via {} has only {} shapes and must have at least three.
-\[ODB-0300\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0300] Error: Via {} has cut top layer {}
-\[ODB-0301\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0301] Error: Via {} has cut bottom layer {}
-\[ODB-0302\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0302] Error: Via {} has no cut shapes.
-\[ODB-0098\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0098] Error: duplicate must-join net found ({})
-\[ODB-0099\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0099] Error: error: netlist component ({}) is not defined
-\[ODB-0100\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0100] Error: error: netlist component-pin ({}, {}) is not defined
-\[ODB-0103\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0103] Error: error: undefined NONDEFAULTRULE ({}) referenced
-\[ODB-0104\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0104] Error: error: undefined layer ({}) referenced
-\[ODB-0105\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0105] Error: error: RULE ({}) referenced for layer ({})
-\[ODB-0106\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0106] Error: error: undefined TAPER RULE ({}) referenced
-\[ODB-0107\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0107] Error: error: undefined via ({}) referenced
-\[ODB-0108\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0108] Error: error: invalid VIA layers, cannot determine exit layer of path
-\[ODB-0109\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0109] Error: error: undefined via ({}) referenced
-\[ODB-0110\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0110] Error: error: invalid VIA layers in {} in net {}, currently on
-\[ODB-0260\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0260] Error: DESIGN is not defined in DEF
-\[ODB-0248\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0248] Error: skipping undefined comp {} encountered in {} DEF
-\[ODB-0275\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0275] Error: skipping undefined net {} encountered in FLOORPLAN DEF
-\[ODB-0247\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0247] Error: skipping undefined pin {} encountered in {} DEF
-\[ODB-0437\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0437] Error: Mismatched pin direction between verilog netlist and floorplan
-\[ODB-0293\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0293] Error: TECHNOLOGY is ignored
-\[ODB-0249\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0249] Error: skipping undefined net {} encountered in FLOORPLAN DEF
-\[ODB-0126\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0126] Error: error: {}
-\[ODB-0250\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0250] Error: Chip does not exist
-\[ODB-0251\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0251] Error: Chip already has a block
-\[ODB-0129\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0129] Error: Error: Failed to read DEF file
-\[ODB-0148\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0148] Error: error: Cannot open DEF file {}
-\[ODB-0271\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0271] Error: error: Cannot open zipped DEF file {}
-\[ODB-0421\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0421] Error: DEF parser returns an error!
-\[ODB-0149\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0149] Error: DEF parser returns an error!
-\[ODB-0304\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0304] Error: Group \
-\[ODB-0305\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0305] Error: Region \
-\[ODB-0306\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0306] Error: error: netlist component ({}) is not defined
-\[ODB-0165\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0165] Error: error: undefined layer ({}) referenced
-\[ODB-0155\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0155] Error: error: undefined site ({}) referenced in row ({}) statement.
-\[ODB-0284\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0284] Error: Master {} not found.
-\[ODB-0285\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0285] Error: Master {} seen more than once in {}.
-\[ODB-0286\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0286] Error: Terminal {} of CDL master {} not found in LEF.
-\[ODB-0283\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0283] Error: Can
-\[ODB-0357\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0357] Error: Master {} was not in the masters CDL files, but master
-\[ODB-0287\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0287] Error: Master {} was not in the masters CDL files.
-\[ODB-0508\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0508] Error: Cannot create chip region {} for chip {} because chip has no block
-\[ODB-0509\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0509] Error: Cannot create chip region {} layer {} is not in the same
-\[ODB-0520\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0520] Error: Cannot create chip region {} for chip {} because chip region
-\[ODB-0384\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0384] Error: Invalid regular expression specified the {} pattern: {}
-\[ODB-0379\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0379] Error: {} is marked do not touch, will be skipped for global conenctions
-\[ODB-0380\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0380] Error: {}/{} is connected to {} which is marked do not touch,
-\[ODB-1102\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1102] Error: Mask color: {}, but must be between 1 and 3
-\[ODB-1103\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1103] Error: Mask color: {}, but must be between 0 and 3
-\[ODB-0063\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0063] Error: {} No wires for net {}
-\[ODB-0072\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0072] Error: {} opcode after junction is not point or point_ext??
-\[ODB-0083\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0083] Error: {} GOT RULE {}, EXPECTED RULE {}
-\[ODB-0086\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0086] Error: {} Hit default!
 \[ODB-0456\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0456] Error: Module port {} cannot be created
 \[ODB-0457\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0457] Error: Module bus port {} cannot be created
 \[ODB-0468\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0468] Error: Module bus bit {}[{}] does not exist
@@ -1687,30 +1584,14 @@
 \[ODB-0461\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0461] Error: Port {} cannot be connected to mod net {} because it
 \[ODB-0462\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0462] Error: Instance terminal {} cannot be connected to mod net {}
 \[ODB-0476\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0476] Error: Top module {} could not be found under child block {}
-\[ODB-0398\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0398] Error: In journal, nested actions are not allowed.
-\[ODB-0399\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0399] Error: In undo saw unexpected END_ACTION.
-\[ODB-0419\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0419] Error: In undo, expected END_ACTION.
-\[ODB-1107\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1107] Error: Unknown type of action for redo_createObject
-\[ODB-1108\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1108] Error: Unknown type of action for redo_deleteObject
-\[ODB-1110\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1110] Error: Unknown type of object for redo_connectObject
-\[ODB-1109\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1109] Error: Unknown type of action for redo_disconnectObject
-\[ODB-0441\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0441] Error: No undo_createObject support for type {}
-\[ODB-0417\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0417] Error: No undo_deleteObject support for type {}
-\[ODB-0442\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0442] Error: No undo_connectObject support for type {}
-\[ODB-0443\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0443] Error: No undo_disconnectObject support for type {}
-\[ODB-0467\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0467] Error: No undo_swapObject Name support for type {}
-\[ODB-0444\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0444] Error: No undo_swapObject support for type {}
-\[ODB-0445\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0445] Error: No undo_updateField support for type {}
-\[ODB-0408\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0408] Error: No undo_updateNetField support for field {}
-\[ODB-0409\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0409] Error: No undo_updateInstField support for field {}
-\[ODB-0410\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0410] Error: No undo_updateITermField support for field {}
-\[ODB-0411\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0411] Error: No undo_updateRSegField support for field {}
-\[ODB-0412\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0412] Error: No undo_updateCapNodeField support for field {}
-\[ODB-0413\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0413] Error: No undo_updateCCSegField support for field {}
-\[ODB-0432\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0432] Error: getTech() is obsolete in a multi-tech db
-\[ODB-1111\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1111] Error: You cannot delete a system created obstruction (isSystemReserved).
-\[ODB-0153\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0153] Error: Cannot map port {} to {} because no lib cell is added
-\[ODB-0154\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0154] Error: Cannot map port {} to {} because the mterm is not found
+\[ODB-0267\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0267] Error: Unable to find {} object type
+\[ODB-1102\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1102] Error: Mask color: {}, but must be between 1 and 3
+\[ODB-1103\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1103] Error: Mask color: {}, but must be between 0 and 3
+\[ODB-0063\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0063] Error: {} No wires for net {}
+\[ODB-0072\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0072] Error: {} opcode after junction is not point or point_ext??
+\[ODB-0083\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0083] Error: {} GOT RULE {}, EXPECTED RULE {}
+\[ODB-0086\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0086] Error: {} Hit default!
+\[ODB-1112\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1112] Error: You cannot delete a system created blockage (isSystemReserved).
 \[ODB-0124\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0124] Error: Top layer grid region is out of the die area.
 \[ODB-0500\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0500] Error: The x_step for the top layer grid must be greater than zero.
 \[ODB-0501\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0501] Error: The y_step for the top layer grid must be greater than zero.
@@ -1724,14 +1605,41 @@
 \[ODB-0383\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0383] Error: {} is marked do not touch and will be skipped in global
 \[ODB-0272\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0272] Error: Unable to open {} to write markers
 \[ODB-0011\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0011] Error: Region {}-{} on edge {} modified to {}-{} to respect the
-\[ODB-0510\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0510] Error: Cannot create chip connection. ChipInst {} is not a child
-\[ODB-0087\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0087] Error: {} No wires for net {}
-\[ODB-0267\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0267] Error: Unable to find {} object type
-\[ODB-1112\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1112] Error: You cannot delete a system created blockage (isSystemReserved).
+\[ODB-0484\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0484] Error: SanityCheck: dbNet
+\[ODB-0485\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0485] Error: - ITerm: {}
+\[ODB-0488\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0488] Error: SanityCheck: dbNet
+\[ODB-0489\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0489] Error: - ITerm: {} (in hier, not in flat)
+\[ODB-0486\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0486] Error: SanityCheck: dbNet
+\[ODB-0487\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0487] Error: - BTerm: {}
+\[ODB-0490\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0490] Error: SanityCheck: dbNet
+\[ODB-0491\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0491] Error: - BTerm: {} (in hier, not in flat)
 \[ODB-0455\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0455] Error: Unique module {} cannot be created
 \[ODB-0471\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0471] Error: Mod instance {} cannot be created
 \[ODB-0466\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0466] Error: modBTerm
-\[ODB-0513\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0513] Error: Cannot create chip bump. Inst {} is not in the same block
+\[ODB-0153\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0153] Error: Cannot map port {} to {} because no lib cell is added
+\[ODB-0154\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0154] Error: Cannot map port {} to {} because the mterm is not found
+\[ODB-0510\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0510] Error: Cannot create chip connection. ChipInst {} is not a child
+\[ODB-0398\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0398] Error: In journal, nested actions are not allowed.
+\[ODB-0399\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0399] Error: In redo saw unexpected END_ACTION.
+\[ODB-0419\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0419] Error: In redo, didn
+\[ODB-1107\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1107] Error: Unknown type of action for redo_createObject
+\[ODB-1108\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1108] Error: Unknown type of action for redo_deleteObject
+\[ODB-1110\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1110] Error: Unknown type of object for redo_connectObject
+\[ODB-1109\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1109] Error: Unknown type of action for redo_disconnectObject
+\[ODB-0441\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0441] Error: No undo_createObject support for type {}
+\[ODB-0417\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0417] Error: No undo_deleteObject support for type {}
+\[ODB-0442\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0442] Error: No undo_connectObject support for type {}
+\[ODB-0443\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0443] Error: No undo_disconnectObject support for type {}
+\[ODB-0467\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0467] Error: No undo_swapObject support for type {} and subtype {}
+\[ODB-0444\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0444] Error: No undo_swapObject support for type {}
+\[ODB-0445\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0445] Error: No undo_updateField support for type {}
+\[ODB-0408\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0408] Error: No undo_updateNetField support for field {}
+\[ODB-0424\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0424] Error: No undo_updateModNetField support for field {}
+\[ODB-0409\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0409] Error: No undo_updateInstField support for field {}
+\[ODB-0410\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0410] Error: No undo_updateITermField support for field {}
+\[ODB-0411\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0411] Error: No undo_updateRSegField support for field {}
+\[ODB-0412\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0412] Error: No undo_updateCapNodeField support for field {}
+\[ODB-0413\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0413] Error: No undo_updateCCSegField support for field {}
 \[ODB-0268\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0268] Error: Unable to write markers: {}
 \[ODB-0281\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0281] Error: Unable to open {} to write markers
 \[ODB-0269\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0269] Error: Unable to open {} to write markers
@@ -1750,8 +1658,105 @@
 \[ODB-0236\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0236] Error: Unable to find iterm (line: {}): {}
 \[ODB-0237\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0237] Error: Unable to find bterm (line: {}): {}
 \[ODB-0233\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0233] Error: Unknown source type (line: {}): {}
-\[ODB-0270\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0270] Error: error: Cannot open zipped LEF file {}
-\[ODB-0240\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0240] Error: error: Cannot open LEF file {}
+\[ODB-0384\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0384] Error: Invalid regular expression specified the {} pattern: {}
+\[ODB-0379\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0379] Error: {} is marked do not touch, will be skipped for global conenctions
+\[ODB-0380\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0380] Error: {}/{} is connected to {} which is marked do not touch,
+\[ODB-0087\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0087] Error: {} No wires for net {}
+\[ODB-0432\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0432] Error: getTech() is obsolete in a multi-tech db
+\[ODB-1111\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-1111] Error: You cannot delete a system created obstruction (isSystemReserved).
+\[ODB-0513\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0513] Error: Cannot create chip bump. Inst {} is not in the same block
+\[ODB-0508\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0508] Error: Cannot create chip region {} for chip {} because chip has no block
+\[ODB-0509\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0509] Error: Cannot create chip region {} layer {} is not in the same
+\[ODB-0520\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0520] Error: Cannot create chip region {} for chip {} because chip region
+\[ODB-0450\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0450] Error: Could not open file {}
+\[ODB-0451\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0451] Error: Corrupted GDS, Expected: {} Got: {}
+\[ODB-0452\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0452] Error: Corrupted GDS, Expected data type: {} Got: {}
+\[ODB-0447\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0447] Error: Could not open file {}
+\[ODB-0448\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0448] Error: Invalid data type
+\[ODB-0449\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0449] Error: Invalid data type
+\[ODB-0165\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0165] Error: error: undefined layer ({}) referenced
+\[ODB-0117\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0117] Error: PIN {} missing right bus character.
+\[ODB-0118\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0118] Error: PIN {} missing left bus character.
+\[ODB-0119\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0119] Error: error: Cannot specify effective width and minimum spacing
+\[ODB-0120\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0120] Error: error: Cannot specify effective width and minimum spacing
+\[ODB-0121\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0121] Error: error: undefined layer ({}) referenced
+\[ODB-0122\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0122] Error: error: Cannot find PIN {}
+\[ODB-0123\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0123] Error: error: Cannot find PIN {}
+\[ODB-0274\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0274] Error: Zero length path segment ({},{}) ({},{})
+\[ODB-0241\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0241] Error: error: Cannot create a via instance, via ({}) has no shapes
+\[ODB-0242\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0242] Error: error: Can not determine which direction to continue path,
+\[ODB-0244\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0244] Error: error: Cannot create a via instance, via ({}) has no shapes
+\[ODB-0245\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0245] Error: error: Net {}: Can not determine which direction to continue path,
+\[ODB-0152\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0152] Error: Region \
+\[ODB-0095\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0095] Error: error: undefined layer ({}) referenced
+\[ODB-0425\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0425] Error: error: undefined layer ({}) referenced
+\[ODB-0098\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0098] Error: duplicate must-join net found ({})
+\[ODB-0099\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0099] Error: error: netlist component ({}) is not defined
+\[ODB-0100\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0100] Error: error: netlist component-pin ({}, {}) is not defined
+\[ODB-0103\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0103] Error: error: undefined NONDEFAULTRULE ({}) referenced
+\[ODB-0104\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0104] Error: error: undefined layer ({}) referenced
+\[ODB-0105\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0105] Error: error: RULE ({}) referenced for layer ({})
+\[ODB-0106\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0106] Error: error: undefined TAPER RULE ({}) referenced
+\[ODB-0107\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0107] Error: error: undefined via ({}) referenced
+\[ODB-0108\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0108] Error: error: invalid VIA layers, cannot determine exit layer of path
+\[ODB-0109\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0109] Error: error: undefined via ({}) referenced
+\[ODB-0110\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0110] Error: error: invalid VIA layers in {} in net {}, currently on
+\[ODB-0304\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0304] Error: Group \
+\[ODB-0305\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0305] Error: Region \
+\[ODB-0306\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0306] Error: error: netlist component ({}) is not defined
+\[ODB-0088\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0088] Error: error: undefined layer ({}) referenced
+\[ODB-0089\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0089] Error: error: undefined component ({}) referenced
+\[ODB-0090\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0090] Error: error: undefined component ({}) referenced
+\[ODB-0091\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0091] Error: warning: Blockage max density {} not in [0, 100] will be ignored
+\[ODB-0155\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0155] Error: error: undefined site ({}) referenced in row ({}) statement.
+\[ODB-0260\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0260] Error: DESIGN is not defined in DEF
+\[ODB-0248\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0248] Error: skipping undefined comp {} encountered in {} DEF
+\[ODB-0275\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0275] Error: skipping undefined net {} encountered in FLOORPLAN DEF
+\[ODB-0247\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0247] Error: skipping undefined pin {} encountered in {} DEF
+\[ODB-0437\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0437] Error: Mismatched pin direction between verilog netlist and floorplan
+\[ODB-0293\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0293] Error: TECHNOLOGY is ignored
+\[ODB-0249\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0249] Error: skipping undefined net {} encountered in FLOORPLAN DEF
+\[ODB-0126\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0126] Error: error: {}
+\[ODB-0250\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0250] Error: Chip does not exist
+\[ODB-0251\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0251] Error: Chip already has a block
+\[ODB-0129\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0129] Error: Error: Failed to read DEF file
+\[ODB-0148\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0148] Error: error: Cannot open DEF file {}
+\[ODB-0271\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0271] Error: error: Cannot open zipped DEF file {}
+\[ODB-0421\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0421] Error: DEF parser returns an error!
+\[ODB-0149\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0149] Error: DEF parser returns an error!
+\[ODB-0157\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0157] Error: error: netlist component ({}) is not defined
+\[ODB-0158\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0158] Error: error: netlist component-pin ({}, {}) is not defined
+\[ODB-0159\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0159] Error: error: undefined layer ({}) referenced
+\[ODB-0160\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0160] Error: error: undefined layer ({}) referenced
+\[ODB-0161\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0161] Error: error: SHIELD net ({}) does not exists.
+\[ODB-0162\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0162] Error: error: undefined layer ({}) referenced
+\[ODB-0163\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0163] Error: error: undefined via ({}) referenced
+\[ODB-0164\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0164] Error: error: undefined via ({}) referenced
+\[ODB-0166\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0166] Error: error: duplicate via ({})
+\[ODB-0167\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0167] Error: error: cannot file VIA GENERATE rule in technology ({}).
+\[ODB-0168\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0168] Error: error: undefined layer ({}) referenced
+\[ODB-0169\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0169] Error: error: undefined layer ({}) referenced
+\[ODB-0170\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0170] Error: error: undefined layer ({}) referenced
+\[ODB-0171\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0171] Error: error: undefined layer ({}) referenced
+\[ODB-0299\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0299] Error: Via {} has only {} shapes and must have at least three.
+\[ODB-0300\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0300] Error: Via {} has cut top layer {}
+\[ODB-0301\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0301] Error: Via {} has cut bottom layer {}
+\[ODB-0302\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0302] Error: Via {} has no cut shapes.
+\[ODB-0092\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0092] Error: error: unknown library cell referenced ({}) for instance ({})
+\[ODB-0093\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0093] Error: error: duplicate instance definition({})
+\[ODB-0111\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0111] Error: error: Duplicate NONDEFAULTRULE {}
+\[ODB-0112\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0112] Error: error: Cannot find tech-via {}
+\[ODB-0113\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0113] Error: error: Cannot find tech-via-generate rule {}
+\[ODB-0114\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0114] Error: error: Cannot find layer {}
+\[ODB-0115\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0115] Error: error: Cannot find layer {}
+\[ODB-0116\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0116] Error: error: Duplicate layer rule ({}) in non-default-rule statement.
+\[ODB-0387\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0387] Error: error: Non-default rule ({}) has no rule for layer {}.
+\[ODB-0284\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0284] Error: Master {} not found.
+\[ODB-0285\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0285] Error: Master {} seen more than once in {}.
+\[ODB-0286\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0286] Error: Terminal {} of CDL master {} not found in LEF.
+\[ODB-0283\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0283] Error: Can
+\[ODB-0357\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0357] Error: Master {} was not in the masters CDL files, but master
+\[ODB-0287\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0287] Error: Master {} was not in the masters CDL files.
 \[ODB-0175\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0175] Error: illegal: non-orthogonal-path at Pin
 \[ODB-0176\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0176] Error: error: undefined layer ({}) referenced
 \[ODB-0177\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0177] Error: error: undefined via ({}) referenced
@@ -1787,7 +1792,9 @@
 \[ODB-0203\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0203] Error: Invalid layer name {} in SPACING
 \[ODB-0204\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0204] Error: Invalid layer name {} in SPACING
 \[ODB-0205\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0205] Error: The LEF UNITS DATABASE MICRON convert factor ({}) is greater than
-\[ODB-0206\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0206] Error: error: invalid dbu-per-micron value {}; valid units (100,
+\[ODB-0400\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0400] Error: error: invalid dbu-per-micron value {}; valid units (1000,
+\[ODB-0401\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0401] Error: The LEF UNITS DATABASE MICRON convert factor ({}) is greater than
+\[ODB-0402\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0402] Error: The LEF UNITS DATABASE MICRON convert factor ({}) is
 \[ODB-0207\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0207] Error: Unknown object type for USEMINSPACING: {}
 \[ODB-0209\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0209] Error: VIA: undefined layer ({}) in VIA ({})
 \[ODB-0210\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0210] Error: error: missing VIA GENERATE rule {}
@@ -1811,28 +1818,40 @@
 \[ODB-0230\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0230] Error: Error: library ({}) already exists
 \[ODB-0231\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0231] Error: Error: technology {} already exists
 \[ODB-0289\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0289] Error: LEF data from {} is discarded due to errors
+\[ODB-0270\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0270] Error: error: Cannot open zipped LEF file {}
+\[ODB-0240\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0240] Error: error: Cannot open LEF file {}
 \[ODB-0173\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0173] Error: warning: pin {} skipped because it has no net
 \[ODB-0174\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0174] Error: warning: missing shield net
-\[ODB-0447\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0447] Error: Could not open file {}
-\[ODB-0448\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0448] Error: Invalid data type
-\[ODB-0449\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0449] Error: Invalid data type
-\[STT-0007\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[STT-0007] Error: Invalid driver index {}.
-\[PDN-0197\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[PDN-0197] Error: Unrecognized network type: {}
-\[PDN-0191\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[PDN-0191] Error: {} of {:.4f} um does not fit the manufacturing grid of {:.4f} um.
+\[ODB-0386\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0386] Error: {} contains {} placed instances and will not be cut.
+\[ODB-0527\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0527] Error: 3DBV Parser Error: Invalid chip type: {}
+\[ODB-0528\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0528] Error: 3DBV Parser Error: Invalid chip region side: {}
+\[RCX-0252\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0252] Error: Ext object on dbBlock is nullptr!
+\[RCX-0239\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0239] Error: Zero rseg wire property {} on main net {} {}
+\[RCX-0240\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0240] Error: GndCap: cannot find rseg for rsegId {} on net {} {}
+\[RCX-0428\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0428] Error: Cannot open file {} for \
+\[RCX-0424\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0424] Error: Cannot zero/negative number of chars
+\[RCX-0429\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0429] Error: Syntax Error at line {} ({})
+\[RCX-0046\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RCX-0046] Error: Can not find net {}
 \[PDN-0227\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[PDN-0227] Error: Removing between {} and {} at ({:.4f} um, {:.4f} um) for {}
 \[PDN-0110\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[PDN-0110] Error: No via inserted between {} and {} at {} on {}{}{}
-\[GUI-0010\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0010] Error: File path does not end with a valid extension, new path is: {}
-\[GUI-0011\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0011] Error: Failed to write image: {}
-\[GUI-0012\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0012] Error: Image size is not valid: {}px x {}px
-\[GUI-0043\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0043] Error: Unable to decode color: {}
-\[GUI-0042\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0042] Error: Color not recognized: {}
-\[GUI-0045\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0045] Error: Anchor not recognized: {}
+\[PDN-0197\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[PDN-0197] Error: Unrecognized network type: {}
+\[PDN-0191\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[PDN-0191] Error: {} of {:.4f} um does not fit the manufacturing grid of {:.4f} um.
+\[GPL-0134\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GPL-0134] Error: Master {} is not marked as a BLOCK in LEF but is more
+\[GPL-0001\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GPL-0001] Error: {} toplevel port is not placed.
+\[DFT-0031\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0031] Error: Error while attempting to create new port {}: an
+\[DFT-0018\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0018] Error: Failed to create port: a port named
+\[DFT-0004\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0004] Error: Clock mix config requested is not supported
+\[DFT-0010\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0010] Error: Couldn
+\[DFT-0011\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0011] Error: Cell master
+\[DFT-0049\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0049] Error: Can
+\[DFT-0005\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0005] Error: Cell
+\[DFT-0007\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[DFT-0007] Error: Cell
+\[MPL-0037\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[MPL-0037] Error: Attempting to create fixed soft macro for unfixed hard macro {}.
 \[UTL-0001\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UTL-0001] Error: seeking file to start {}
 \[UTL-0002\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UTL-0002] Error: error reading {} bytes from file at offset {}: {}
 \[UTL-0003\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UTL-0003] Error: read no bytes from file at offset {}, but neither error nor EOF
 \[UTL-0004\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UTL-0004] Error: error writing {} bytes from file at offset {}: {}
 \[UTL-0014\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[UTL-0014] Error: OpenROAD will terminate after the next control+C
-\[MPL-0037\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[MPL-0037] Error: Attempting to create fixed soft macro for unfixed hard macro {}.
 \[ORD-0038\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ORD-0038] Error: -gui is not yet supported with -python
 \[ORD-0039\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ORD-0039] Error: .openroad ignored with -python
 \[RSZ-1007\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[RSZ-1007] Error: unhandled BufferedNet type
@@ -1844,16 +1863,16 @@
 \[MPL-0060\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[MPL-0060] Error: Coundn
 
 # TCL ERRORS
-No\ liberty\ file\ in\ \\\$liberty_files\ for\ corner\ \$cor|No liberty file in \$liberty_files for corner $corner_name.
-unknown\ comparison\ operator|unknown comparison operator
+Design\ has\ unrouted\ nets\.|Design has unrouted nets.
 FAIL:\ \$description:\ Command\ \\\{\$test\\\}\\n\$msg|FAIL: $description: Command \{$test\}\n$msg
 FAIL:\ \$description:\ Expected\ \$expected_value,\ got\ |FAIL: $description: Expected $expected_value, got $return_value
-Design\ has\ unrouted\ nets\.|Design has unrouted nets.
-\-buffer_cell|-buffer_cell
+unknown\ comparison\ operator|unknown comparison operator
+No\ liberty\ file\ in\ \\\$liberty_files\ for\ corner\ \$cor|No liberty file in \$liberty_files for corner $corner_name.
 \-instances|-instances
 db\ is\ not\ defined|db is not defined
 chip\ is\ not\ defined|chip is not defined
 block\ is\ not\ defined|block is not defined
 ERROR:\ \$description:\ Command\ \\\{\$test\\\}\\n\$msg|ERROR: $description: Command \{$test\}\n$msg
 ERROR:\ \$description:\ Expected\ \$expected_value,\ got|ERROR: $description: Expected $expected_value, got $return_value
+\-buffer_cell|-buffer_cell
 Cannot\ define\ getPeakRSS\(\ \)\ or\ getCurrentRSS\(\ \)\ fo|Cannot define getPeakRSS( ) or getCurrentRSS( ) for an unknown OS.
