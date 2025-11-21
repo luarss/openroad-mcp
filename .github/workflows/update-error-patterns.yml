@@ -48,6 +48,19 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Validate GitHub token
+        if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "Validating GH_PAT token..."
+          if ! gh auth status 2>&1 | grep -q "Logged in"; then
+            echo "::error::GH_PAT token is invalid or expired. Please update the token at: https://github.com/settings/tokens"
+            echo "::error::Required scopes: 'repo' (classic) OR 'contents: write' + 'pull-requests: write' (fine-grained)"
+            exit 1
+          fi
+          echo "✓ GH_PAT token is valid"
+
       - name: Create Pull Request
         if: steps.check_changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
