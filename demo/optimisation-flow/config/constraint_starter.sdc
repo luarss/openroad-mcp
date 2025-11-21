@@ -6,7 +6,7 @@
 # The AI should analyze violations and discover better constraints naturally
 ###############################################################################
 
-current_design gcd
+current_design aes_cipher_top
 
 set clk_name core_clock
 set clk_port_name clk
