@@ -1,0 +1,16 @@
+Claude Code Session Summary
+==========================
+
+Session ID: 060f3873-8a3f-4c5b-976d-7717d552a4c4
+Export Time: 2025-11-21 12:09:13
+Project Directory: /home/luars/openroad-mcp
+Duration: 2025-11-21T11:37:13.127Z to 2025-11-21T11:55:41.951Z
+
+Statistics:
+- Total Messages: 132
+- User Messages: 51
+- Assistant Messages: 71
+- Tool Uses: 50
+- Models: claude-sonnet-4-5-20250929
+
+Exported to: /home/luars/claude_sessions/exports/2025-11-21_12-09-12_060f3873

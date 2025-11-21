@@ -1,0 +1,13 @@
+{
+  "session_id": "060f3873-8a3f-4c5b-976d-7717d552a4c4",
+  "start_time": "2025-11-21T11:37:13.127Z",
+  "end_time": "2025-11-21T11:55:41.951Z",
+  "project_dir": "/home/luars/openroad-mcp",
+  "total_messages": 132,
+  "user_messages": 51,
+  "assistant_messages": 71,
+  "tool_uses": 50,
+  "models_used": [
+    "claude-sonnet-4-5-20250929"
+  ]
+}
