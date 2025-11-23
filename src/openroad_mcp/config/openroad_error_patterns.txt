@@ -578,7 +578,7 @@
 \[GUI-0072\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0072] Error: {0}
 \[GUI-0073\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0073] Error: {0}
 \[GUI-0074\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0074] Error: {0}
-\[GUI-0076\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0076] Error: {0}
+\[GUI-0077\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0077] Error: {0}
 \[GUI-0079\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0079] Error: {0}
 \[GUI-0080\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0080] Error: {0}
 \[GUI-0081\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0081] Error: {0}
@@ -597,6 +597,7 @@
 \[GUI-0104\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0104] Error: {0}
 \[GUI-0105\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0105] Error: {0}
 \[GUI-0106\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0106] Error: {0}
+\[GUI-0108\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[GUI-0108] Error: {0}
 \[IFP-0002\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[IFP-0002] Error: {0}
 \[IFP-0010\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[IFP-0010] Error: {0}
 \[IFP-0013\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[IFP-0013] Error: {0}
@@ -686,7 +687,9 @@
 \[MPL-0050\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[MPL-0050] Error: {0}
 \[MPL-0051\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[MPL-0051] Error: {0}
 \[MPL-0052\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[MPL-0052] Error: {0}
+\[MPL-0053\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[MPL-0053] Error: {0}
 \[MPL-0060\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[MPL-0060] Error: {0}
+\[MPL-0061\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[MPL-0061] Error: {0}
 \[ODB-0000\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0000] Error: {0}
 \[ODB-0002\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0002] Error: {0}
 \[ODB-0008\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0008] Error: {0}
@@ -933,6 +936,8 @@
 \[ODB-0535\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0535] Error: {0}
 \[ODB-0536\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0536] Error: {0}
 \[ODB-0537\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0537] Error: {0}
+\[ODB-0538\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0538] Error: {0}
+\[ODB-0539\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-0539] Error: {0}
 \[ODB-1004\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-1004] Error: {0}
 \[ODB-1005\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-1005] Error: {0}
 \[ODB-1006\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ODB-1006] Error: {0}
@@ -1006,6 +1011,8 @@
 \[ORD-0071\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0071] Error: {0}
 \[ORD-0072\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0072] Error: {0}
 \[ORD-0073\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0073] Error: {0}
+\[ORD-0074\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0074] Error: {0}
+\[ORD-0075\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0075] Error: {0}
 \[ORD-0101\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0101] Error: {0}
 \[ORD-0102\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0102] Error: {0}
 \[ORD-0104\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-0104] Error: {0}
@@ -1016,12 +1023,14 @@
 \[ORD-1012\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-1012] Error: {0}
 \[ORD-1013\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-1013] Error: {0}
 \[ORD-1050\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-1050] Error: {0}
+\[ORD-2000\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-2000] Error: {0}
 \[ORD-2003\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ORD-2003] Critical: {0}
 \[ORD-2004\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ORD-2004] Critical: {0}
 \[ORD-2005\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ORD-2005] Critical: {0}
 \[ORD-2007\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ORD-2007] Critical: {0}
 \[ORD-2008\]\s*CRITICAL:\s*(.+?)(?:\r?\n|$)|[ORD-2008] Critical: {0}
 \[ORD-2010\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-2010] Error: {0}
+\[ORD-2014\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-2014] Error: {0}
 \[ORD-2015\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-2015] Error: {0}
 \[ORD-2016\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-2016] Error: {0}
 \[ORD-2017\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[ORD-2017] Error: {0}
@@ -1324,10 +1333,20 @@
 \[RAM-0001\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0001] Error: {0}
 \[RAM-0002\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0002] Error: {0}
 \[RAM-0004\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0004] Error: {0}
+\[RAM-0005\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0005] Error: {0}
+\[RAM-0006\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0006] Error: {0}
 \[RAM-0007\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0007] Error: {0}
 \[RAM-0008\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0008] Error: {0}
+\[RAM-0009\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0009] Error: {0}
 \[RAM-0010\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0010] Error: {0}
 \[RAM-0011\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0011] Error: {0}
+\[RAM-0012\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0012] Error: {0}
+\[RAM-0013\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0013] Error: {0}
+\[RAM-0014\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0014] Error: {0}
+\[RAM-0015\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0015] Error: {0}
+\[RAM-0017\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0017] Error: {0}
+\[RAM-0018\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0018] Error: {0}
+\[RAM-0020\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RAM-0020] Error: {0}
 \[RCX-0002\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RCX-0002] Error: {0}
 \[RCX-0004\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RCX-0004] Error: {0}
 \[RCX-0030\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RCX-0030] Error: {0}
@@ -1401,8 +1420,8 @@
 \[RSZ-0162\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0162] Error: {0}
 \[RSZ-0163\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0163] Error: {0}
 \[RSZ-0164\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0164] Error: {0}
-\[RSZ-0165\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0165] Error: {0}
 \[RSZ-0167\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0167] Error: {0}
+\[RSZ-0168\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0168] Error: {0}
 \[RSZ-0200\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0200] Error: {0}
 \[RSZ-0201\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0201] Error: {0}
 \[RSZ-0202\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|[RSZ-0202] Error: {0}
@@ -1535,6 +1554,8 @@
 \[GUI-0042\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0042] Error: Color not recognized: {}
 \[GUI-0043\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0043] Error: Unable to decode color: {}
 \[GUI-0045\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0045] Error: Anchor not recognized: {}
+\[GUI-0076\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0076] Error: {}
+\[GUI-0077\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[GUI-0077] Error: {}
 \[MPL-0037\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[MPL-0037] Error: Attempting to create fixed soft macro for unfixed hard macro {}.
 \[MPL-0060\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[MPL-0060] Error: Coundn
 \[ODB-0011\]\s*(?:ERROR|WARN|CRITICAL):\s*(.+?)(?:\r?\n|$)|[ODB-0011] Error: Region {}-{} on edge {} modified to {}-{} to respect the
