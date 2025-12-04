@@ -204,3 +204,6 @@ __marimo__/
 
 # Claude
 .claude
+
+# Demo
+constraint_iteration_*.sdc
