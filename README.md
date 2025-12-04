@@ -173,7 +173,7 @@ If you encounter any issues or have questions, please open an issue on our [GitH
 
 ## License
 
-TBD
+BSD 3-Clause License. See [LICENSE](LICENSE) file.
 
 ---
 
