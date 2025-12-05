@@ -43,16 +43,16 @@ def _load_error_patterns() -> list[tuple[re.Pattern[str], str]]:
         logger.warning(f"Error pattern file not found: {pattern_file}")
         return patterns
 
-    with open(pattern_file) as f:
+    with open(pattern_file, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
 
-            if "|" not in line:
+            if "|||" not in line:
                 continue
 
-            regex_str, message_template = line.split("|", 1)
+            regex_str, message_template = line.split("|||", 1)
             try:
                 pattern = re.compile(regex_str, flags)
                 patterns.append((pattern, message_template))
