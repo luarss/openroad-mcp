@@ -11,5 +11,8 @@
         "/home/luars/openroad-mcp/claude_code_server.py"
       ]
     }
+  },
+  "privacy": {
+    "usageStatisticsEnabled": false
   }
 }
