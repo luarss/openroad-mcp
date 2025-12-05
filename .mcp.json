@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "openroad-mcp"
+      ],
+      "env": {
+        "OPENROAD_EXE": "/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad",
+        "OPENROAD_FLOW": "/OpenROAD-flow-scripts/flow"
+      }
+    }
+  }
+}
