@@ -12,20 +12,25 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 
 ## Requirements
 
-- OpenROAD installed and available in your PATH
-- Python 3.13 or higher
-- `uv` package manager (for running the server)
+- **OpenROAD** installed and available in your PATH
+  - [Installation guide](https://openroad.readthedocs.io/en/latest/main/GettingStarted.html)
+- **OpenROAD-flow-scripts (ORFS)** for complete RTL-to-GDS flows (optional but recommended)
+  - [ORFS installation guide](https://openroad-flow-scripts.readthedocs.io/)
+- **Python 3.13+** or higher
+- **uv** package manager
+  - Install: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
 ## Support Matrix
 
 | MCP Client | Supported | Transport Mode(s) | Notes |
 |------------|--------|------------------|-------|
 | Claude Code | ✅ | STDIO | Full support for all features |
-| Claude Desktop | ✅ | STDIO | Local execution - runs on same machine |
 | Gemini CLI | ✅ | STDIO | Full support for all features |
 | Other MCP clients | ⚠️ | STDIO | Should work with standard STDIO transport |
 
 ## Getting Started
+
+**New to OpenROAD MCP?** Check out our [Quick Start guide](QUICKSTART.md).
 
 ### Standard Configuration
 
@@ -74,13 +79,6 @@ Use the Claude Code CLI to add the OpenROAD MCP server:
 ```bash
 claude mcp add --transport stdio openroad-mcp -- uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
 ```
-
-</details>
-
-<details>
-<summary><b>Claude Desktop</b></summary>
-
-Follow the MCP install [guide](https://modelcontextprotocol.io/quickstart/user), using the [standard configuration](#standard-configuration) above.
 
 </details>
 
