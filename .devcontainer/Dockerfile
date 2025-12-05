@@ -9,6 +9,9 @@ ARG CLAUDE_CODE_VERSION=latest
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
   apt-get install -y nodejs
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Install basic development tools and iptables/ipset
 RUN apt-get update && apt-get install -y --no-install-recommends \
   less \
@@ -33,10 +36,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install uv for Python package management
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-  mv /root/.local/bin/uv /usr/local/bin/uv && \
-  chmod +x /usr/local/bin/uv
 
 # Create node user if it doesn't exist
 RUN if ! id -u node > /dev/null 2>&1; then \
@@ -97,6 +96,12 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
+# Clone and install openroad-mcp
+WORKDIR /workspace
+RUN git clone https://github.com/luarss/openroad-mcp.git
+WORKDIR /workspace/openroad-mcp
+RUN uv venv
+RUN uv pip install -e .
 
 # Copy and set up firewall script
 COPY init-firewall.sh /usr/local/bin/
