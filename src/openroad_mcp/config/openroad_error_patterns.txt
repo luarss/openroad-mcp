@@ -1355,7 +1355,9 @@
 \[RAM-0015\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RAM-0015] Error: {0}
 \[RAM-0017\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RAM-0017] Error: {0}
 \[RAM-0018\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RAM-0018] Error: {0}
+\[RAM-0019\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RAM-0019] Error: {0}
 \[RAM-0020\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RAM-0020] Error: {0}
+\[RAM-0021\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RAM-0021] Error: {0}
 \[RCX-0002\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RCX-0002] Error: {0}
 \[RCX-0004\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RCX-0004] Error: {0}
 \[RCX-0030\]\s*ERROR:\s*(.+?)(?:\r?\n|$)|||[RCX-0030] Error: {0}
