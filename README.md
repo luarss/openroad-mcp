@@ -2,6 +2,12 @@
 
 A Model Context Protocol (MCP) server that provides tools for interacting with OpenROAD and ORFS (OpenROAD Flow Scripts).
 
+## Demo
+
+![OpenROAD MCP Demo](demo-quick.gif)
+
+[Watch full demo video (19MB)](openroad-mcp-full-demo.mkv)
+
 ## Features
 
 - **Interactive OpenROAD sessions** - Execute commands in persistent OpenROAD sessions with PTY support
