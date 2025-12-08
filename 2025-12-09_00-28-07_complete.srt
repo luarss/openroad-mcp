@@ -1,0 +1,207 @@
+1
+00:00:15,680 --> 00:00:21,680
+Claude proceeds to start processing the written command request.
+
+2
+00:00:21,680 --> 00:00:28,080
+Claude reads the provided files to assess the current design.
+
+3
+00:00:28,080 --> 00:00:34,080
+Claude searches for design files and checks for actual location.
+
+4
+00:00:34,080 --> 00:00:41,080
+Claude searches for relevant files in the project file directory.
+
+5
+00:00:42,700 --> 00:00:49,700
+Claude reads the design timing demo files and checks status of the files.
+
+6
+00:00:49,700 --> 00:00:56,060
+Claude finds an error while reading actual constraints for ORFS design.
+
+7
+00:00:56,060 --> 00:01:00,000
+Claude checks where ORFS is located to resume processing.
+
+8
+00:01:00,945 --> 00:01:03,345
+The program continues running, displaying errors from previous attempts.
+
+9
+00:01:03,345 --> 00:01:07,605
+Program checks for OpenROAD scripts, finding them to be available.
+
+10
+00:01:07,605 --> 00:01:13,065
+Program checks the GCD design, reads design and constraint files.
+
+11
+00:01:13,065 --> 00:01:18,355
+Program runs baseline flow, sees constraint is too aggressive and checks build results.
+
+12
+00:01:18,355 --> 00:01:23,755
+The program identifies there are no existing results and tries the baseline flow.
+
+13
+00:01:23,755 --> 00:01:28,525
+Program identifies a permission issue and tries different approaches.
+
+14
+00:01:28,525 --> 00:01:33,245
+The program continues and indicates need to run as root to fix.
+
+15
+00:01:33,245 --> 00:01:38,475
+Program encounters more issues and gives an error as sudo is required.
+
+16
+00:01:38,475 --> 00:01:44,815
+The program takes a different approach and checks which sessions exist.
+
+17
+00:01:44,815 --> 00:01:49,875
+The program takes another approach since the original constraint has timing violations.
+
+18
+00:01:49,875 --> 00:01:54,155
+Program applies an optimized timing constraint.
+
+19
+00:01:54,155 --> 00:01:59,515
+Program now applies the improved timing constraint for a better result.
+
+20
+00:01:57,070 --> 00:00:09,070
+User begins to type in a command to optimise WNS.
+
+21
+00:02:00,277 --> 00:02:04,637
+The system writes new timing constraints and configurations to files.
+
+22
+00:02:04,637 --> 00:02:10,267
+The system creates a comprehensive test script to test optimizations.
+
+23
+00:02:10,267 --> 00:02:13,857
+The script tests multiple clock periods and optimizations.
+
+24
+00:02:13,857 --> 00:02:21,807
+The system writes a WNS optimization script and marks it as executable.
+
+25
+00:02:21,807 --> 00:02:30,077
+The system is still applying the optimized timing constraints now.
+
+26
+00:02:30,077 --> 00:02:35,107
+The system writes a quick reference guide for WNS optimization.
+
+27
+00:02:35,107 --> 00:02:44,167
+The script tests clock periods/config optimizations to find best WNS.
+
+28
+00:02:44,167 --> 00:02:54,267
+System writes and marks the optimization script as executable now.
+
+29
+00:02:54,267 --> 00:03:00,007
+The system writes WNS optimization quick reference guides.
+
+30
+00:03:01,154 --> 00:03:10,154
+The code is writing optimized timing constraints and configuration files.
+
+31
+00:03:10,154 --> 00:03:16,444
+The code proceeds to create a test script for multiple optimizations.
+
+32
+00:03:16,444 --> 00:03:21,644
+The program is writing lines in "optimize_WNS_SH" file.
+
+33
+00:03:21,644 --> 00:03:26,954
+Bash changes the mode of the optimize WNS script file.
+
+34
+00:03:26,954 --> 00:03:32,644
+Writes to the WNS Optimization Guide a quick reference for the GCD.
+
+35
+00:03:32,644 --> 00:03:41,214
+The program is now updating the README with optimization strategies.
+
+36
+00:03:41,214 --> 00:03:51,204
+Now the code is updating the ReadMe comprehensive guide file.
+
+37
+00:03:51,204 --> 00:03:57,174
+The display shows the manual steps for automated optimization.
+
+38
+00:04:02,022 --> 00:04:07,582
+The assistant scrolls through code displayed in the text editor.
+
+39
+00:04:07,582 --> 00:04:14,702
+Code about GCD WNS Optimization and target frequencies is displayed.
+
+40
+00:04:14,702 --> 00:04:19,522
+It references a reference for GCD/Nangate45 with current status.
+
+41
+00:04:19,522 --> 00:04:24,722
+Assistant adds new optimization strategy with updated README updates.
+
+42
+00:04:24,722 --> 00:04:32,542
+A comprehensive test script will test multiple optimization strategies.
+
+43
+00:04:32,542 --> 00:04:41,162
+The WNS optimization guide is being updated for quick reference guide.
+
+44
+00:04:41,162 --> 00:04:45,302
+It mentions lack of active counts and different approaches.
+
+45
+00:04:45,302 --> 00:04:53,452
+Demo already shows that the original constraints has timing violations.
+
+46
+00:04:53,452 --> 00:05:00,002
+An optimized constraint file contains a number that changes.
+
+47
+00:05:00,167 --> 00:05:01,887
+Baseline flow now running to assess WNS.
+
+48
+00:05:01,887 --> 00:05:07,387
+The next step is to identify timing violations and critical paths.
+
+49
+00:05:07,387 --> 00:05:15,027
+Current constraint uses a clock period of 0.46 ns, too aggressive.
+
+50
+00:05:15,027 --> 00:05:21,177
+There are no existing results. Baseline flow runs to assess WNS.
+
+51
+00:05:21,787 --> 00:05:29,157
+CD to flow and run make, design config is designs, timeout 10 seconds.
+
+52
+00:05:29,157 --> 00:05:34,927
+Looks like there is permission issues, so let's try another approach.
