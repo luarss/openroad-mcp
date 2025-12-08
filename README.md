@@ -6,7 +6,7 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 
 ![OpenROAD MCP Demo](demo-quick.gif)
 
-[Watch full demo video (19MB)](openroad-mcp-full-demo.mkv)
+[Watch full demo video](https://youtu.be/UQM1otOl17s)
 
 ## Features
 
