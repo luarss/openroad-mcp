@@ -189,19 +189,3 @@ Baseline flow now running to assess WNS.
 48
 00:05:01,887 --> 00:05:07,387
 The next step is to identify timing violations and critical paths.
-
-49
-00:05:07,387 --> 00:05:15,027
-Current constraint uses a clock period of 0.46 ns, too aggressive.
-
-50
-00:05:15,027 --> 00:05:21,177
-There are no existing results. Baseline flow runs to assess WNS.
-
-51
-00:05:21,787 --> 00:05:29,157
-CD to flow and run make, design config is designs, timeout 10 seconds.
-
-52
-00:05:29,157 --> 00:05:34,927
-Looks like there is permission issues, so let's try another approach.
