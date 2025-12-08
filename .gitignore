@@ -204,3 +204,8 @@ __marimo__/
 
 # Claude
 .claude
+
+# Project specfics
+gcd_final
+gcd_optimization
+gcd_opt_v2

@@ -25,6 +25,7 @@ openroad-mcp = "openroad_mcp.main:main"
 [project.optional-dependencies]
 dev = [
     "beautifulsoup4>=4.14.2",
+    "google-genai>=1.53.0",
     "mypy>=1.17.0",
     "pre-commit>=4.2.0",
     "pytest>=8.4.1",
