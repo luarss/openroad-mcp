@@ -64,8 +64,10 @@ test-coverage: docker-test-build
 			--cov=src/openroad_mcp \
 			--cov-report=xml \
 			--cov-report=html \
-			--cov-report=term-missing && \
+			--cov-report=term-missing \
+			--junit-xml=junit.xml && \
 		cp coverage.xml /output/ && \
+		cp junit.xml /output/ && \
 		cp -r htmlcov /output/ 2>/dev/null || true"
 
 # MCP
