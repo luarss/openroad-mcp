@@ -1,5 +1,8 @@
 # OpenROAD MCP Server
 
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![OpenROAD](https://img.shields.io/badge/OpenROAD-v2.0+-green)](https://openroad.readthedocs.io/)
+
 A Model Context Protocol (MCP) server that provides tools for interacting with OpenROAD and ORFS (OpenROAD Flow Scripts).
 
 ## Features
