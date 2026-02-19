@@ -1,0 +1,61 @@
+{
+  "ST001": {
+    "tools_called": [
+      {
+        "name": "create_interactive_session",
+        "parameters": {}
+      }
+    ]
+  },
+  "ST002": {
+    "tools_called": [
+      {
+        "name": "list_interactive_sessions",
+        "parameters": {}
+      }
+    ]
+  },
+  "ST003": {
+    "tools_called": [
+      {
+        "name": "interactive_openroad",
+        "parameters": {
+          "command": "read_lef /path/to/tech.lef",
+          "session_id": "session-123"
+        }
+      }
+    ]
+  },
+  "SW001": {
+    "tools_called": [
+      {
+        "name": "create_interactive_session",
+        "parameters": {
+          "session_id": "test-flow"
+        }
+      },
+      {
+        "name": "interactive_openroad",
+        "parameters": {
+          "command": "report_design_area",
+          "session_id": "test-flow"
+        }
+      }
+    ]
+  },
+  "PE001": {
+    "tools_called": [
+      {
+        "name": "get_session_metrics",
+        "parameters": {}
+      },
+      {
+        "name": "list_interactive_sessions",
+        "parameters": {}
+      }
+    ]
+  },
+  "EH001": {
+    "tools_called": []
+  }
+}

@@ -1,0 +1,2778 @@
+{
+  "benchmark_info": {
+    "name": "OpenROAD MCP Tool Calling Benchmark",
+    "version": "1.0.0",
+    "description": "Comprehensive benchmark for evaluating LLM tool calling accuracy on OpenROAD MCP server",
+    "total_test_cases": 100,
+    "categories": {
+      "single_tool": {
+        "count": 40,
+        "weight": 0.35,
+        "description": "Single tool selection and execution with correct parameters"
+      },
+      "sequential_workflow": {
+        "count": 25,
+        "weight": 0.25,
+        "description": "Multi-step workflows requiring dependent tool calls"
+      },
+      "parallel_execution": {
+        "count": 15,
+        "weight": 0.15,
+        "description": "Independent operations that can be executed in parallel"
+      },
+      "state_management": {
+        "count": 15,
+        "weight": 0.15,
+        "description": "Session lifecycle and state-dependent operations"
+      },
+      "error_handling": {
+        "count": 10,
+        "weight": 0.10,
+        "description": "Edge cases and scenarios where tools should NOT be called"
+      }
+    }
+  },
+  "tools_reference": [
+    {
+      "name": "interactive_openroad",
+      "description": "Execute commands in persistent OpenROAD sessions",
+      "required_params": ["command"],
+      "optional_params": ["session_id", "timeout_ms"]
+    },
+    {
+      "name": "create_interactive_session",
+      "description": "Create new OpenROAD session",
+      "required_params": [],
+      "optional_params": ["session_id", "command", "cwd", "env"]
+    },
+    {
+      "name": "list_interactive_sessions",
+      "description": "List all active sessions",
+      "required_params": [],
+      "optional_params": []
+    },
+    {
+      "name": "terminate_interactive_session",
+      "description": "Terminate a session",
+      "required_params": ["session_id"],
+      "optional_params": ["force"]
+    },
+    {
+      "name": "inspect_interactive_session",
+      "description": "Get detailed session information",
+      "required_params": ["session_id"],
+      "optional_params": []
+    },
+    {
+      "name": "get_session_history",
+      "description": "Get command history for a session",
+      "required_params": ["session_id"],
+      "optional_params": ["limit", "search"]
+    },
+    {
+      "name": "get_session_metrics",
+      "description": "Get metrics for all sessions",
+      "required_params": [],
+      "optional_params": []
+    },
+    {
+      "name": "list_report_images",
+      "description": "List ORFS report images",
+      "required_params": ["platform", "design", "run_slug"],
+      "optional_params": ["stage"]
+    },
+    {
+      "name": "read_report_image",
+      "description": "Read and encode report image",
+      "required_params": ["platform", "design", "run_slug", "image_name"],
+      "optional_params": []
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "ST001",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "Create a new OpenROAD interactive session",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "allow_extra_params": true
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST002",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "Show me all active OpenROAD sessions",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {}
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST003",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Execute the command 'read_lef /path/to/tech.lef' in session session-123",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_lef /path/to/tech.lef",
+            "session_id": "session-123"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST004",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Terminate the session with ID 'design-session-1' gracefully",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "design-session-1",
+            "force": false
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST005",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Force terminate session abc-123",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "abc-123",
+            "force": true
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST006",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Get detailed information about session my-session-1",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "my-session-1"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST007",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Show me the command history for session test-session",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "test-session"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST008",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Get the last 10 commands from session router-analysis that contain the word 'route'",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "router-analysis",
+            "limit": 10,
+            "search": "route"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST009",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "Get performance metrics for all active sessions",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {}
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST010",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "List all report images for the nangate45 platform, gcd design, run ID flow-2024-01-15",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "flow-2024-01-15"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST011",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Show me routing stage report images for asap7 platform, aes design, run ABC123",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "ABC123",
+            "stage": "routing"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST012",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Read the final_routing.png image from nangate45/gcd run flow-001",
+      "expected_tools": [
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "flow-001",
+            "image_name": "final_routing.png"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST013",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Run the command 'report_checks -path_delay max' in the default session",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_checks -path_delay max"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST014",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Execute 'read_verilog design.v' with a 60 second timeout in session synth-1",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_verilog design.v",
+            "session_id": "synth-1",
+            "timeout_ms": 60000
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST015",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Create a session named 'synthesis-session' in the /designs/aes directory",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "synthesis-session",
+            "cwd": "/designs/aes"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST016",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Start a new session with environment variable PDK_ROOT set to /pdks/sky130A",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "env": {
+              "PDK_ROOT": "/pdks/sky130A"
+            }
+          },
+          "allow_extra_params": true
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST017",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Get the history of commands that mention 'clock' from session timing-analysis",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "timing-analysis",
+            "search": "clock"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST018",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "List placement stage images for sky130hd platform, spm design, run 20240115-001",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "spm",
+            "run_slug": "20240115-001",
+            "stage": "placement"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST019",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "Check what sessions are currently running",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {}
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST020",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Run 'global_route' command",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "global_route"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST021",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Show details about session pnr-workflow-1",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "pnr-workflow-1"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST022",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Retrieve congestion_heatmap.png from nangate45/ibex run final-tapeout",
+      "expected_tools": [
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "ibex",
+            "run_slug": "final-tapeout",
+            "image_name": "congestion_heatmap.png"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST023",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "What are the metrics across all sessions?",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {}
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST024",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Stop session debug-session without forcing",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "debug-session",
+            "force": false
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST025",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Execute 'report_power' in session power-analysis-1",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_power",
+            "session_id": "power-analysis-1"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST026",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Get all report images from asap7 platform, jpeg design, run v1.2.3",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "asap7",
+            "design": "jpeg",
+            "run_slug": "v1.2.3"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST027",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Show me the most recent 20 commands from session place-route-session",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "place-route-session",
+            "limit": 20
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST028",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Create session 'eco-session' and immediately run 'read_db checkpoint.db'",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "eco-session",
+            "command": ["read_db checkpoint.db"]
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST029",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "Launch a new OpenROAD session",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "allow_extra_params": true
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST030",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Kill session hung-process immediately",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "hung-process",
+            "force": true
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST031",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Fetch the placement_density.png image for sky130hd/usb design from run final-v2",
+      "expected_tools": [
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "usb",
+            "run_slug": "final-v2",
+            "image_name": "placement_density.png"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST032",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Run the OpenROAD command 'set_wire_rc -layer metal3'",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "set_wire_rc -layer metal3"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST033",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Inspect the status of session verification-run",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "verification-run"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST034",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "List floorplan stage images for nangate45/aes run iteration-5",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "aes",
+            "run_slug": "iteration-5",
+            "stage": "floorplan"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST035",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Find commands containing 'timing' in session sta-check, limit to 5 results",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "sta-check",
+            "search": "timing",
+            "limit": 5
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST036",
+      "category": "single_tool",
+      "difficulty": "easy",
+      "prompt": "Display all currently active OpenROAD sessions",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {}
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST037",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Start a session in /work/designs with DESIGN_NAME=sram and PDK=sky130",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "cwd": "/work/designs",
+            "env": {
+              "DESIGN_NAME": "sram",
+              "PDK": "sky130"
+            }
+          },
+          "allow_extra_params": true
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST038",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Execute 'write_def output.def' with 120 second timeout",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "write_def output.def",
+            "timeout_ms": 120000
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST039",
+      "category": "single_tool",
+      "difficulty": "hard",
+      "prompt": "Get CTS stage report images for asap7/riscv run prod-2024-12",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "asap7",
+            "design": "riscv",
+            "run_slug": "prod-2024-12",
+            "stage": "cts"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "ST040",
+      "category": "single_tool",
+      "difficulty": "medium",
+      "prompt": "Close session temp-session-99",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "temp-session-99"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      }
+    },
+    {
+      "id": "SW001",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Create a new session called 'test-flow', then run the command 'report_design_area'",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "test-flow"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_design_area",
+            "session_id": "test-flow"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW002",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Start a session named 'synth', run 'read_verilog design.v', then show me the command history",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "synth"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_verilog design.v",
+            "session_id": "synth"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "synth"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW003",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "List all report images for nangate45/gcd run ABC123, then read the routing_congestion.png image",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "ABC123"
+          },
+          "order": 1
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "ABC123",
+            "image_name": "routing_congestion.png"
+          },
+          "order": 2,
+          "dependencies": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW004",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Create session 'timing-opt', run 'report_checks -path_delay max', then inspect the session",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "timing-opt"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_checks -path_delay max",
+            "session_id": "timing-opt"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "timing-opt"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW005",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Launch a session with PDK_ROOT=/pdks/asap7, execute 'read_lef asap7.lef', then get the last 5 commands from history",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "env": {
+              "PDK_ROOT": "/pdks/asap7"
+            }
+          },
+          "order": 1,
+          "allow_extra_params": true
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_lef asap7.lef"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"],
+          "note": "session_id should come from previous step"
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "limit": 5
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"],
+          "note": "session_id should come from step 1"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW006",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Run 'global_place' command in session placement-1, then show details about that session",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "global_place",
+            "session_id": "placement-1"
+          },
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "placement-1"
+          },
+          "order": 2
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW007",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Create session 'eco-fix' in /designs/aes directory, run 'read_db checkpoint.db', then run 'report_wns'",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "eco-fix",
+            "cwd": "/designs/aes"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_db checkpoint.db",
+            "session_id": "eco-fix"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_wns",
+            "session_id": "eco-fix"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW008",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Execute 'detailed_route' in session route-session with 180 second timeout, then get the history",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "detailed_route",
+            "session_id": "route-session",
+            "timeout_ms": 180000
+          },
+          "order": 1
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "route-session"
+          },
+          "order": 2
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW009",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Get placement images for sky130hd/usb run v1, then read the placement_density.png image",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "usb",
+            "run_slug": "v1",
+            "stage": "placement"
+          },
+          "order": 1
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "usb",
+            "run_slug": "v1",
+            "image_name": "placement_density.png"
+          },
+          "order": 2,
+          "dependencies": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW010",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Start a new session, run 'report_tns', then terminate the session",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "order": 1,
+          "allow_extra_params": true
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_tns"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"],
+          "note": "session_id from step 1"
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {},
+          "order": 3,
+          "dependencies": ["create_interactive_session"],
+          "note": "session_id from step 1"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW011",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Create session 'power-opt', run 'read_liberty fast.lib', run 'report_power', then get commands containing 'power'",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "power-opt"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_liberty fast.lib",
+            "session_id": "power-opt"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_power",
+            "session_id": "power-opt"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "power-opt",
+            "search": "power"
+          },
+          "order": 4,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW012",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Run 'clock_tree_synthesis' in session cts-run, then inspect the session details",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "clock_tree_synthesis",
+            "session_id": "cts-run"
+          },
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "cts-run"
+          },
+          "order": 2
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW013",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "List all images for asap7/aes run final, then read final_routing.png and placement_density.png",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "final"
+          },
+          "order": 1
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "final",
+            "image_name": "final_routing.png"
+          },
+          "order": 2,
+          "dependencies": ["list_report_images"]
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "final",
+            "image_name": "placement_density.png"
+          },
+          "order": 3,
+          "dependencies": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW014",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Create a session, run 'read_sdc constraints.sdc', then show the last 3 commands",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "order": 1,
+          "allow_extra_params": true
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_sdc constraints.sdc"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "limit": 3
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW015",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Start session 'drc-check' in /verification, run 'check_design', then forcefully terminate it",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "drc-check",
+            "cwd": "/verification"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "check_design",
+            "session_id": "drc-check"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "drc-check",
+            "force": true
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW016",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Execute 'write_verilog output.v' in default session, then get the command history",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "write_verilog output.v"
+          },
+          "order": 1
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {}
+          ,
+          "order": 2,
+          "note": "needs session_id from context or default"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW017",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Create session 'floorplan-work', run 'initialize_floorplan', run 'place_pins', then inspect it",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "floorplan-work"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "initialize_floorplan",
+            "session_id": "floorplan-work"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "place_pins",
+            "session_id": "floorplan-work"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "floorplan-work"
+          },
+          "order": 4,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW018",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Run 'estimate_parasitics' in session rc-extract, then get the history with 'parasitics' keyword",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "estimate_parasitics",
+            "session_id": "rc-extract"
+          },
+          "order": 1
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "rc-extract",
+            "search": "parasitics"
+          },
+          "order": 2
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW019",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "List routing images for nangate45/ibex run tape-out-v1, then fetch congestion_heatmap.png",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "ibex",
+            "run_slug": "tape-out-v1",
+            "stage": "routing"
+          },
+          "order": 1
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "ibex",
+            "run_slug": "tape-out-v1",
+            "image_name": "congestion_heatmap.png"
+          },
+          "order": 2,
+          "dependencies": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW020",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Create session 'quick-test', run 'report_design_area', then close the session",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "quick-test"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_design_area",
+            "session_id": "quick-test"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "quick-test"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW021",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Start session with DESIGN=riscv env var, run 'read_verilog $DESIGN.v', then show history",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "env": {
+              "DESIGN": "riscv"
+            }
+          },
+          "order": 1,
+          "allow_extra_params": true
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "read_verilog $DESIGN.v"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {},
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW022",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Run 'global_route' with 300 second timeout in session router-1, then inspect the session",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "global_route",
+            "session_id": "router-1",
+            "timeout_ms": 300000
+          },
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "router-1"
+          },
+          "order": 2
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW023",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Get all report images for sky130hd/spm run test-1, then read ir_drop.png and power_density.png",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "spm",
+            "run_slug": "test-1"
+          },
+          "order": 1
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "spm",
+            "run_slug": "test-1",
+            "image_name": "ir_drop.png"
+          },
+          "order": 2,
+          "dependencies": ["list_report_images"]
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "spm",
+            "run_slug": "test-1",
+            "image_name": "power_density.png"
+          },
+          "order": 3,
+          "dependencies": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW024",
+      "category": "sequential_workflow",
+      "difficulty": "medium",
+      "prompt": "Launch a session, run 'set_propagated_clock [all_clocks]', then get last 10 history entries",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "order": 1,
+          "allow_extra_params": true
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "set_propagated_clock [all_clocks]"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "limit": 10
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "SW025",
+      "category": "sequential_workflow",
+      "difficulty": "hard",
+      "prompt": "Create 'opt-session' in /opt/designs, run 'optimize_design', run 'report_wns', terminate gracefully",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "opt-session",
+            "cwd": "/opt/designs"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "optimize_design",
+            "session_id": "opt-session"
+          },
+          "order": 2,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_wns",
+            "session_id": "opt-session"
+          },
+          "order": 3,
+          "dependencies": ["create_interactive_session"]
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "opt-session",
+            "force": false
+          },
+          "order": 4,
+          "dependencies": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "execution_order": 1.0
+      }
+    },
+    {
+      "id": "PE001",
+      "category": "parallel_execution",
+      "difficulty": "easy",
+      "prompt": "Get session metrics and list all active sessions at the same time",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "parallel_with": ["list_interactive_sessions"]
+        },
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "parallel_with": ["get_session_metrics"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE002",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "Simultaneously inspect session-A and session-B",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "session-A"
+          },
+          "parallel_with": ["inspect_interactive_session"]
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "session-B"
+          },
+          "parallel_with": ["inspect_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE003",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "Get history for session-1 and session-2 in parallel",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "session-1"
+          },
+          "parallel_with": ["get_session_history"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "session-2"
+          },
+          "parallel_with": ["get_session_history"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE004",
+      "category": "parallel_execution",
+      "difficulty": "hard",
+      "prompt": "List report images for nangate45/gcd run-A and asap7/aes run-B at the same time",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "run-A"
+          },
+          "parallel_with": ["list_report_images"]
+        },
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "run-B"
+          },
+          "parallel_with": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE005",
+      "category": "parallel_execution",
+      "difficulty": "hard",
+      "prompt": "Read routing.png from nangate45/gcd run-1 and placement.png from sky130hd/usb run-2 simultaneously",
+      "expected_tools": [
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "run-1",
+            "image_name": "routing.png"
+          },
+          "parallel_with": ["read_report_image"]
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "usb",
+            "run_slug": "run-2",
+            "image_name": "placement.png"
+          },
+          "parallel_with": ["read_report_image"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE006",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "Check session metrics and get history for session-test concurrently",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "parallel_with": ["get_session_history"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "session-test"
+          },
+          "parallel_with": ["get_session_metrics"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE007",
+      "category": "parallel_execution",
+      "difficulty": "hard",
+      "prompt": "Inspect sessions alpha, beta, and gamma all at once",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "alpha"
+          },
+          "parallel_with": ["inspect_interactive_session", "inspect_interactive_session"]
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "beta"
+          },
+          "parallel_with": ["inspect_interactive_session", "inspect_interactive_session"]
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "gamma"
+          },
+          "parallel_with": ["inspect_interactive_session", "inspect_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE008",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "List all sessions and get overall metrics in parallel",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "parallel_with": ["get_session_metrics"]
+        },
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "parallel_with": ["list_interactive_sessions"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE009",
+      "category": "parallel_execution",
+      "difficulty": "hard",
+      "prompt": "Get placement images for nangate45/gcd run-1 and routing images for asap7/aes run-2 together",
+      "expected_tools": [
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "run-1",
+            "stage": "placement"
+          },
+          "parallel_with": ["list_report_images"]
+        },
+        {
+          "name": "list_report_images",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "run-2",
+            "stage": "routing"
+          },
+          "parallel_with": ["list_report_images"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE010",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "Terminate session-old and create a new session simultaneously",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "session-old"
+          },
+          "parallel_with": ["create_interactive_session"]
+        },
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "parallel_with": ["terminate_interactive_session"],
+          "allow_extra_params": true
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE011",
+      "category": "parallel_execution",
+      "difficulty": "hard",
+      "prompt": "Get history from timing-session, power-session, and area-session concurrently",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "timing-session"
+          },
+          "parallel_with": ["get_session_history", "get_session_history"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "power-session"
+          },
+          "parallel_with": ["get_session_history", "get_session_history"]
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "area-session"
+          },
+          "parallel_with": ["get_session_history", "get_session_history"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE012",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "List sessions and inspect session-main at the same time",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "parallel_with": ["inspect_interactive_session"]
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "session-main"
+          },
+          "parallel_with": ["list_interactive_sessions"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE013",
+      "category": "parallel_execution",
+      "difficulty": "hard",
+      "prompt": "Read final.png from three different runs: nangate45/gcd/run-1, asap7/aes/run-2, sky130hd/usb/run-3",
+      "expected_tools": [
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "nangate45",
+            "design": "gcd",
+            "run_slug": "run-1",
+            "image_name": "final.png"
+          },
+          "parallel_with": ["read_report_image", "read_report_image"]
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "asap7",
+            "design": "aes",
+            "run_slug": "run-2",
+            "image_name": "final.png"
+          },
+          "parallel_with": ["read_report_image", "read_report_image"]
+        },
+        {
+          "name": "read_report_image",
+          "parameters": {
+            "platform": "sky130hd",
+            "design": "usb",
+            "run_slug": "run-3",
+            "image_name": "final.png"
+          },
+          "parallel_with": ["read_report_image", "read_report_image"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE014",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "Create two sessions concurrently: session-A in /designs/a and session-B in /designs/b",
+      "expected_tools": [
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "session-A",
+            "cwd": "/designs/a"
+          },
+          "parallel_with": ["create_interactive_session"]
+        },
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "session-B",
+            "cwd": "/designs/b"
+          },
+          "parallel_with": ["create_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "PE015",
+      "category": "parallel_execution",
+      "difficulty": "medium",
+      "prompt": "Terminate session-1 and session-2 at the same time",
+      "expected_tools": [
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "session-1"
+          },
+          "parallel_with": ["terminate_interactive_session"]
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "session-2"
+          },
+          "parallel_with": ["terminate_interactive_session"]
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "parallel_execution": 1.0
+      }
+    },
+    {
+      "id": "SM001",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "Inspect session long-running, and if it has been idle for more than 5 minutes, terminate it",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "long-running"
+          },
+          "order": 1
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {
+            "session_id": "long-running"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "idle_time > 300 seconds"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM002",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "Check if session opt-work exists by listing sessions, if it doesn't exist, create it",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "opt-work"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "opt-work not in session list"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM003",
+      "category": "state_management",
+      "difficulty": "medium",
+      "prompt": "Get metrics for all sessions and terminate any session that has more than 100 commands executed",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "condition": "command_count > 100",
+          "note": "May be called multiple times based on metrics"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM004",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "Check session debug-1, if it's running a command currently, wait; otherwise run 'report_checks'",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "debug-1"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_checks",
+            "session_id": "debug-1"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "session not busy"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM005",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "List all sessions, if there are more than 10 active, terminate the oldest one",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "condition": "session_count > 10",
+          "note": "session_id should be oldest session"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM006",
+      "category": "state_management",
+      "difficulty": "medium",
+      "prompt": "Get history for session flow-1, if it contains any failed commands, inspect the session details",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "flow-1"
+          },
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "flow-1"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "history contains failures"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM007",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "Check metrics, if total memory usage exceeds 80%, list sessions and terminate the largest one",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "condition": "memory > 80%"
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {},
+          "order": 3,
+          "conditional": true,
+          "condition": "memory > 80%",
+          "note": "session_id should be highest memory consumer"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM008",
+      "category": "state_management",
+      "difficulty": "medium",
+      "prompt": "Inspect session place-1, if the last command failed, get the history to debug",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "place-1"
+          },
+          "order": 1
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "place-1"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "last command failed"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM009",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "List sessions, for each session older than 1 hour with no activity, terminate it",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "note": "May be called multiple times"
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {},
+          "order": 3,
+          "conditional": true,
+          "condition": "age > 1 hour AND idle",
+          "note": "May be called multiple times"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.8,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM010",
+      "category": "state_management",
+      "difficulty": "medium",
+      "prompt": "Check if session analysis-1 exists, if yes inspect it, if no create it",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "analysis-1"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "analysis-1 exists"
+        },
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "analysis-1"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "analysis-1 does not exist"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM011",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "Get session metrics, if any session has error rate > 50%, inspect it and get its history",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "condition": "error_rate > 50%"
+        },
+        {
+          "name": "get_session_history",
+          "parameters": {},
+          "order": 3,
+          "conditional": true,
+          "condition": "error_rate > 50%"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM012",
+      "category": "state_management",
+      "difficulty": "medium",
+      "prompt": "Inspect router-session, if it's idle, run 'global_route', otherwise just show its status",
+      "expected_tools": [
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {
+            "session_id": "router-session"
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "global_route",
+            "session_id": "router-session"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "session is idle"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM013",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "List all sessions, if none exist create a default one, otherwise inspect the first one",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "create_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "condition": "no sessions exist",
+          "allow_extra_params": true
+        },
+        {
+          "name": "inspect_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "conditional": true,
+          "condition": "sessions exist",
+          "note": "session_id from first session"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM014",
+      "category": "state_management",
+      "difficulty": "medium",
+      "prompt": "Check session synthesis-flow, if the last command was 'read_verilog', run 'link_design' next",
+      "expected_tools": [
+        {
+          "name": "get_session_history",
+          "parameters": {
+            "session_id": "synthesis-flow",
+            "limit": 1
+          },
+          "order": 1
+        },
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "link_design",
+            "session_id": "synthesis-flow"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "last command was read_verilog"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "SM015",
+      "category": "state_management",
+      "difficulty": "hard",
+      "prompt": "Get metrics, if there are fewer than 5 active sessions, create a new session named 'backup-session'",
+      "expected_tools": [
+        {
+          "name": "get_session_metrics",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "create_interactive_session",
+          "parameters": {
+            "session_id": "backup-session"
+          },
+          "order": 2,
+          "conditional": true,
+          "condition": "active_sessions < 5"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0,
+        "conditional_logic": 1.0
+      }
+    },
+    {
+      "id": "EH001",
+      "category": "error_handling",
+      "difficulty": "easy",
+      "prompt": "What is OpenROAD?",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "informational"
+    },
+    {
+      "id": "EH002",
+      "category": "error_handling",
+      "difficulty": "easy",
+      "prompt": "Hello, how are you?",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "conversational"
+    },
+    {
+      "id": "EH003",
+      "category": "error_handling",
+      "difficulty": "medium",
+      "prompt": "Explain what the read_lef command does in OpenROAD",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "informational"
+    },
+    {
+      "id": "EH004",
+      "category": "error_handling",
+      "difficulty": "medium",
+      "prompt": "What's the difference between global and detailed routing?",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "informational"
+    },
+    {
+      "id": "EH005",
+      "category": "error_handling",
+      "difficulty": "hard",
+      "prompt": "Terminate all active sessions immediately",
+      "expected_tools": [
+        {
+          "name": "list_interactive_sessions",
+          "parameters": {},
+          "order": 1
+        },
+        {
+          "name": "terminate_interactive_session",
+          "parameters": {},
+          "order": 2,
+          "note": "Should be called for each session"
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 0.9,
+        "handles_iteration": 1.0
+      }
+    },
+    {
+      "id": "EH006",
+      "category": "error_handling",
+      "difficulty": "medium",
+      "prompt": "Can you help me debug a timing violation?",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "informational",
+      "note": "Should offer guidance, not execute commands"
+    },
+    {
+      "id": "EH007",
+      "category": "error_handling",
+      "difficulty": "hard",
+      "prompt": "Run report_power in session that-doesnt-exist",
+      "expected_tools": [
+        {
+          "name": "interactive_openroad",
+          "parameters": {
+            "command": "report_power",
+            "session_id": "that-doesnt-exist"
+          }
+        }
+      ],
+      "scoring": {
+        "tool_selection": 1.0,
+        "parameter_accuracy": 1.0
+      },
+      "note": "LLM should attempt the call; error will be handled by server"
+    },
+    {
+      "id": "EH008",
+      "category": "error_handling",
+      "difficulty": "medium",
+      "prompt": "Show me some tips for optimizing placement",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "informational"
+    },
+    {
+      "id": "EH009",
+      "category": "error_handling",
+      "difficulty": "hard",
+      "prompt": "Delete all report images for nangate45/gcd",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "note": "There's no delete tool available",
+      "expected_response_type": "explanation_of_limitation"
+    },
+    {
+      "id": "EH010",
+      "category": "error_handling",
+      "difficulty": "easy",
+      "prompt": "Thanks for your help!",
+      "expected_tools": [],
+      "scoring": {
+        "no_tool_call": 1.0
+      },
+      "expected_response_type": "conversational"
+    }
+  ]
+}
