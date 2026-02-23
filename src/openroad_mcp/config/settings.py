@@ -40,6 +40,10 @@ class Settings(BaseModel):
         default=True,
         description="Enable command validation to prevent command injection",
     )
+    WHITELIST_ENABLED: bool = Field(
+        default=True,
+        description="Enable Tcl command whitelist for PTY sessions (set OPENROAD_WHITELIST_ENABLED=false to disable)",
+    )
 
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
@@ -93,6 +97,10 @@ class Settings(BaseModel):
         enable_validation_env = os.getenv("OPENROAD_ENABLE_COMMAND_VALIDATION")
         if enable_validation_env is not None:
             env_values["ENABLE_COMMAND_VALIDATION"] = enable_validation_env.lower() in ("true", "1", "yes")
+
+        whitelist_enabled_env = os.getenv("OPENROAD_WHITELIST_ENABLED")
+        if whitelist_enabled_env is not None:
+            env_values["WHITELIST_ENABLED"] = whitelist_enabled_env.lower() in ("true", "1", "yes")
 
         for setting_key, (env_key, type_converter) in env_mapping.items():
             env_value = os.getenv(env_key)

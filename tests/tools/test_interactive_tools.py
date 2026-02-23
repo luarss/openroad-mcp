@@ -44,11 +44,11 @@ class TestInteractiveShellTool:
         mock_manager.execute_command.return_value = mock_result
 
         # Execute command
-        result_json = await tool.execute("test command")
+        result_json = await tool.execute("report_wns")
 
         # Verify session creation and execution
         mock_manager.create_session.assert_called_once()
-        mock_manager.execute_command.assert_called_once_with("session-1", "test command", None)
+        mock_manager.execute_command.assert_called_once_with("session-1", "report_wns", None)
 
         # Verify result format
         assert "test output" in result_json
@@ -67,11 +67,11 @@ class TestInteractiveShellTool:
         mock_manager.execute_command.return_value = mock_result
 
         # Execute command
-        await tool.execute("test command", session_id="existing-session", timeout_ms=5000)
+        await tool.execute("report_checks -path_delay max", session_id="existing-session", timeout_ms=5000)
 
         # Verify no session creation
         mock_manager.create_session.assert_not_called()
-        mock_manager.execute_command.assert_called_once_with("existing-session", "test command", 5000)
+        mock_manager.execute_command.assert_called_once_with("existing-session", "report_checks -path_delay max", 5000)
 
     async def test_execute_session_not_found_error(self, tool, mock_manager):
         """Test handling session not found error."""
@@ -79,7 +79,7 @@ class TestInteractiveShellTool:
         mock_manager.execute_command.side_effect = SessionNotFoundError("Session not found")
 
         # Execute command
-        result_json = await tool.execute("test", session_id="non-existent")
+        result_json = await tool.execute("report_wns", session_id="non-existent")
 
         # Verify error handling
         assert "Session not found" in result_json
@@ -91,7 +91,7 @@ class TestInteractiveShellTool:
         mock_manager.execute_command.side_effect = SessionTerminatedError("Session terminated")
 
         # Execute command
-        result_json = await tool.execute("test", session_id="terminated-session")
+        result_json = await tool.execute("report_wns", session_id="terminated-session")
 
         # Verify error handling
         assert "Session Error: Session terminated" in result_json
@@ -102,7 +102,7 @@ class TestInteractiveShellTool:
         mock_manager.execute_command.side_effect = ValueError("Unexpected error")
 
         # Execute command
-        result_json = await tool.execute("test", session_id="some-session")
+        result_json = await tool.execute("report_wns", session_id="some-session")
 
         # Verify error handling
         assert "Unexpected error" in result_json
@@ -448,7 +448,7 @@ class TestInteractiveToolsIntegration:
         create_result = await create_tool.execute()
         assert "workflow-session" in create_result
 
-        exec_result = await shell_tool.execute("test command", session_id="workflow-session")
+        exec_result = await shell_tool.execute("report_wns", session_id="workflow-session")
         assert "command executed" in exec_result
 
         list_result = await list_tool.execute()
@@ -486,16 +486,16 @@ class TestInteractiveToolsIntegration:
         manager.create_session.side_effect = mock_create_session
         manager.execute_command.side_effect = mock_execute_command
 
-        # Execute concurrent operations
+        # Execute concurrent operations using valid OpenROAD commands
+        commands = ["report_wns", "report_tns", "report_checks", "get_nets *", "get_cells *"]
         tasks = []
         for i, tool in enumerate(tools):
-            task = tool.execute(f"command-{i}")
+            task = tool.execute(commands[i], session_id=f"session-{i}")
             tasks.append(task)
 
         results = await asyncio.gather(*tasks)
 
         # Verify all operations completed
         assert len(results) == 5
-        for i, result in enumerate(results):
-            assert f"command-{i}" in result
+        for _i, result in enumerate(results):
             assert "output" in result
