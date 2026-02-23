@@ -30,6 +30,10 @@ BLOCKED_COMMANDS: frozenset[str] = frozenset(
         "fconfigure",  # I/O channel configuration
         "chan",  # Channel operations
         "vwait",  # Block the event loop
+        "rename",  # Renames/removes commands, can bypass top-level checks
+        "uplevel",  # Evaluates script in a different stack level
+        "after",  # Schedules arbitrary code execution
+        "subst",  # Performs substitutions that can invoke arbitrary commands
     ]
 )
 
@@ -107,11 +111,7 @@ ALLOWED_PATTERNS: tuple[str, ...] = (
     "incr",
     "append",
     "info",
-    "uplevel",
-    "subst",
     "unset",
-    "rename",
-    "after",
 )
 
 
@@ -135,6 +135,14 @@ def is_command_allowed(command: str) -> tuple[bool, str | None]:
 
     Multi-statement inputs (separated by ``;`` or newlines) are checked
     individually — all must be allowed.
+
+    **Known limitation**: semicolons are split naively with
+    ``command.replace(";", "\\n")``.  Semicolons inside Tcl braces or quoted
+    strings (e.g. ``puts {hello; world}``) will cause the text after the
+    semicolon to be evaluated as a separate statement and may be rejected even
+    though the original command is safe.
+    # TODO: replace the naive splitter with a Tcl-aware one that ignores
+    # semicolons inside ``{...}`` and quoted strings.
 
     Returns:
         ``(True, None)`` if every statement is permitted.

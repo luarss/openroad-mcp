@@ -1,5 +1,6 @@
 """Interactive shell tools for OpenROAD MCP server."""
 
+import json
 from datetime import datetime
 
 from ..config.command_whitelist import BLOCKED_COMMANDS, is_command_allowed
@@ -34,6 +35,10 @@ _RISK_REASONS: dict[str, str] = {
     "fconfigure": "reconfigures I/O channels",
     "chan": "performs low-level channel operations",
     "vwait": "blocks the event loop",
+    "rename": "renames or removes commands, bypassing top-level whitelist checks",
+    "uplevel": "evaluates scripts in a different call-stack level",
+    "after": "schedules arbitrary code for deferred execution",
+    "subst": "performs substitutions that can invoke arbitrary commands",
 }
 
 
@@ -47,30 +52,23 @@ def _permission_request(command: str, blocked_verb: str, session_id: str | None)
 
     output = (
         f"Permission required\n\n"
-        f"Command '{blocked_verb}' is {risk_label}: it {reason}.\n\n"
+        f"Command '{blocked_verb}' is {risk_label}: it {reason}.\n"
+        f"Full command: {command!r}\n\n"
         f"To proceed, call interactive_openroad again with confirmed=True.\n"
         f"To cancel, do not call again."
     )
-    return InteractiveShellTool._format_class_result(
-        InteractiveExecResult(
-            output=output,
-            session_id=session_id,
-            timestamp=datetime.now().isoformat(),
-            execution_time=0.0,
-            error=f"ConfirmationRequired: '{blocked_verb}'",
-        )
+    result = InteractiveExecResult(
+        output=output,
+        session_id=session_id,
+        timestamp=datetime.now().isoformat(),
+        execution_time=0.0,
+        error=f"ConfirmationRequired: '{command}'",
     )
+    return json.dumps(result.model_dump(), indent=2, default=str)
 
 
 class InteractiveShellTool(BaseTool):
     """Tool for executing commands in interactive OpenROAD sessions."""
-
-    @staticmethod
-    def _format_class_result(result: InteractiveExecResult) -> str:
-        """Class-level format helper used before an instance exists."""
-        import json
-
-        return json.dumps(result.model_dump(), indent=2, default=str)
 
     async def execute(
         self,

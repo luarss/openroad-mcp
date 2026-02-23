@@ -229,6 +229,7 @@ class TestInteractiveShellToolWhitelist:
         assert "Permission required" in result
         assert "source" in result
         assert "Tcl script" in result  # reason text
+        mock_manager.execute_command.assert_not_called()
 
     async def test_unknown_command_returns_permission_request(self, tool, mock_manager):
         """Commands not in the whitelist also require confirmation."""
@@ -281,5 +282,5 @@ class TestInteractiveShellToolWhitelist:
         with patch("openroad_mcp.tools.interactive.settings") as mock_settings:
             mock_settings.WHITELIST_ENABLED = False
             result = await tool.execute("exec ls", session_id="s1")
-        mock_manager.execute_command.assert_called_once()
-        assert "ok" in result
+            mock_manager.execute_command.assert_called_once()
+            assert "ok" in result
