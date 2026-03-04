@@ -45,6 +45,12 @@ class Settings(BaseModel):
         description="Enable Tcl command whitelist for PTY sessions (set OPENROAD_WHITELIST_ENABLED=false to disable)",
     )
 
+    # Code Mode settings
+    CODE_MODE_ENABLED: bool = Field(
+        default=True,
+        description="Enable Code Mode tools (code_search, code_execute)",
+    )
+
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
         default=os.path.expanduser("~/OpenROAD-flow-scripts/flow"),

@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
+from .tools.code_mode import CodeExecuteTool, CodeSearchTool
 from .tools.interactive import (
     CreateSessionTool,
     InspectSessionTool,
@@ -40,6 +41,10 @@ session_metrics_tool = SessionMetricsTool(manager)
 # Initialize report image tool instances
 list_report_images_tool = ListReportImagesTool(manager)
 read_report_image_tool = ReadReportImageTool(manager)
+
+# Initialize Code Mode tool instances
+code_search_tool = CodeSearchTool(manager)
+code_execute_tool = CodeExecuteTool(manager)
 
 
 # Interactive session tools
@@ -101,6 +106,35 @@ async def list_report_images(platform: str, design: str, run_slug: str, stage: s
 async def read_report_image(platform: str, design: str, run_slug: str, image_name: str) -> str:
     """Read a report image and return base64-encoded data with metadata."""
     return await read_report_image_tool.execute(platform, design, run_slug, image_name)
+
+
+# Code Mode tools
+@mcp.tool()
+async def code_search(query: str) -> str:
+    """Search OpenROAD Tcl commands by name, category, or description.
+
+    Write a search query to discover available OpenROAD commands.
+    Returns matching commands with their categories and descriptions.
+
+    Args:
+        query: Search query - command name, category, or keyword
+    """
+    return await code_search_tool.execute(query)
+
+
+@mcp.tool()
+async def code_execute(code: str, session_id: str | None = None, confirmed: bool = False) -> str:
+    """Execute Tcl code in an OpenROAD session.
+
+    Multi-line Tcl scripts are supported. Commands are validated against
+    the security whitelist. Dangerous commands require confirmed=True.
+
+    Args:
+        code: Tcl code to execute
+        session_id: Optional session ID (auto-created if not provided)
+        confirmed: Set true to confirm execution of flagged commands
+    """
+    return await code_execute_tool.execute(code, session_id, confirmed)
 
 
 async def shutdown_openroad() -> None:
