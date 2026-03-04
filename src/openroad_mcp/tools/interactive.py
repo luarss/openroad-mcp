@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from ..core.models import (
+    ErrorCode,
     InteractiveExecResult,
     InteractiveSessionInfo,
     InteractiveSessionListResult,
@@ -16,6 +17,7 @@ from ..utils.logging import get_logger
 from .base import BaseTool
 
 logger = get_logger("interactive_tools")
+
 
 
 class InteractiveShellTool(BaseTool):
@@ -40,6 +42,7 @@ class InteractiveShellTool(BaseTool):
                     timestamp=datetime.now().isoformat(),
                     execution_time=0.0,
                     error=str(e),
+                    error_code=ErrorCode.NOT_FOUND,
                 )
             )
 
@@ -52,6 +55,7 @@ class InteractiveShellTool(BaseTool):
                     timestamp=datetime.now().isoformat(),
                     execution_time=0.0,
                     error=str(e),
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                 )
             )
 
@@ -64,6 +68,7 @@ class InteractiveShellTool(BaseTool):
                     timestamp=datetime.now().isoformat(),
                     execution_time=0.0,
                     error=str(e),
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                 )
             )
 
@@ -167,6 +172,7 @@ class TerminateSessionTool(BaseTool):
                     session_id=session_id,
                     terminated=False,
                     error=f"Session not found: {str(e)}",
+                    error_code=ErrorCode.NOT_FOUND,
                     force=force,
                 )
             )
@@ -178,6 +184,7 @@ class TerminateSessionTool(BaseTool):
                     session_id=session_id,
                     terminated=False,
                     error=f"Termination failed: {str(e)}",
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                     force=force,
                 )
             )
@@ -186,11 +193,12 @@ class TerminateSessionTool(BaseTool):
 class InspectSessionTool(BaseTool):
     """Tool for detailed session introspection."""
 
-    async def execute(self, session_id: str) -> str:
+    async def execute(self, session_id: str, detail: str = "standard") -> str:
         """Get detailed session inspection data."""
         try:
             metrics = await self.manager.inspect_session(session_id)
-            return self._format_result(SessionInspectionResult(session_id=session_id, metrics=metrics))
+            filtered = self._filter_inspect_metrics(metrics, detail)
+            return self._format_result(SessionInspectionResult(session_id=session_id, metrics=filtered))
 
         except SessionNotFoundError as e:
             logger.warning(f"Attempted to inspect non-existent session: {session_id}")
@@ -198,6 +206,7 @@ class InspectSessionTool(BaseTool):
                 SessionInspectionResult(
                     session_id=session_id,
                     error=f"Session not found: {str(e)}",
+                    error_code=ErrorCode.NOT_FOUND,
                     metrics=None,
                 )
             )
@@ -208,9 +217,21 @@ class InspectSessionTool(BaseTool):
                 SessionInspectionResult(
                     session_id=session_id,
                     error=f"Inspection failed: {str(e)}",
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                     metrics=None,
                 )
             )
+
+    @staticmethod
+    def _filter_inspect_metrics(metrics: dict, detail: str) -> dict:
+        """Filter metrics dict by verbosity level."""
+        minimal_keys = {"session_id", "state", "is_alive", "created_at", "uptime_seconds"}
+        standard_keys = minimal_keys | {"commands", "performance", "idle_seconds", "last_activity"}
+        if detail == "minimal":
+            return {k: v for k, v in metrics.items() if k in minimal_keys}
+        if detail == "standard":
+            return {k: v for k, v in metrics.items() if k in standard_keys}
+        return metrics  # "full" — all keys
 
 
 class SessionHistoryTool(BaseTool):
@@ -240,6 +261,7 @@ class SessionHistoryTool(BaseTool):
                     limit=limit,
                     search=search,
                     error=f"Session not found: {str(e)}",
+                    error_code=ErrorCode.NOT_FOUND,
                 )
             )
 
@@ -253,6 +275,7 @@ class SessionHistoryTool(BaseTool):
                     limit=limit,
                     search=search,
                     error=f"History retrieval failed: {str(e)}",
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                 )
             )
 
@@ -260,11 +283,12 @@ class SessionHistoryTool(BaseTool):
 class SessionMetricsTool(BaseTool):
     """Tool for retrieving comprehensive session metrics."""
 
-    async def execute(self) -> str:
+    async def execute(self, detail: str = "standard") -> str:
         """Get comprehensive metrics for all sessions."""
         try:
             metrics = await self.manager.session_metrics()
-            return self._format_result(SessionMetricsResult(metrics=metrics))
+            filtered = self._filter_metrics(metrics, detail)
+            return self._format_result(SessionMetricsResult(metrics=filtered))
 
         except Exception as e:
             logger.exception("Failed to get session metrics")
@@ -272,5 +296,15 @@ class SessionMetricsTool(BaseTool):
                 SessionMetricsResult(
                     metrics=None,
                     error=f"Metrics retrieval failed: {str(e)}",
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                 )
             )
+
+    @staticmethod
+    def _filter_metrics(metrics: dict, detail: str) -> dict:
+        """Filter metrics dict by verbosity level."""
+        if detail == "minimal":
+            return {"manager": metrics["manager"]}
+        if detail == "standard":
+            return {"manager": metrics["manager"], "aggregate": metrics.get("aggregate", {})}
+        return metrics  # "full" — includes sessions list
