@@ -105,28 +105,20 @@ Everything you'd normally do in OpenROAD, but now accessible through an AI
 assistant.
 
 --------------------------------------------------------------------------------
-[SLIDE 7: LIVE DEMO CONCEPT] - 45 seconds
+[SLIDE 7: EXAMPLE WORKFLOW] - 30 seconds
 --------------------------------------------------------------------------------
 
-Let me show you a real example you can run yourself.
+Here's what the workflow looks like in practice.
 
-The nangate45/gcd design ships with a 0.46 ns clock constraint that fails timing
-out of the box — 23 setup violations, WNS is -0.05 ns.
+First, you create an interactive session. Then load your design with read_verilog.
+Run synthesis, check timing with report_timing, and view the results — including
+placement and routing images.
 
-With OpenROAD MCP installed, you open Claude Code and type:
-"Create an OpenROAD session, load the nangate45 GCD design from ORFS, and tell
-me where the timing failures are."
+This is all accessible through natural language. You tell the AI what you want
+to do, and it translates that into the appropriate OpenROAD commands.
 
-The AI loads the design, runs report_checks and report_clock_min_period, reads
-the critical path output, and comes back with a diagnosis: "The 0.46 ns clock
-period is too aggressive. The minimum achievable period is approximately 0.51 ns.
-I recommend relaxing the constraint to 0.52 ns."
-
-You tell it to make the change. It updates the SDC, reruns the flow, and reports
-back: WNS is now ~0.00 ns, timing passed. That whole loop — load, analyze,
-diagnose, fix, verify — in one conversation.
-
-[NOTE: Demo files are in demo/orfs-gcd-timing/ in the repo if audience asks.]
+The key insight is that sessions persist — you build up design state across
+multiple commands, just like you would in an interactive OpenROAD shell.
 
 --------------------------------------------------------------------------------
 [SLIDE 8: SECURITY MODEL] - 45 seconds
@@ -166,21 +158,22 @@ discovering designs and platforms.
 And fifth, it's production-ready with over 80% test coverage.
 
 --------------------------------------------------------------------------------
-[SLIDE 10: USE CASES] - 30 seconds
+[SLIDE 10: USE CASES / DEMO] - 30 seconds
 --------------------------------------------------------------------------------
 
-Who benefits from this?
+Let me show you a real use case: the GCD timing closure demo.
 
-Junior engineers can learn OpenROAD with AI guidance — asking questions like
-"What does this timing report mean?"
+The nangate45/gcd design ships with a 0.46 ns clock constraint that fails timing
+out of the box — 23 setup violations, WNS is -0.05 ns, status FAILED.
 
-Senior engineers can debug timing violations faster by having AI analyze
-reports and suggest fixes.
+Using OpenROAD MCP, the AI loads the design, runs report_clock_min_period, and
+finds the minimum achievable period is 0.51 ns. It recommends relaxing the
+constraint to 0.52 ns.
 
-CAD teams can build AI-powered automation on top of the MCP layer.
+After the change: WNS is ~0.00 ns, only 4 negligible violations remain, and
+timing PASSES.
 
-And researchers can explore AI-assisted hardware design with a standardized
-interface.
+The full demo is available in the demo/orfs-gcd-timing/ directory in the repo.
 
 --------------------------------------------------------------------------------
 [SLIDE 11: ROADMAP] - 20 seconds
@@ -201,7 +194,7 @@ and multi-objective design exploration.
 I encourage you to try it today.
 
 Installation is just a pip install. Use it with Claude Code or Gemini CLI.
-The code is on GitHub, open source under MIT license.
+The code is on GitHub, open source under Apache 2.0 license.
 
 Contributions and feedback are always welcome.
 
