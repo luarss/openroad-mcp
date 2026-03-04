@@ -41,6 +41,7 @@
     .logo-footer { position: absolute; bottom: 0; left: 0; right: 0; background: #1a5f7a; padding: 15px 50px; display: flex; align-items: center; gap: 25px; }
     .logo-footer img { height: 28px; }
     .logo-footer .openroad-logo { background: #fff; padding: 4px 8px; border-radius: 4px; height: 24px; }
+    .page-number { position: absolute; bottom: 20px; right: 50px; color: rgba(255,255,255,0.7); font-size: 14px; }
     .center-content { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
     .title-slide .presenter { font-size: 24px; margin-top: 30px; }
     .title-slide .conference { font-size: 20px; margin-top: 10px; opacity: 0.9; }
@@ -78,6 +79,7 @@
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">1 / 14</div>
   </div>
 
   <!-- Slide 2: Problem -->
@@ -95,6 +97,7 @@
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">2 / 14</div>
   </div>
 
   <!-- Slide 3: Solution -->
@@ -111,6 +114,7 @@
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">3 / 14</div>
   </div>
 
   <!-- Slide 4: What is MCP -->
@@ -128,6 +132,7 @@
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">4 / 14</div>
   </div>
 
   <!-- Slide 5: Architecture -->
@@ -152,6 +157,7 @@
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">5 / 14</div>
   </div>
 
   <!-- Slide 6: Core Features -->
@@ -169,6 +175,7 @@
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">6 / 14</div>
   </div>
 
   <!-- Slide 7: Example Workflow -->
@@ -192,6 +199,7 @@ list_report_images(platform="sky130", design="my_design")</pre>
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">7 / 14</div>
   </div>
 
   <!-- Slide 8: Security Model -->
@@ -209,6 +217,7 @@ list_report_images(platform="sky130", design="my_design")</pre>
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">8 / 14</div>
   </div>
 
   <!-- Slide 9: Unique Innovations -->
@@ -216,7 +225,7 @@ list_report_images(platform="sky130", design="my_design")</pre>
     <h1>Unique Innovations</h1>
     <h2>What Makes OpenROAD MCP Special?</h2>
     <ol>
-      <li><strong>First MCP server for EDA/chip design</strong></li>
+      <li><strong>MCP server for OpenROAD</strong> with natural language interface</li>
       <li><strong>True PTY terminal emulation</strong> (not just pipe-based)</li>
       <li><strong>Permission-ask security model</strong> for AI agents</li>
       <li><strong>ORFS integration</strong> with automatic design discovery</li>
@@ -226,23 +235,31 @@ list_report_images(platform="sky130", design="my_design")</pre>
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">9 / 14</div>
   </div>
 
   <!-- Slide 10: Use Cases -->
   <div class="slide">
     <h1>Use Cases</h1>
-    <h2>Who Benefits?</h2>
+    <h2>Demo: GCD Timing Closure</h2>
     <table>
-      <tr><th>User</th><th>Use Case</th></tr>
-      <tr><td><strong>Junior Engineers</strong></td><td>Learn OpenROAD with AI guidance</td></tr>
-      <tr><td><strong>Senior Engineers</strong></td><td>Debug timing violations faster</td></tr>
-      <tr><td><strong>CAD Teams</strong></td><td>Build AI-powered automation</td></tr>
-      <tr><td><strong>Researchers</strong></td><td>Explore AI-assisted hardware design</td></tr>
+      <tr><th>Metric</th><th>Before</th><th>After</th></tr>
+      <tr><td><strong>WNS</strong></td><td>-0.05 ns</td><td>~0.00 ns</td></tr>
+      <tr><td><strong>Setup Violations</strong></td><td>23</td><td>4 (negligible)</td></tr>
+      <tr><td><strong>Status</strong></td><td>FAILED</td><td>PASSED</td></tr>
     </table>
+    <p style="margin-top: 15px;"><strong>Workflow:</strong></p>
+    <ul>
+      <li>AI loads nangate45/gcd design from ORFS</li>
+      <li>Runs <code>report_clock_min_period</code> → achieves 0.51 ns</li>
+      <li>Relaxes constraint from 0.46 ns to 0.52 ns</li>
+      <li>Full demo: <code>demo/orfs-gcd-timing/</code></li>
+    </ul>
     <div class="logo-footer">
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">10 / 14</div>
   </div>
 
   <!-- Slide 11: Roadmap -->
@@ -271,6 +288,7 @@ list_report_images(platform="sky130", design="my_design")</pre>
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">11 / 14</div>
   </div>
 
   <!-- Slide 12: Get Involved -->
@@ -284,16 +302,17 @@ pip install openroad-mcp
 claude --mcp-server openroad-mcp
 
 # GitHub
-github.com/your-repo/openroad-mcp</pre>
+github.com/luarss/openroad-mcp</pre>
     <p style="margin-top: 15px;"><strong>Community:</strong></p>
     <ul>
-      <li>Open source under MIT license</li>
+      <li>Open source under Apache 2.0 license</li>
       <li>Contributions welcome</li>
     </ul>
     <div class="logo-footer">
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">12 / 14</div>
   </div>
 
   <!-- Slide 13: Summary -->
@@ -311,6 +330,7 @@ github.com/your-repo/openroad-mcp</pre>
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">13 / 14</div>
   </div>
 
   <!-- Slide 14: Questions -->
@@ -320,14 +340,14 @@ github.com/your-repo/openroad-mcp</pre>
       <h2>Thank You!</h2>
       <p style="font-size: 20px; margin-top: 30px;">
         <strong>Contact:</strong> Jack Luar<br><br>
-        <strong>GitHub:</strong> github.com/your-repo/openroad-mcp<br><br>
-        <strong>Docs:</strong> openroad-mcp.readthedocs.io
+        <strong>GitHub:</strong> github.com/luarss/openroad-mcp
       </p>
     </div>
     <div class="logo-footer">
       <img src="precision_logo.png" alt="Precision Innovations">
       <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
     </div>
+    <div class="page-number">14 / 14</div>
   </div>
 
 </body>
