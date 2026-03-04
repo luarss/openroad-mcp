@@ -295,11 +295,9 @@ list_report_images(platform="sky130", design="my_design")</pre>
   <div class="slide">
     <h1>Get Involved</h1>
     <h2>Try It Today!</h2>
-    <pre># Install
-pip install openroad-mcp
-
-# Use with Claude Code
-claude --mcp-server openroad-mcp
+    <pre># Add to Claude Code
+claude mcp add --transport stdio openroad-mcp -- \
+  uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
 
 # GitHub
 github.com/luarss/openroad-mcp</pre>
