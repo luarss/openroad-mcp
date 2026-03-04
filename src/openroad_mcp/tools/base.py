@@ -4,6 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Any
 
+from ..code_mode.models import CodeExecuteResult, CodeSearchResult
 from ..core.manager import OpenROADManager
 from ..core.models import (
     CommandHistoryResult,
@@ -51,6 +52,8 @@ class BaseTool(ABC):
             | SessionMetricsResult
             | ListImagesResult
             | ReadImageResult
+            | CodeSearchResult
+            | CodeExecuteResult
         ),
     ) -> str:
         """Format result as JSON string."""

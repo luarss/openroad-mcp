@@ -1,7 +1,10 @@
 """Interactive shell tools for OpenROAD MCP server."""
 
+import json
 from datetime import datetime
 
+from ..config.command_whitelist import BLOCKED_COMMANDS, is_command_allowed
+from ..config.settings import settings
 from ..core.models import (
     InteractiveExecResult,
     InteractiveSessionInfo,
@@ -17,12 +20,80 @@ from .base import BaseTool
 
 logger = get_logger("interactive_tools")
 
+_RISK_REASONS: dict[str, str] = {
+    "exec": "executes arbitrary OS commands outside OpenROAD",
+    "source": "loads and runs an arbitrary Tcl script from disk",
+    "exit": "terminates the OpenROAD process and destroys the session",
+    "quit": "terminates the OpenROAD process and destroys the session",
+    "open": "opens raw file handles, bypassing OpenROAD I/O wrappers",
+    "close": "closes file handles",
+    "socket": "opens network connections",
+    "load": "loads compiled C extensions into the interpreter",
+    "file": "manipulates the filesystem (delete, rename, mkdir…)",
+    "cd": "changes the working directory",
+    "glob": "enumerates the filesystem",
+    "fconfigure": "reconfigures I/O channels",
+    "chan": "performs low-level channel operations",
+    "vwait": "blocks the event loop",
+    "rename": "renames or removes commands, bypassing top-level whitelist checks",
+    "uplevel": "evaluates scripts in a different call-stack level",
+    "after": "schedules arbitrary code for deferred execution",
+    "subst": "performs substitutions that can invoke arbitrary commands",
+}
+
+
+def _permission_request(command: str, blocked_verb: str, session_id: str | None) -> str:
+    """Return a structured permission-request result (no execution yet)."""
+    reason = _RISK_REASONS.get(blocked_verb, "is not on the OpenROAD command allowlist")
+    if blocked_verb in BLOCKED_COMMANDS:
+        risk_label = "potentially dangerous"
+    else:
+        risk_label = "unrecognised"
+
+    output = (
+        f"Permission required\n\n"
+        f"Command '{blocked_verb}' is {risk_label}: it {reason}.\n"
+        f"Full command: {command!r}\n\n"
+        f"To proceed, call interactive_openroad again with confirmed=True.\n"
+        f"To cancel, do not call again."
+    )
+    result = InteractiveExecResult(
+        output=output,
+        session_id=session_id,
+        timestamp=datetime.now().isoformat(),
+        execution_time=0.0,
+        error=f"ConfirmationRequired: '{command}'",
+    )
+    return json.dumps(result.model_dump(), indent=2, default=str)
+
 
 class InteractiveShellTool(BaseTool):
     """Tool for executing commands in interactive OpenROAD sessions."""
 
-    async def execute(self, command: str, session_id: str | None = None, timeout_ms: int | None = None) -> str:
-        """Execute a command in an interactive session."""
+    async def execute(
+        self,
+        command: str,
+        session_id: str | None = None,
+        timeout_ms: int | None = None,
+        confirmed: bool = False,
+    ) -> str:
+        """Execute a command in an interactive OpenROAD session.
+
+        Risky or unrecognised commands are intercepted and a permission request
+        is returned instead of executing.  Pass ``confirmed=True`` to explicitly
+        approve and run the command.
+        """
+        if settings.WHITELIST_ENABLED and not confirmed:
+            allowed, blocked_verb = is_command_allowed(command)
+            if not allowed:
+                logger.warning("Permission request for command '%s' in session %s", blocked_verb, session_id)
+                return _permission_request(command, blocked_verb or command.split()[0], session_id)
+
+        if confirmed and settings.WHITELIST_ENABLED:
+            _, blocked_verb = is_command_allowed(command)
+            if blocked_verb:
+                logger.warning("User confirmed execution of '%s' in session %s (audit)", blocked_verb, session_id)
+
         try:
             if session_id is None:
                 session_id = await self.manager.create_session()

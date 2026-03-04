@@ -17,5 +17,16 @@ class SessionTerminatedError(SessionError):
     """Raised when attempting to use a terminated session."""
 
 
+class CommandBlockedError(SessionError):
+    """Raised when a command is blocked by the whitelist."""
+
+    def __init__(self, command_verb: str, session_id: str | None = None):
+        super().__init__(
+            f"Command '{command_verb}' is not allowed. Only OpenROAD and safe Tcl commands are permitted.",
+            session_id,
+        )
+        self.command_verb = command_verb
+
+
 class PTYError(Exception):
     """Raised when PTY operations fail."""
