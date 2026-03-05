@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
+from .tools.gui import GuiScreenshotTool
 from .tools.interactive import (
     CreateSessionTool,
     InspectSessionTool,
@@ -40,6 +41,9 @@ session_metrics_tool = SessionMetricsTool(manager)
 # Initialize report image tool instances
 list_report_images_tool = ListReportImagesTool(manager)
 read_report_image_tool = ReadReportImageTool(manager)
+
+# Initialize GUI tool instances
+gui_screenshot_tool = GuiScreenshotTool(manager)
 
 
 # Interactive session tools
@@ -101,6 +105,22 @@ async def list_report_images(platform: str, design: str, run_slug: str, stage: s
 async def read_report_image(platform: str, design: str, run_slug: str, image_name: str) -> str:
     """Read a report image and return base64-encoded data with metadata."""
     return await read_report_image_tool.execute(platform, design, run_slug, image_name)
+
+
+# GUI tools
+@mcp.tool()
+async def gui_screenshot(
+    session_id: str | None = None,
+    resolution: str | None = None,
+    output_path: str | None = None,
+    timeout_ms: int | None = None,
+) -> str:
+    """Capture a screenshot from an OpenROAD GUI session running under Xvfb.
+
+    Launches a headless OpenROAD GUI via xvfb-run if no session_id is provided.
+    Executes gui::save_image to capture the current view and returns base64-encoded PNG data.
+    """
+    return await gui_screenshot_tool.execute(session_id, resolution, output_path, timeout_ms)
 
 
 async def shutdown_openroad() -> None:

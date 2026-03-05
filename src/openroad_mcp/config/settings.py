@@ -33,7 +33,7 @@ class Settings(BaseModel):
 
     # Security settings
     ALLOWED_COMMANDS: list[str] = Field(
-        default=["openroad"],
+        default=["openroad", "xvfb-run"],
         description="List of allowed command executables for interactive sessions",
     )
     ENABLE_COMMAND_VALIDATION: bool = Field(
