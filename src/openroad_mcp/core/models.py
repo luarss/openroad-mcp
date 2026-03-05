@@ -198,3 +198,16 @@ class ReadImageResult(BaseResult):
     image_data: str | None = None
     metadata: ImageMetadata | None = None
     message: str | None = None
+
+
+class GuiScreenshotResult(BaseResult):
+    """Result from a GUI screenshot capture."""
+
+    session_id: str | None = None
+    image_data: str | None = None
+    image_path: str | None = None
+    image_format: str | None = None
+    size_bytes: int | None = None
+    resolution: str | None = None
+    timestamp: str | None = None
+    message: str | None = None
