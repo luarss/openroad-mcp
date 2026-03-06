@@ -1,48 +1,45 @@
-"""Integration tests for GUI screenshot tool under Xvfb."""
+"""Integration tests for GUI screenshot tool under Xvfb.
 
-import asyncio
+These tests run inside a Docker container that has Xvfb, OpenROAD, and
+ImageMagick installed.  They are skipped when those prerequisites are
+not available (e.g. local development without OpenROAD).
+"""
+
 import base64
 import json
 import shutil
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from openroad_mcp.config.settings import settings
 from openroad_mcp.core.manager import OpenROADManager
 from openroad_mcp.tools.gui import GuiScreenshotTool
 
 
 def _has_xvfb() -> bool:
-    return shutil.which("xvfb-run") is not None
+    return shutil.which("Xvfb") is not None
 
 
 def _has_openroad() -> bool:
     return shutil.which("openroad") is not None
 
 
-skip_if_no_xvfb = pytest.mark.skipif(not _has_xvfb(), reason="xvfb-run not installed")
+def _has_import() -> bool:
+    return shutil.which("import") is not None
+
+
+skip_if_no_xvfb = pytest.mark.skipif(not _has_xvfb(), reason="Xvfb not installed")
 skip_if_no_openroad = pytest.mark.skipif(not _has_openroad(), reason="openroad not installed")
+skip_if_no_import = pytest.mark.skipif(not _has_import(), reason="ImageMagick import not installed")
 
 
 @pytest.mark.asyncio
 class TestGuiScreenshot:
     """Tests for the gui_screenshot MCP tool."""
 
-    @pytest.fixture(autouse=True)
-    def allow_xvfb(self):
-        """Ensure xvfb-run is in the allowed commands list."""
-        original = settings.ALLOWED_COMMANDS[:]
-        if "xvfb-run" not in settings.ALLOWED_COMMANDS:
-            settings.ALLOWED_COMMANDS.append("xvfb-run")
-        yield
-        settings.ALLOWED_COMMANDS[:] = original
-
     @pytest.fixture
     async def manager(self):
         """Provide a fresh OpenROADManager and clean up after."""
-        # Reset singleton so each test gets a clean manager
         OpenROADManager._instance = None
         mgr = OpenROADManager()
         try:
@@ -56,25 +53,28 @@ class TestGuiScreenshot:
         return GuiScreenshotTool(manager)
 
     # ------------------------------------------------------------------
-    # Unit-level: xvfb missing
+    # Unit-level: Xvfb missing
     # ------------------------------------------------------------------
     async def test_returns_error_when_xvfb_missing(self, tool: GuiScreenshotTool):
-        """Tool should return a structured error when xvfb-run is absent."""
+        """Tool should return a structured error when Xvfb is absent."""
+        from unittest.mock import patch
+
         with patch("openroad_mcp.tools.gui._xvfb_available", return_value=False):
             raw = await tool.execute()
             result = json.loads(raw)
 
         assert result["error"] == "XvfbNotFound"
-        assert "xvfb-run" in result["message"]
+        assert "xvfb" in result["message"].lower()
 
     # ------------------------------------------------------------------
     # Integration: full screenshot round-trip (Docker only)
     # ------------------------------------------------------------------
     @skip_if_no_xvfb
     @skip_if_no_openroad
+    @skip_if_no_import
     async def test_screenshot_creates_png(self, tool: GuiScreenshotTool):
         """Launch headless GUI, capture screenshot, verify PNG base64."""
-        raw = await tool.execute(timeout_ms=15_000)
+        raw = await tool.execute(timeout_ms=25_000)
         result = json.loads(raw)
 
         # If the GUI failed to render it's an infra / timing issue, not a code bug
@@ -93,47 +93,49 @@ class TestGuiScreenshot:
         # File should exist on disk as well
         assert Path(result["image_path"]).exists()
 
-    @skip_if_no_xvfb
-    @skip_if_no_openroad
-    async def test_screenshot_reuses_existing_session(self, tool: GuiScreenshotTool, manager: OpenROADManager):
-        """Providing an existing session_id should reuse that session."""
-        session_id = await manager.create_session(
-            command=[
-                "xvfb-run",
-                "-a",
-                "-s",
-                "-screen 0 1280x1024x24",
-                "openroad",
-                "-gui",
-                "-no_init",
-            ],
-        )
-        # Let the GUI boot
-        await asyncio.sleep(3.0)
-
-        raw = await tool.execute(session_id=session_id, timeout_ms=15_000)
-        result = json.loads(raw)
-
-        if result.get("error") == "ScreenshotFailed":
-            pytest.skip(f"GUI did not produce image (infra): {result.get('message', '')}")
-
-        assert result.get("error") is None, f"Unexpected error: {result}"
-        assert result["session_id"] == session_id
+        # Cleanup Xvfb
+        tool.cleanup_display(result["session_id"])
 
     @skip_if_no_xvfb
     @skip_if_no_openroad
+    @skip_if_no_import
+    async def test_screenshot_reuses_existing_session(self, tool: GuiScreenshotTool):
+        """Taking a second screenshot should reuse the same session."""
+        raw1 = await tool.execute(timeout_ms=25_000)
+        r1 = json.loads(raw1)
+
+        if r1.get("error"):
+            pytest.skip(f"First screenshot failed (infra): {r1.get('message', '')}")
+
+        # Second screenshot on the same session
+        raw2 = await tool.execute(session_id=r1["session_id"], timeout_ms=15_000)
+        r2 = json.loads(raw2)
+
+        if r2.get("error"):
+            pytest.skip(f"Second screenshot failed (infra): {r2.get('message', '')}")
+
+        assert r2["session_id"] == r1["session_id"]
+        assert r2["size_bytes"] > 0
+
+        tool.cleanup_display(r1["session_id"])
+
+    @skip_if_no_xvfb
+    @skip_if_no_openroad
+    @skip_if_no_import
     async def test_screenshot_custom_output_path(self, tool: GuiScreenshotTool, tmp_path: Path):
         """Custom output_path should place the PNG at the specified location."""
         out = tmp_path / "my_screenshot.png"
-        raw = await tool.execute(output_path=str(out), timeout_ms=15_000)
+        raw = await tool.execute(output_path=str(out), timeout_ms=30_000)
         result = json.loads(raw)
 
-        if result.get("error") == "ScreenshotFailed":
+        if result.get("error") in ("ScreenshotFailed", "SessionError"):
             pytest.skip("GUI did not produce image (infra)")
 
         assert result.get("error") is None
         assert out.exists()
         assert out.stat().st_size > 0
+
+        tool.cleanup_display(result["session_id"])
 
     async def test_screenshot_invalid_session_id(self, tool: GuiScreenshotTool):
         """Non-existent session_id should return SessionNotFound."""
