@@ -1,17 +1,22 @@
-FROM python:3.11-slim
+# Test environment with OpenROAD for CI
+FROM openroad/orfs:latest
 
-RUN apt-get update && apt-get install -y \
-    git \
-    make \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Install uv (will handle Python installation)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
-RUN pip install --no-cache-dir uv
-
+# Set working directory
 WORKDIR /app
 
+# Copy project files
 COPY . .
 
-RUN uv venv && make sync
+# Install dependencies
+RUN uv sync --all-extras --inexact
 
-CMD ["uv", "run", "openroad-mcp"]
+# Set environment for tests
+ENV PYTHONPATH=/app/src
+ENV PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH"
+
+# Default command
+CMD ["bash"]
