@@ -1,8 +1,10 @@
 """Main MCP server setup and tool registration."""
 
 import asyncio
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from openroad_mcp.config.cli import CLIConfig
 
@@ -110,10 +112,22 @@ async def read_report_image(platform: str, design: str, run_slug: str, image_nam
 # GUI tools
 @mcp.tool()
 async def gui_screenshot(
-    session_id: str | None = None,
-    resolution: str | None = None,
-    output_path: str | None = None,
-    timeout_ms: int | None = None,
+    session_id: Annotated[
+        str | None,
+        Field(description="Existing GUI session ID to reuse. Leave empty to auto-create a new headless session."),
+    ] = None,
+    resolution: Annotated[
+        str | None,
+        Field(description="Virtual display resolution, e.g. '1920x1080x24'. Defaults to '1280x1024x24'."),
+    ] = None,
+    output_path: Annotated[
+        str | None,
+        Field(description="File path to save the PNG screenshot on disk. A temp file is used when omitted."),
+    ] = None,
+    timeout_ms: Annotated[
+        int | None,
+        Field(description="Timeout in milliseconds for the screenshot capture. Defaults to 8000."),
+    ] = None,
 ) -> str:
     """Capture a screenshot from an OpenROAD GUI session running under Xvfb.
 
