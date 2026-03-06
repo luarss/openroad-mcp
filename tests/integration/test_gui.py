@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from openroad_mcp.core.manager import OpenROADManager
-from openroad_mcp.tools.gui import GuiScreenshotTool
+from openroad_mcp.tools.gui import GuiScreenshotTool, _get_openroad_exe
 
 
 def _has_xvfb() -> bool:
@@ -21,7 +21,7 @@ def _has_xvfb() -> bool:
 
 
 def _has_openroad() -> bool:
-    return shutil.which("openroad") is not None
+    return _get_openroad_exe() is not None
 
 
 def _has_import() -> bool:

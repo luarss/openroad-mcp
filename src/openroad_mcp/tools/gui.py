@@ -75,9 +75,27 @@ def _xvfb_available() -> bool:
     return shutil.which("Xvfb") is not None
 
 
+def _get_openroad_exe() -> str | None:
+    """Resolve the OpenROAD executable path.
+
+    Checks (in order):
+    1. ``OPENROAD_EXE`` environment variable (used by OpenROAD-flow-scripts)
+    2. ``shutil.which("openroad")`` (standard PATH lookup)
+
+    Returns the absolute path string or *None* if not found.
+    """
+    env_exe = os.environ.get("OPENROAD_EXE")
+    if env_exe:
+        p = Path(env_exe)
+        if p.is_file() and os.access(str(p), os.X_OK):
+            return str(p.resolve())
+    found = shutil.which("openroad")
+    return found if found else None
+
+
 def _openroad_available() -> bool:
-    """Check whether openroad is on PATH."""
-    return shutil.which("openroad") is not None
+    """Check whether openroad can be found."""
+    return _get_openroad_exe() is not None
 
 
 def _import_available() -> bool:
@@ -327,13 +345,16 @@ class GuiScreenshotTool(BaseTool):
                 )
             )
 
-        if not _openroad_available():
+        openroad_exe = _get_openroad_exe()
+        if openroad_exe is None:
             return self._format_result(
                 GuiScreenshotResult(
                     error="OpenROADNotFound",
                     message=(
                         "openroad is not installed or not on PATH.  "
-                        "GUI screenshots require OpenROAD with GUI support.  "
+                        "Set the OPENROAD_EXE environment variable to the "
+                        "full path of the openroad binary, or add its "
+                        "directory to PATH.  "
                         "See https://openroad.readthedocs.io/ for installation."
                     ),
                 )
@@ -374,7 +395,7 @@ class GuiScreenshotTool(BaseTool):
 
         # --- Start OpenROAD on that display ---
         session_id = await self.manager.create_session(
-            command=["openroad", "-gui", "-no_init"],
+            command=[openroad_exe, "-gui", "-no_init"],
             env={"DISPLAY": f":{display_num}"},
         )
 

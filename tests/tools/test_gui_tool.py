@@ -122,7 +122,7 @@ class TestGuiScreenshotTool:
 
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
-            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._get_openroad_exe", return_value="/usr/bin/openroad"),
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
             patch("asyncio.sleep", new_callable=AsyncMock),
@@ -133,10 +133,10 @@ class TestGuiScreenshotTool:
         assert result["error"] is None
         assert result["session_id"] == "auto-sess"
 
-        # Verify create_session used openroad -gui (not xvfb-run)
+        # Verify create_session used the resolved openroad path
         call_kw = mock_manager.create_session.call_args.kwargs
         cmd = call_kw.get("command", [])
-        assert cmd == ["openroad", "-gui", "-no_init"]
+        assert cmd == ["/usr/bin/openroad", "-gui", "-no_init"]
         assert "DISPLAY" in call_kw.get("env", {})
 
     # ------------------------------------------------------------------
@@ -173,7 +173,7 @@ class TestGuiScreenshotTool:
 
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
-            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._get_openroad_exe", return_value="/usr/bin/openroad"),
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
             patch("asyncio.sleep", new_callable=AsyncMock),
@@ -242,7 +242,7 @@ class TestGuiScreenshotTool:
         """Returns structured error when openroad is missing."""
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
-            patch("openroad_mcp.tools.gui._openroad_available", return_value=False),
+            patch("openroad_mcp.tools.gui._get_openroad_exe", return_value=None),
         ):
             raw = await tool.execute()
         result = json.loads(raw)
@@ -253,7 +253,7 @@ class TestGuiScreenshotTool:
         """Returns structured error when ImageMagick import is missing."""
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
-            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._get_openroad_exe", return_value="/usr/bin/openroad"),
             patch("openroad_mcp.tools.gui._import_available", return_value=False),
         ):
             raw = await tool.execute()
@@ -362,7 +362,7 @@ class TestGuiScreenshotTool:
 
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
-            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._get_openroad_exe", return_value="/usr/bin/openroad"),
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", return_value=_make_xvfb_proc()),
             patch("asyncio.sleep", new_callable=AsyncMock),
@@ -441,7 +441,7 @@ class TestGuiScreenshotTool:
 
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
-            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._get_openroad_exe", return_value="/usr/bin/openroad"),
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", return_value=xvfb_proc),
             patch("asyncio.sleep", new_callable=AsyncMock),
@@ -510,3 +510,38 @@ class TestPreFlightHelpers:
             # _find_free_display expects /tmp/.X{N}-lock not to exist
             num = _find_free_display()
             assert 42 <= num < 300
+
+    def test_get_openroad_exe_from_env(self, tmp_path):
+        """OPENROAD_EXE env var is preferred over PATH lookup."""
+        fake_bin = tmp_path / "openroad"
+        fake_bin.write_text("#!/bin/sh\n")
+        fake_bin.chmod(0o755)
+
+        from openroad_mcp.tools.gui import _get_openroad_exe
+
+        with patch.dict("os.environ", {"OPENROAD_EXE": str(fake_bin)}):
+            result = _get_openroad_exe()
+        assert result == str(fake_bin.resolve())
+
+    def test_get_openroad_exe_falls_back_to_which(self):
+        """Falls back to shutil.which when OPENROAD_EXE is not set."""
+        from openroad_mcp.tools.gui import _get_openroad_exe
+
+        with (
+            patch.dict("os.environ", {}, clear=False),
+            patch("openroad_mcp.tools.gui.os.environ.get", return_value=None),
+            patch("openroad_mcp.tools.gui.shutil.which", return_value="/usr/bin/openroad"),
+        ):
+            result = _get_openroad_exe()
+        assert result == "/usr/bin/openroad"
+
+    def test_get_openroad_exe_returns_none(self):
+        """Returns None when openroad is not found anywhere."""
+        from openroad_mcp.tools.gui import _get_openroad_exe
+
+        with (
+            patch.dict("os.environ", {"OPENROAD_EXE": "/nonexistent/openroad"}),
+            patch("openroad_mcp.tools.gui.shutil.which", return_value=None),
+        ):
+            result = _get_openroad_exe()
+        assert result is None
