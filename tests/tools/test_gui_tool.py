@@ -1,31 +1,27 @@
 """Unit tests for GuiScreenshotTool implementation.
 
-Tests all code paths using mocked dependencies (no xvfb/OpenROAD required).
-Integration tests that exercise the real GUI are in tests/integration/test_gui.py.
+Tests all code paths using mocked dependencies (no Xvfb/OpenROAD/ImageMagick
+required).  Integration tests that exercise the real GUI are in
+tests/integration/test_gui.py.
 """
 
+import asyncio
 import base64
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from openroad_mcp.core.models import InteractiveExecResult
-from openroad_mcp.interactive.models import (
-    SessionError,
-    SessionNotFoundError,
-    SessionTerminatedError,
-)
 from openroad_mcp.tools.gui import (
     DEFAULT_DISPLAY_RESOLUTION,
-    IMAGE_CAPTURE_TIMEOUT_MS,
     MAX_SCREENSHOT_SIZE_MB,
     GuiScreenshotTool,
+    _find_free_display,
 )
 
-# Minimal valid PNG (1x1 pixel, RGBA)
+# Minimal valid PNG (1×1 pixel, RGBA)
 _MINIMAL_PNG = (
     b"\x89PNG\r\n\x1a\n"  # signature
     b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
@@ -35,415 +31,394 @@ _MINIMAL_PNG = (
 )
 
 
+# ------------------------------------------------------------------
+# Helpers: mock ``import`` and ``Xvfb`` subprocesses
+# ------------------------------------------------------------------
+
+
+def _make_import_proc(image_path: Path | str | None, *, returncode: int = 0, stderr: bytes = b""):
+    """Return a mock that behaves like ``asyncio.create_subprocess_exec``
+    created for the ``import`` command.  When *image_path* is not None and
+    *returncode* is 0 the mock writes ``_MINIMAL_PNG`` to that path."""
+    proc = AsyncMock()
+    proc.returncode = returncode
+
+    async def _communicate():
+        if returncode == 0 and image_path is not None:
+            Path(image_path).write_bytes(_MINIMAL_PNG)
+        return b"", stderr
+
+    proc.communicate = _communicate
+    proc.kill = MagicMock()
+    return proc
+
+
+def _make_xvfb_proc(*, pid: int = 12345, returncode: int | None = None):
+    """Return a mock Xvfb subprocess.  *returncode=None* means still running."""
+    proc = AsyncMock()
+    proc.pid = pid
+    proc.returncode = returncode
+    return proc
+
+
 @pytest.mark.asyncio
 class TestGuiScreenshotTool:
     """Test suite for GuiScreenshotTool."""
 
     @pytest.fixture
     def mock_manager(self):
-        """Create a mock OpenROADManager."""
         return AsyncMock()
 
     @pytest.fixture
     def tool(self, mock_manager) -> GuiScreenshotTool:
-        """Create GuiScreenshotTool with mock manager."""
         return GuiScreenshotTool(mock_manager)
 
+    # Helper: register a display for an existing session
+    def _register_display(self, tool: GuiScreenshotTool, session_id: str, display: int = 42) -> None:
+        tool._session_displays[session_id] = display
+        tool._xvfb_pids[session_id] = 99999
+
     # ------------------------------------------------------------------
-    # Positive: successful screenshot (happy path)
+    # Positive: successful screenshot (happy path, existing session)
     # ------------------------------------------------------------------
-    async def test_successful_screenshot(self, tool, mock_manager, tmp_path):
-        """Full happy path: existing session → save_image → PNG returned."""
+    async def test_successful_screenshot(self, tool, tmp_path):
+        """Full happy path: existing session → import -window root → PNG."""
         out_file = tmp_path / "screenshot.png"
+        self._register_display(tool, "gui-sess-1")
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="gui-sess-1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
+        mock_proc = _make_import_proc(out_file)
 
-        # Simulate gui::save_image writing the file during execute_command
-        def _write_and_return(*_args, **_kwargs):
-            out_file.write_bytes(_MINIMAL_PNG)
-            return mock_result
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="gui-sess-1", output_path=str(out_file))
 
-        mock_manager.execute_command.side_effect = _write_and_return
-
-        raw = await tool.execute(session_id="gui-sess-1", output_path=str(out_file))
         result = json.loads(raw)
-
         assert result["error"] is None
         assert result["session_id"] == "gui-sess-1"
         assert result["image_format"] == "png"
         assert result["size_bytes"] == len(_MINIMAL_PNG)
         assert result["message"] == "Screenshot captured successfully."
+        assert base64.b64decode(result["image_data"]) == _MINIMAL_PNG
 
-        # Verify base64 round-trips correctly
-        decoded = base64.b64decode(result["image_data"])
-        assert decoded == _MINIMAL_PNG
-
+    # ------------------------------------------------------------------
+    # Positive: auto-session creation (Xvfb + OpenROAD)
+    # ------------------------------------------------------------------
     async def test_successful_screenshot_auto_session(self, tool, mock_manager, tmp_path):
-        """When no session_id is given, a new session is created via xvfb-run."""
+        """When no session_id is given, Xvfb + OpenROAD are started."""
         out_file = tmp_path / "auto.png"
+        mock_manager.create_session.return_value = "auto-sess"
 
-        mock_manager.create_session.return_value = "auto-session"
+        xvfb_proc = _make_xvfb_proc()
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="auto-session",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.2,
-            command_count=1,
-        )
-        mock_manager.execute_command.side_effect = lambda *a, **kw: _side_effect_write(out_file, mock_result)
+        # First call → Xvfb, second call → import
+        calls = [0]
 
-        with patch("openroad_mcp.tools.gui._xvfb_available", return_value=True):
-            with patch("asyncio.sleep", new_callable=AsyncMock):  # skip startup delay
-                raw = await tool.execute(output_path=str(out_file))
+        async def _create_sub(*args, **kwargs):
+            calls[0] += 1
+            if calls[0] == 1:
+                # Xvfb
+                return xvfb_proc
+            # import
+            return _make_import_proc(out_file)
+
+        with (
+            patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
+            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._import_available", return_value=True),
+            patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            raw = await tool.execute(output_path=str(out_file))
 
         result = json.loads(raw)
         assert result["error"] is None
-        assert result["session_id"] == "auto-session"
+        assert result["session_id"] == "auto-sess"
 
-        # Verify xvfb-run command was passed to create_session
-        call_args = mock_manager.create_session.call_args
-        # create_session is called with keyword arg 'command' (a list)
-        cmd_list = call_args.kwargs.get("command", call_args.args[0] if call_args.args else [])
-        assert "xvfb-run" in cmd_list
-        assert "-gui" in cmd_list
+        # Verify create_session used openroad -gui (not xvfb-run)
+        call_kw = mock_manager.create_session.call_args.kwargs
+        cmd = call_kw.get("command", [])
+        assert cmd == ["openroad", "-gui", "-no_init"]
+        assert "DISPLAY" in call_kw.get("env", {})
 
-    async def test_default_resolution_and_timeout(self, tool, mock_manager, tmp_path):
-        """Defaults for resolution and timeout are applied when not specified."""
+    # ------------------------------------------------------------------
+    # Defaults
+    # ------------------------------------------------------------------
+    async def test_default_resolution_and_timeout(self, tool, tmp_path):
+        """Defaults for resolution and timeout are applied."""
         out_file = tmp_path / "defaults.png"
+        self._register_display(tool, "s1")
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.side_effect = lambda *a, **kw: _side_effect_write(out_file, mock_result)
+        mock_proc = _make_import_proc(out_file)
 
-        raw = await tool.execute(session_id="s1", output_path=str(out_file))
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
         result = json.loads(raw)
-
         assert result["resolution"] == DEFAULT_DISPLAY_RESOLUTION
-        # execute_command should receive the default timeout
-        call_args = mock_manager.execute_command.call_args.args
-        assert call_args[2] == IMAGE_CAPTURE_TIMEOUT_MS
 
     async def test_custom_resolution(self, tool, mock_manager, tmp_path):
-        """Custom resolution is threaded through to the result."""
-        out_file = tmp_path / "custom_res.png"
+        """Custom resolution is threaded through to result and Xvfb start."""
+        out_file = tmp_path / "res.png"
+        mock_manager.create_session.return_value = "res-sess"
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.side_effect = lambda *a, **kw: _side_effect_write(
-            out_file,
-            mock_result,
-        )
+        xvfb_proc = _make_xvfb_proc()
+        calls = [0]
 
-        raw = await tool.execute(
-            session_id="s1",
-            resolution="1920x1080x24",
-            output_path=str(out_file),
-        )
+        async def _create_sub(*args, **kwargs):
+            calls[0] += 1
+            if calls[0] == 1:
+                # Xvfb – verify resolution is passed
+                assert "1920x1080x24" in args
+                return xvfb_proc
+            return _make_import_proc(out_file)
+
+        with (
+            patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
+            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._import_available", return_value=True),
+            patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            raw = await tool.execute(resolution="1920x1080x24", output_path=str(out_file))
+
         result = json.loads(raw)
-
         assert result["resolution"] == "1920x1080x24"
 
-    async def test_custom_timeout(self, tool, mock_manager, tmp_path):
-        """Custom timeout_ms is forwarded to execute_command."""
+    async def test_custom_timeout(self, tool, tmp_path):
+        """Custom timeout_ms governs the import subprocess timeout."""
         out_file = tmp_path / "timeout.png"
+        self._register_display(tool, "s1")
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.side_effect = lambda *a, **kw: _side_effect_write(
-            out_file,
-            mock_result,
-        )
+        mock_proc = _make_import_proc(out_file)
 
-        await tool.execute(session_id="s1", output_path=str(out_file), timeout_ms=20_000)
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=mock_proc),
+            patch("asyncio.wait_for", wraps=asyncio.wait_for) as mock_wait,
+        ):
+            await tool.execute(session_id="s1", output_path=str(out_file), timeout_ms=20_000)
 
-        call_args = mock_manager.execute_command.call_args.args
-        assert call_args[2] == 20_000
+        # wait_for should have been called with timeout=20.0
+        _, kwargs = mock_wait.call_args
+        assert kwargs.get("timeout") == 20.0
 
     # ------------------------------------------------------------------
     # Positive: temp file path generation
     # ------------------------------------------------------------------
-    async def test_temp_file_used_when_no_output_path(self, tool, mock_manager):
+    async def test_temp_file_used_when_no_output_path(self, tool):
         """When output_path is omitted a temp file under /tmp is used."""
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
+        self._register_display(tool, "s1")
 
-        # We need the temp file path to write the PNG into
-        written_path: list[Path] = []
+        captured_path: list[str] = []
 
-        async def _capture_path(sid, cmd, timeout):
-            # Extract path from the Tcl command
-            # e.g.  gui::save_image "/tmp/openroad_gui_xxxx.png"
-            path_str = cmd.split('"')[1]
-            p = Path(path_str)
-            p.write_bytes(_MINIMAL_PNG)
-            written_path.append(p)
-            return mock_result
+        async def _capture(*args, **kwargs):
+            # The 4th positional arg to import is the image path
+            path_str = args[3]
+            captured_path.append(path_str)
+            return _make_import_proc(path_str)
 
-        mock_manager.execute_command.side_effect = _capture_path
+        with patch("asyncio.create_subprocess_exec", side_effect=_capture):
+            raw = await tool.execute(session_id="s1")
 
-        raw = await tool.execute(session_id="s1")
         result = json.loads(raw)
-
         assert result["error"] is None
         assert result["image_path"].startswith(tempfile.gettempdir())
         assert result["image_path"].endswith(".png")
 
         # Cleanup
-        if written_path:
-            written_path[0].unlink(missing_ok=True)
+        for p in captured_path:
+            Path(p).unlink(missing_ok=True)
 
     # ------------------------------------------------------------------
-    # Negative: xvfb not installed
+    # Negative: pre-flight checks
     # ------------------------------------------------------------------
     async def test_xvfb_not_found_error(self, tool):
-        """Returns structured error when xvfb-run is missing."""
+        """Returns structured error when Xvfb is missing."""
         with patch("openroad_mcp.tools.gui._xvfb_available", return_value=False):
             raw = await tool.execute()
-            result = json.loads(raw)
-
+        result = json.loads(raw)
         assert result["error"] == "XvfbNotFound"
-        assert "xvfb-run" in result["message"]
+        assert "xvfb" in result["message"].lower()
+
+    async def test_openroad_not_found_error(self, tool):
+        """Returns structured error when openroad is missing."""
+        with (
+            patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
+            patch("openroad_mcp.tools.gui._openroad_available", return_value=False),
+        ):
+            raw = await tool.execute()
+        result = json.loads(raw)
+        assert result["error"] == "OpenROADNotFound"
+        assert "openroad" in result["message"].lower()
+
+    async def test_import_not_found_error(self, tool):
+        """Returns structured error when ImageMagick import is missing."""
+        with (
+            patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
+            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._import_available", return_value=False),
+        ):
+            raw = await tool.execute()
+        result = json.loads(raw)
+        assert result["error"] == "ImportNotFound"
+        assert "imagemagick" in result["message"].lower()
 
     # ------------------------------------------------------------------
-    # Negative: screenshot file missing / empty
+    # Negative: import subprocess failures
     # ------------------------------------------------------------------
-    async def test_screenshot_failed_file_missing(self, tool, mock_manager, tmp_path):
-        """Returns ScreenshotFailed when gui::save_image produces no file."""
+    async def test_screenshot_failed_import_error(self, tool, tmp_path):
+        """Returns ScreenshotFailed when import exits with non-zero rc."""
+        out_file = tmp_path / "fail.png"
+        self._register_display(tool, "s1")
+
+        mock_proc = _make_import_proc(None, returncode=1, stderr=b"import: unable to open X server")
+
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
+        result = json.loads(raw)
+        assert result["error"] == "ScreenshotFailed"
+        assert "rc=1" in result["message"]
+
+    async def test_screenshot_failed_import_timeout(self, tool, tmp_path):
+        """Returns ScreenshotFailed when import subprocess times out."""
+        out_file = tmp_path / "slow.png"
+        self._register_display(tool, "s1")
+
+        mock_proc = AsyncMock()
+        mock_proc.returncode = None
+        mock_proc.kill = MagicMock()
+
+        async def _hang():
+            await asyncio.sleep(999)
+            return b"", b""
+
+        mock_proc.communicate = _hang
+
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), timeout_ms=200)
+
+        result = json.loads(raw)
+        assert result["error"] == "ScreenshotFailed"
+        assert "timed out" in result["message"].lower()
+        mock_proc.kill.assert_called_once()
+
+    async def test_screenshot_failed_file_missing(self, tool, tmp_path):
+        """Returns ScreenshotFailed when import exits OK but writes no file."""
         out_file = tmp_path / "missing.png"
+        self._register_display(tool, "s1")
 
-        mock_result = InteractiveExecResult(
-            output="some gui output",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        # Don't write anything — simulate gui::save_image failure
-        mock_manager.execute_command.return_value = mock_result
+        # import succeeds but writes nothing
+        mock_proc = _make_import_proc(None, returncode=0)
 
-        with patch("openroad_mcp.tools.gui._FILE_POLL_MAX_WAIT", 0.1):  # speed up polling
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             raw = await tool.execute(session_id="s1", output_path=str(out_file))
 
         result = json.loads(raw)
-
         assert result["error"] == "ScreenshotFailed"
-        assert "not created" in result["message"] or "empty" in result["message"]
-        assert result["session_id"] == "s1"
-
-    async def test_screenshot_failed_file_empty(self, tool, mock_manager, tmp_path):
-        """Returns ScreenshotFailed when gui::save_image writes a 0-byte file."""
-        out_file = tmp_path / "empty.png"
-
-        mock_result = InteractiveExecResult(
-            output="gui output",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.return_value = mock_result
-
-        # Write a zero-byte file — simulates partial write
-        out_file.write_bytes(b"")
-
-        with patch("openroad_mcp.tools.gui._FILE_POLL_MAX_WAIT", 0.1):
-            raw = await tool.execute(session_id="s1", output_path=str(out_file))
-
-        result = json.loads(raw)
-
-        assert result["error"] == "ScreenshotFailed"
-        assert result["session_id"] == "s1"
+        assert "not created" in result["message"]
 
     # ------------------------------------------------------------------
     # Negative: file too large
     # ------------------------------------------------------------------
-    async def test_file_too_large_error(self, tool, mock_manager, tmp_path):
+    async def test_file_too_large_error(self, tool, tmp_path):
         """Returns FileTooLarge when screenshot exceeds MAX_SCREENSHOT_SIZE_MB."""
         out_file = tmp_path / "huge.png"
-
-        # Create a file that exceeds the size limit.
-        # The side_effect writes a huge file *during* execute_command,
-        # so it exists when the polling loop checks.
+        self._register_display(tool, "s1")
         huge_size = (MAX_SCREENSHOT_SIZE_MB + 1) * 1024 * 1024
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
 
-        def _write_huge(*_a, **_kw):
+        async def _big():
             out_file.write_bytes(b"\x00" * huge_size)
-            return mock_result
+            return b"", b""
 
-        mock_manager.execute_command.side_effect = _write_huge
+        mock_proc.communicate = _big
 
-        raw = await tool.execute(session_id="s1", output_path=str(out_file))
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
         result = json.loads(raw)
-
         assert result["error"] == "FileTooLarge"
         assert str(MAX_SCREENSHOT_SIZE_MB) in result["message"]
 
     # ------------------------------------------------------------------
-    # Negative: session not found
+    # Negative: session display not registered
     # ------------------------------------------------------------------
-    async def test_session_not_found_error(self, tool, mock_manager):
-        """Returns SessionNotFound for non-existent session_id."""
-        mock_manager.execute_command.side_effect = SessionNotFoundError("not found")
-
-        raw = await tool.execute(session_id="ghost-session")
+    async def test_session_without_display(self, tool):
+        """Returns error when session_id has no registered display."""
+        raw = await tool.execute(session_id="unknown-sess")
         result = json.loads(raw)
-
         assert result["error"] == "SessionNotFound"
-        assert result["session_id"] == "ghost-session"
-        assert "not found" in result["message"]
+        assert "no associated X display" in result["message"]
 
     # ------------------------------------------------------------------
-    # Negative: session terminated
+    # Negative: session errors during auto-session creation
     # ------------------------------------------------------------------
-    async def test_session_terminated_error(self, tool, mock_manager):
-        """Returns SessionError when session has terminated."""
-        mock_manager.execute_command.side_effect = SessionTerminatedError("session has been terminated")
+    async def test_session_error_on_create(self, tool, mock_manager):
+        """Returns SessionError when create_session raises."""
+        from openroad_mcp.interactive.models import SessionError as SE
 
-        raw = await tool.execute(session_id="dead-session")
+        mock_manager.create_session.side_effect = SE("boom")
+
+        with (
+            patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
+            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._import_available", return_value=True),
+            patch("asyncio.create_subprocess_exec", return_value=_make_xvfb_proc()),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            raw = await tool.execute()
+
         result = json.loads(raw)
-
         assert result["error"] == "SessionError"
-        assert result["session_id"] == "dead-session"
-
-    async def test_session_error(self, tool, mock_manager):
-        """Returns SessionError for generic session errors."""
-        mock_manager.execute_command.side_effect = SessionError("something went wrong")
-
-        raw = await tool.execute(session_id="bad-session")
-        result = json.loads(raw)
-
-        assert result["error"] == "SessionError"
-        assert "something went wrong" in result["message"]
+        assert "boom" in result["message"]
 
     # ------------------------------------------------------------------
     # Negative: unexpected exception
     # ------------------------------------------------------------------
-    async def test_unexpected_error(self, tool, mock_manager):
+    async def test_unexpected_error(self, tool):
         """Returns UnexpectedError for unhandled exceptions."""
-        mock_manager.execute_command.side_effect = RuntimeError("kaboom")
+        self._register_display(tool, "s1")
 
-        raw = await tool.execute(session_id="s1")
+        with patch("asyncio.create_subprocess_exec", side_effect=RuntimeError("kaboom")):
+            raw = await tool.execute(session_id="s1")
+
         result = json.loads(raw)
-
         assert result["error"] == "UnexpectedError"
         assert "kaboom" in result["message"]
 
     # ------------------------------------------------------------------
-    # Edge: stale file is cleaned before screenshot
+    # Edge: stale file is cleaned before capture
     # ------------------------------------------------------------------
-    async def test_stale_file_removed_before_capture(self, tool, mock_manager, tmp_path):
-        """A stale file at the output path is removed before gui::save_image."""
+    async def test_stale_file_removed_before_capture(self, tool, tmp_path):
+        """A stale file at the output path is removed before import."""
         out_file = tmp_path / "stale.png"
         out_file.write_bytes(b"old data")
+        self._register_display(tool, "s1")
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.side_effect = lambda *a, **kw: _side_effect_write(
-            out_file,
-            mock_result,
-        )
+        mock_proc = _make_import_proc(out_file)
 
-        raw = await tool.execute(session_id="s1", output_path=str(out_file))
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
         result = json.loads(raw)
-
         assert result["error"] is None
-        # The image_data should be _MINIMAL_PNG, not "old data"
-        decoded = base64.b64decode(result["image_data"])
-        assert decoded == _MINIMAL_PNG
-
-    # ------------------------------------------------------------------
-    # Edge: polling discovers file on a later iteration
-    # ------------------------------------------------------------------
-    async def test_polling_waits_for_file(self, tool, mock_manager, tmp_path):
-        """File appears after a delay — polling loop picks it up."""
-        import asyncio
-
-        out_file = tmp_path / "delayed.png"
-
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.return_value = mock_result
-
-        # Schedule the file to appear after 0.3s
-        async def _delayed_write():
-            await asyncio.sleep(0.3)
-            out_file.write_bytes(_MINIMAL_PNG)
-
-        asyncio.create_task(_delayed_write())
-
-        raw = await tool.execute(session_id="s1", output_path=str(out_file))
-        result = json.loads(raw)
-
-        assert result["error"] is None
-        assert result["size_bytes"] == len(_MINIMAL_PNG)
+        assert base64.b64decode(result["image_data"]) == _MINIMAL_PNG
 
     # ------------------------------------------------------------------
     # Result structure: all expected fields present
     # ------------------------------------------------------------------
-    async def test_result_contains_all_fields(self, tool, mock_manager, tmp_path):
+    async def test_result_contains_all_fields(self, tool, tmp_path):
         """Successful result includes every GuiScreenshotResult field."""
         out_file = tmp_path / "fields.png"
+        self._register_display(tool, "s1")
 
-        mock_result = InteractiveExecResult(
-            output="",
-            session_id="s1",
-            timestamp="2024-01-01T00:00:00Z",
-            execution_time=0.1,
-            command_count=1,
-        )
-        mock_manager.execute_command.side_effect = lambda *a, **kw: _side_effect_write(
-            out_file,
-            mock_result,
-        )
+        mock_proc = _make_import_proc(out_file)
 
-        raw = await tool.execute(session_id="s1", output_path=str(out_file))
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
         result = json.loads(raw)
-
         expected_keys = {
             "session_id",
             "image_data",
@@ -455,33 +430,83 @@ class TestGuiScreenshotTool:
             "message",
             "error",
         }
-        assert expected_keys.issubset(result.keys()), f"Missing keys: {expected_keys - result.keys()}"
+        assert expected_keys.issubset(result.keys()), f"Missing: {expected_keys - result.keys()}"
+
+    # ------------------------------------------------------------------
+    # Xvfb start failure
+    # ------------------------------------------------------------------
+    async def test_xvfb_start_failed(self, tool):
+        """Returns error when Xvfb exits immediately."""
+        xvfb_proc = _make_xvfb_proc(returncode=1)  # exited immediately
+
+        with (
+            patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
+            patch("openroad_mcp.tools.gui._openroad_available", return_value=True),
+            patch("openroad_mcp.tools.gui._import_available", return_value=True),
+            patch("asyncio.create_subprocess_exec", return_value=xvfb_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            raw = await tool.execute()
+
+        result = json.loads(raw)
+        assert result["error"] == "XvfbStartFailed"
+
+    # ------------------------------------------------------------------
+    # cleanup_display helper
+    # ------------------------------------------------------------------
+    async def test_cleanup_display_kills_xvfb(self, tool):
+        """cleanup_display sends SIGTERM to the stored Xvfb PID."""
+        tool._session_displays["s1"] = 42
+        tool._xvfb_pids["s1"] = 12345
+
+        with patch("os.kill") as mock_kill:
+            tool.cleanup_display("s1")
+
+        mock_kill.assert_called_once()
+        assert "s1" not in tool._session_displays
+        assert "s1" not in tool._xvfb_pids
+
+    async def test_cleanup_display_noop_for_unknown(self, tool):
+        """cleanup_display is a safe no-op for unknown session ids."""
+        tool.cleanup_display("nonexistent")  # should not raise
 
 
-class TestXvfbAvailability:
-    """Tests for the _xvfb_available helper."""
+# ------------------------------------------------------------------
+# Standalone helper tests
+# ------------------------------------------------------------------
+
+
+class TestPreFlightHelpers:
+    """Tests for module-level pre-flight helpers."""
 
     def test_xvfb_available_when_present(self):
-        """Returns True when xvfb-run is on PATH."""
-        with patch("openroad_mcp.tools.gui.shutil.which", return_value="/usr/bin/xvfb-run"):
+        with patch("openroad_mcp.tools.gui.shutil.which", return_value="/usr/bin/Xvfb"):
             from openroad_mcp.tools.gui import _xvfb_available
 
             assert _xvfb_available() is True
 
     def test_xvfb_available_when_absent(self):
-        """Returns False when xvfb-run is not on PATH."""
         with patch("openroad_mcp.tools.gui.shutil.which", return_value=None):
             from openroad_mcp.tools.gui import _xvfb_available
 
             assert _xvfb_available() is False
 
+    def test_import_available_when_present(self):
+        with patch("openroad_mcp.tools.gui.shutil.which", return_value="/usr/bin/import"):
+            from openroad_mcp.tools.gui import _import_available
 
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
+            assert _import_available() is True
 
+    def test_import_available_when_absent(self):
+        with patch("openroad_mcp.tools.gui.shutil.which", return_value=None):
+            from openroad_mcp.tools.gui import _import_available
 
-def _side_effect_write(path: Path, result: InteractiveExecResult) -> InteractiveExecResult:
-    """Side effect that writes _MINIMAL_PNG and returns the mock result."""
-    path.write_bytes(_MINIMAL_PNG)
-    return result
+            assert _import_available() is False
+
+    def test_find_free_display_no_locks(self, tmp_path):
+        """Returns first number in range when no lock files exist."""
+        with patch("openroad_mcp.tools.gui.Path") as MockPath:
+            MockPath.return_value.exists.return_value = False
+            # _find_free_display expects /tmp/.X{N}-lock not to exist
+            num = _find_free_display()
+            assert 42 <= num < 300
