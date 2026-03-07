@@ -74,6 +74,14 @@ class Settings(BaseModel):
         default=0.5,
         description="Seconds between xdpyinfo readiness polls during GUI startup",
     )
+    GUI_DEFAULT_IMAGE_FORMAT: str = Field(
+        default="jpeg",
+        description="Default image format for screenshots ('png', 'jpeg', or 'webp')",
+    )
+    GUI_DEFAULT_JPEG_QUALITY: int = Field(
+        default=85,
+        description="Default JPEG/WebP quality (1-100). Lower = smaller file, more artifacts",
+    )
 
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
@@ -125,6 +133,8 @@ class Settings(BaseModel):
             "GUI_DISPLAY_END": ("OPENROAD_GUI_DISPLAY_END", int),
             "GUI_STARTUP_TIMEOUT_S": ("OPENROAD_GUI_STARTUP_TIMEOUT_S", float),
             "GUI_STARTUP_POLL_INTERVAL_S": ("OPENROAD_GUI_STARTUP_POLL_INTERVAL_S", float),
+            "GUI_DEFAULT_IMAGE_FORMAT": ("OPENROAD_GUI_DEFAULT_IMAGE_FORMAT", str),
+            "GUI_DEFAULT_JPEG_QUALITY": ("OPENROAD_GUI_DEFAULT_JPEG_QUALITY", int),
             "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),
         }
 

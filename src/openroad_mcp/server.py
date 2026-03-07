@@ -122,20 +122,61 @@ async def gui_screenshot(
     ] = None,
     output_path: Annotated[
         str | None,
-        Field(description="File path to save the PNG screenshot on disk. A temp file is used when omitted."),
+        Field(description="File path to save the screenshot on disk. A temp file is used when omitted."),
     ] = None,
     timeout_ms: Annotated[
         int | None,
         Field(description="Timeout in milliseconds for the screenshot capture. Defaults to 8000."),
+    ] = None,
+    image_format: Annotated[
+        str | None,
+        Field(description="Output format: 'png', 'jpeg', or 'webp'. Defaults to 'jpeg' (smaller, saves tokens)."),
+    ] = None,
+    quality: Annotated[
+        int | None,
+        Field(description="Compression quality for JPEG/WebP (1-100). Ignored for PNG. Defaults to 85."),
+    ] = None,
+    scale: Annotated[
+        float | None,
+        Field(description="Downscale factor (0.0-1.0]. 0.5 = half size. Defaults to 1.0 (no scaling)."),
+    ] = None,
+    crop: Annotated[
+        str | None,
+        Field(description="Pixel region to crop: 'x0 y0 x1 y1'. Applied before scaling. Omit for full image."),
+    ] = None,
+    return_mode: Annotated[
+        str | None,
+        Field(
+            description=(
+                "How to return the result: "
+                "'base64' (full image, default), "
+                "'path' (file path only, saves tokens), "
+                "'preview' (256px thumbnail + file path)."
+            )
+        ),
     ] = None,
 ) -> str:
     """Capture a screenshot from an OpenROAD GUI session running under Xvfb.
 
     Launches a headless OpenROAD GUI on an Xvfb virtual display if no session_id
     is provided.  Uses ImageMagick ``import -window root`` to capture the X11 root
-    window and returns base64-encoded PNG data.
+    window, then post-processes (crop, scale, format conversion) using Pillow.
+
+    For token-efficient usage, set return_mode='path' (no image data returned)
+    or return_mode='preview' (small thumbnail only).  Use image_format='jpeg'
+    with quality=60-85 to reduce file sizes by 70-90% compared to raw PNG.
     """
-    return await gui_screenshot_tool.execute(session_id, resolution, output_path, timeout_ms)
+    return await gui_screenshot_tool.execute(
+        session_id,
+        resolution,
+        output_path,
+        timeout_ms,
+        image_format,
+        quality,
+        scale,
+        crop,
+        return_mode,
+    )
 
 
 async def shutdown_openroad() -> None:

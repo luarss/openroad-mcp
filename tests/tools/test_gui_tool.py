@@ -7,12 +7,14 @@ tests/integration/test_gui.py.
 
 import asyncio
 import base64
+import io
 import json
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from PIL import Image as PILImage
 
 from openroad_mcp.config.settings import settings
 from openroad_mcp.tools.gui import (
@@ -61,6 +63,49 @@ def _make_xvfb_proc(*, pid: int = 12345, returncode: int | None = None):
     return proc
 
 
+def _make_import_side_effect(
+    *,
+    returncode: int = 0,
+    stderr: bytes = b"",
+    png_data: bytes | None = None,
+):
+    """Return an async callable for ``side_effect`` of
+    ``asyncio.create_subprocess_exec`` that mimics ImageMagick ``import``.
+
+    Unlike ``_make_import_proc`` this dynamically captures the output-path
+    from the call arguments (``import -window root <path>``) so the test
+    does not need to know the internal raw-path name.
+
+    When *png_data* is given it is written instead of ``_MINIMAL_PNG``.
+    """
+    data = png_data if png_data is not None else _MINIMAL_PNG
+
+    async def _factory(*args, **kwargs):
+        proc = AsyncMock()
+        proc.returncode = returncode
+        proc.kill = MagicMock()
+        # ``import -window root <path>``  →  args[3] is the path
+        img_path = args[3] if len(args) > 3 else None
+
+        async def _communicate():
+            if returncode == 0 and img_path is not None:
+                Path(img_path).write_bytes(data)
+            return b"", stderr
+
+        proc.communicate = _communicate
+        return proc
+
+    return _factory
+
+
+def _create_test_png(width: int = 100, height: int = 80) -> bytes:
+    """Create a solid-colour PNG of the given dimensions using Pillow."""
+    img = PILImage.new("RGBA", (width, height), (255, 0, 0, 255))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 @pytest.mark.asyncio
 class TestGuiScreenshotTool:
     """Test suite for GuiScreenshotTool."""
@@ -82,43 +127,47 @@ class TestGuiScreenshotTool:
     # Positive: successful screenshot (happy path, existing session)
     # ------------------------------------------------------------------
     async def test_successful_screenshot(self, tool, tmp_path):
-        """Full happy path: existing session → import -window root → PNG."""
-        out_file = tmp_path / "screenshot.png"
+        """Full happy path: existing session → import → JPEG (default)."""
+        out_file = tmp_path / "screenshot.jpg"
         self._register_display(tool, "gui-sess-1")
 
-        mock_proc = _make_import_proc(out_file)
-
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
             raw = await tool.execute(session_id="gui-sess-1", output_path=str(out_file))
 
         result = json.loads(raw)
         assert result["error"] is None
         assert result["session_id"] == "gui-sess-1"
-        assert result["image_format"] == "png"
-        assert result["size_bytes"] == len(_MINIMAL_PNG)
+        assert result["image_format"] == "jpeg"  # default
+        assert result["size_bytes"] > 0
+        assert result["original_size_bytes"] > 0
+        assert result["compression_applied"] is True
+        assert result["return_mode"] == "base64"
+        assert result["width"] == 1
+        assert result["height"] == 1
         assert result["message"] == "Screenshot captured successfully."
-        assert base64.b64decode(result["image_data"]) == _MINIMAL_PNG
+        # Verify base64 data decodes to valid image bytes
+        img_bytes = base64.b64decode(result["image_data"])
+        assert len(img_bytes) > 0
 
     # ------------------------------------------------------------------
     # Positive: auto-session creation (Xvfb + OpenROAD)
     # ------------------------------------------------------------------
     async def test_successful_screenshot_auto_session(self, tool, mock_manager, tmp_path):
         """When no session_id is given, Xvfb + OpenROAD are started."""
-        out_file = tmp_path / "auto.png"
+        out_file = tmp_path / "auto.jpg"
         mock_manager.create_session.return_value = "auto-sess"
 
         xvfb_proc = _make_xvfb_proc()
+        import_factory = _make_import_side_effect()
 
-        # First call → Xvfb, second call → import
+        # First call → Xvfb, subsequent calls → import
         calls = [0]
 
         async def _create_sub(*args, **kwargs):
             calls[0] += 1
             if calls[0] == 1:
-                # Xvfb
                 return xvfb_proc
-            # import
-            return _make_import_proc(out_file)
+            return await import_factory(*args, **kwargs)
 
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
@@ -145,23 +194,23 @@ class TestGuiScreenshotTool:
     # ------------------------------------------------------------------
     async def test_default_resolution_and_timeout(self, tool, tmp_path):
         """Defaults for resolution and timeout are applied."""
-        out_file = tmp_path / "defaults.png"
+        out_file = tmp_path / "defaults.jpg"
         self._register_display(tool, "s1")
 
-        mock_proc = _make_import_proc(out_file)
-
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
             raw = await tool.execute(session_id="s1", output_path=str(out_file))
 
         result = json.loads(raw)
+        assert result["error"] is None
         assert result["resolution"] == settings.GUI_DISPLAY_RESOLUTION
 
     async def test_custom_resolution(self, tool, mock_manager, tmp_path):
         """Custom resolution is threaded through to result and Xvfb start."""
-        out_file = tmp_path / "res.png"
+        out_file = tmp_path / "res.jpg"
         mock_manager.create_session.return_value = "res-sess"
 
         xvfb_proc = _make_xvfb_proc()
+        import_factory = _make_import_side_effect()
         calls = [0]
 
         async def _create_sub(*args, **kwargs):
@@ -170,7 +219,7 @@ class TestGuiScreenshotTool:
                 # Xvfb – verify resolution is passed
                 assert "1920x1080x24" in args
                 return xvfb_proc
-            return _make_import_proc(out_file)
+            return await import_factory(*args, **kwargs)
 
         with (
             patch("openroad_mcp.tools.gui._xvfb_available", return_value=True),
@@ -183,6 +232,7 @@ class TestGuiScreenshotTool:
             raw = await tool.execute(resolution="1920x1080x24", output_path=str(out_file))
 
         result = json.loads(raw)
+        assert result["error"] is None
         assert result["resolution"] == "1920x1080x24"
 
     async def test_custom_timeout(self, tool, tmp_path):
@@ -209,25 +259,16 @@ class TestGuiScreenshotTool:
         """When output_path is omitted a temp file under /tmp is used."""
         self._register_display(tool, "s1")
 
-        captured_path: list[str] = []
-
-        async def _capture(*args, **kwargs):
-            # The 4th positional arg to import is the image path
-            path_str = args[3]
-            captured_path.append(path_str)
-            return _make_import_proc(path_str)
-
-        with patch("asyncio.create_subprocess_exec", side_effect=_capture):
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
             raw = await tool.execute(session_id="s1")
 
         result = json.loads(raw)
         assert result["error"] is None
         assert result["image_path"].startswith(tempfile.gettempdir())
-        assert result["image_path"].endswith(".png")
+        assert result["image_path"].endswith(".jpg")  # default JPEG
 
         # Cleanup
-        for p in captured_path:
-            Path(p).unlink(missing_ok=True)
+        Path(result["image_path"]).unlink(missing_ok=True)
 
     # ------------------------------------------------------------------
     # Negative: pre-flight checks
@@ -322,27 +363,20 @@ class TestGuiScreenshotTool:
     # Negative: file too large
     # ------------------------------------------------------------------
     async def test_file_too_large_error(self, tool, tmp_path):
-        """Returns FileTooLarge when screenshot exceeds configured max size."""
-        out_file = tmp_path / "huge.png"
+        """Returns FileTooLarge when processed screenshot exceeds max size."""
+        out_file = tmp_path / "huge.jpg"
         self._register_display(tool, "s1")
-        max_mb = settings.GUI_MAX_SCREENSHOT_SIZE_MB
-        huge_size = (max_mb + 1) * 1024 * 1024
 
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-
-        async def _big():
-            out_file.write_bytes(b"\x00" * huge_size)
-            return b"", b""
-
-        mock_proc.communicate = _big
-
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+        # Set max to 0 so any image exceeds the limit
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()),
+            patch.object(settings, "GUI_MAX_SCREENSHOT_SIZE_MB", 0),
+        ):
             raw = await tool.execute(session_id="s1", output_path=str(out_file))
 
         result = json.loads(raw)
         assert result["error"] == "FileTooLarge"
-        assert str(max_mb) in result["message"]
+        assert "exceeds" in result["message"].lower()
 
     # ------------------------------------------------------------------
     # Negative: session display not registered
@@ -394,32 +428,30 @@ class TestGuiScreenshotTool:
     # ------------------------------------------------------------------
     # Edge: stale file is cleaned before capture
     # ------------------------------------------------------------------
-    async def test_stale_file_removed_before_capture(self, tool, tmp_path):
-        """A stale file at the output path is removed before import."""
-        out_file = tmp_path / "stale.png"
+    async def test_stale_file_overwritten(self, tool, tmp_path):
+        """A stale file at the output path is overwritten with the new image."""
+        out_file = tmp_path / "stale.jpg"
         out_file.write_bytes(b"old data")
         self._register_display(tool, "s1")
 
-        mock_proc = _make_import_proc(out_file)
-
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
             raw = await tool.execute(session_id="s1", output_path=str(out_file))
 
         result = json.loads(raw)
         assert result["error"] is None
-        assert base64.b64decode(result["image_data"]) == _MINIMAL_PNG
+        # File should contain new image, not old data
+        assert out_file.read_bytes() != b"old data"
+        assert result["size_bytes"] > 0
 
     # ------------------------------------------------------------------
     # Result structure: all expected fields present
     # ------------------------------------------------------------------
     async def test_result_contains_all_fields(self, tool, tmp_path):
         """Successful result includes every GuiScreenshotResult field."""
-        out_file = tmp_path / "fields.png"
+        out_file = tmp_path / "fields.jpg"
         self._register_display(tool, "s1")
 
-        mock_proc = _make_import_proc(out_file)
-
-        with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
             raw = await tool.execute(session_id="s1", output_path=str(out_file))
 
         result = json.loads(raw)
@@ -429,12 +461,427 @@ class TestGuiScreenshotTool:
             "image_path",
             "image_format",
             "size_bytes",
+            "original_size_bytes",
             "resolution",
             "timestamp",
             "message",
             "error",
+            "return_mode",
+            "compression_applied",
+            "compression_ratio",
+            "width",
+            "height",
         }
         assert expected_keys.issubset(result.keys()), f"Missing: {expected_keys - result.keys()}"
+
+    # ------------------------------------------------------------------
+    # Image format tests
+    # ------------------------------------------------------------------
+    async def test_explicit_png_format(self, tool, tmp_path):
+        """Explicit image_format='png' produces a PNG."""
+        out_file = tmp_path / "shot.png"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), image_format="png")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "png"
+        # PNG signature: starts with \x89PNG
+        img_bytes = base64.b64decode(result["image_data"])
+        assert img_bytes[:4] == b"\x89PNG"
+
+    async def test_webp_format(self, tool, tmp_path):
+        """image_format='webp' produces a WebP file."""
+        out_file = tmp_path / "shot.webp"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), image_format="webp")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "webp"
+        # WebP signature: starts with RIFF....WEBP
+        img_bytes = base64.b64decode(result["image_data"])
+        assert img_bytes[:4] == b"RIFF"
+        assert img_bytes[8:12] == b"WEBP"
+
+    async def test_jpeg_default_format(self, tool, tmp_path):
+        """Default format is JPEG; RGBA PNG gets converted to RGB."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "jpeg"
+        # JPEG signature: starts with FF D8 FF
+        img_bytes = base64.b64decode(result["image_data"])
+        assert img_bytes[:2] == b"\xff\xd8"
+
+    # ------------------------------------------------------------------
+    # Quality tests
+    # ------------------------------------------------------------------
+    async def test_jpeg_quality_low(self, tool, tmp_path):
+        """Low quality JPEG produces a smaller file than high quality."""
+        self._register_display(tool, "s1")
+
+        # Use a larger PNG so quality difference is measurable
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw_low = await tool.execute(
+                session_id="s1",
+                output_path=str(tmp_path / "low.jpg"),
+                quality=10,
+            )
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw_high = await tool.execute(
+                session_id="s1",
+                output_path=str(tmp_path / "high.jpg"),
+                quality=95,
+            )
+
+        low = json.loads(raw_low)
+        high = json.loads(raw_high)
+        assert low["error"] is None
+        assert high["error"] is None
+        assert low["size_bytes"] < high["size_bytes"]
+
+    # ------------------------------------------------------------------
+    # Scale tests
+    # ------------------------------------------------------------------
+    async def test_scale_downscale(self, tool, tmp_path):
+        """scale=0.5 halves the image dimensions."""
+        out_file = tmp_path / "scaled.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                scale=0.5,
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["width"] == 50
+        assert result["height"] == 40
+        assert result["compression_applied"] is True
+
+    async def test_scale_one_no_resize(self, tool, tmp_path):
+        """scale=1.0 (default) preserves original dimensions."""
+        out_file = tmp_path / "noscale.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                scale=1.0,
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["width"] == 100
+        assert result["height"] == 80
+
+    # ------------------------------------------------------------------
+    # Crop tests
+    # ------------------------------------------------------------------
+    async def test_crop_region(self, tool, tmp_path):
+        """Cropping extracts a subregion of the image."""
+        out_file = tmp_path / "cropped.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                crop="10 10 60 50",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["width"] == 50  # 60 - 10
+        assert result["height"] == 40  # 50 - 10
+        assert result["compression_applied"] is True
+
+    async def test_crop_then_scale(self, tool, tmp_path):
+        """Crop is applied before scale: crop first, then resize."""
+        out_file = tmp_path / "crop_scale.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                crop="0 0 100 80",
+                scale=0.5,
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["width"] == 50
+        assert result["height"] == 40
+
+    async def test_crop_invalid_format(self, tool, tmp_path):
+        """Invalid crop string returns InvalidParameter error."""
+        out_file = tmp_path / "bad_crop.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                crop="not numbers",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "crop" in result["message"].lower()
+
+    async def test_crop_wrong_count(self, tool, tmp_path):
+        """Crop with wrong number of coordinates returns error."""
+        out_file = tmp_path / "bad_crop2.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                crop="10 20 30",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "4" in result["message"]
+
+    # ------------------------------------------------------------------
+    # Return mode tests
+    # ------------------------------------------------------------------
+    async def test_return_mode_path(self, tool, tmp_path):
+        """return_mode='path' omits image_data for token savings."""
+        out_file = tmp_path / "path_only.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                return_mode="path",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["return_mode"] == "path"
+        assert result["image_data"] is None
+        assert result["image_path"] == str(out_file)
+        assert result["size_bytes"] > 0
+        assert "saved to" in result["message"].lower()
+
+    async def test_return_mode_preview(self, tool, tmp_path):
+        """return_mode='preview' returns a small thumbnail and the full path."""
+        out_file = tmp_path / "preview.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                return_mode="preview",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["return_mode"] == "preview"
+        assert result["image_data"] is not None
+        assert result["image_path"] == str(out_file)
+        assert "preview" in result["message"].lower() or "thumbnail" in result["message"].lower()
+
+        # Preview image should be smaller than or equal to 256px on longest side
+        preview_bytes = base64.b64decode(result["image_data"])
+        preview_img = PILImage.open(io.BytesIO(preview_bytes))
+        assert max(preview_img.size) <= 256
+        preview_img.close()
+
+    async def test_return_mode_base64_default(self, tool, tmp_path):
+        """Default return_mode is 'base64' with full image data."""
+        out_file = tmp_path / "base64.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["return_mode"] == "base64"
+        assert result["image_data"] is not None
+        assert result["image_path"] == str(out_file)
+
+    # ------------------------------------------------------------------
+    # Parameter validation tests
+    # ------------------------------------------------------------------
+    async def test_invalid_format_error(self, tool):
+        """Unsupported image format returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", image_format="bmp")
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "bmp" in result["message"]
+        assert "jpeg" in result["message"]
+
+    async def test_invalid_return_mode_error(self, tool):
+        """Unsupported return_mode returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", return_mode="inline")
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "inline" in result["message"]
+        assert "base64" in result["message"]
+
+    async def test_invalid_scale_zero(self, tool):
+        """scale=0 returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", scale=0.0)
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "scale" in result["message"].lower()
+
+    async def test_invalid_scale_negative(self, tool):
+        """Negative scale returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", scale=-0.5)
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "scale" in result["message"].lower()
+
+    async def test_invalid_scale_over_one(self, tool):
+        """scale > 1.0 returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", scale=1.5)
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "scale" in result["message"].lower()
+
+    async def test_invalid_quality_zero(self, tool):
+        """quality=0 returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", quality=0)
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "quality" in result["message"].lower()
+
+    async def test_invalid_quality_over_100(self, tool):
+        """quality=101 returns InvalidParameter."""
+        self._register_display(tool, "s1")
+
+        raw = await tool.execute(session_id="s1", quality=101)
+
+        result = json.loads(raw)
+        assert result["error"] == "InvalidParameter"
+        assert "quality" in result["message"].lower()
+
+    # ------------------------------------------------------------------
+    # Compression ratio field
+    # ------------------------------------------------------------------
+    async def test_compression_ratio_jpeg(self, tool, tmp_path):
+        """JPEG compression reports a non-None compression_ratio."""
+        out_file = tmp_path / "ratio.jpg"
+        self._register_display(tool, "s1")
+
+        big_png = _create_test_png(100, 80)
+
+        with patch(
+            "asyncio.create_subprocess_exec",
+            side_effect=_make_import_side_effect(png_data=big_png),
+        ):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["compression_applied"] is True
+        assert result["compression_ratio"] is not None
+        assert 0 < result["compression_ratio"]  # ratio > 0
+        assert result["original_size_bytes"] > 0
+
+    async def test_no_compression_png(self, tool, tmp_path):
+        """PNG at scale=1.0 with no crop reports compression_applied=False."""
+        out_file = tmp_path / "plain.png"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                image_format="png",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["compression_applied"] is False
+        assert result["compression_ratio"] is None
 
     # ------------------------------------------------------------------
     # Xvfb start failure

@@ -208,6 +208,12 @@ class GuiScreenshotResult(BaseResult):
     image_path: str | None = None
     image_format: str | None = None
     size_bytes: int | None = None
+    original_size_bytes: int | None = None
     resolution: str | None = None
     timestamp: str | None = None
+    return_mode: str | None = None
+    compression_applied: bool = False
+    compression_ratio: float | None = None
+    width: int | None = None
+    height: int | None = None
     message: str | None = None

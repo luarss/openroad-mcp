@@ -72,8 +72,8 @@ class TestGuiScreenshot:
     @skip_if_no_xvfb
     @skip_if_no_openroad
     @skip_if_no_import
-    async def test_screenshot_creates_png(self, tool: GuiScreenshotTool):
-        """Launch headless GUI, capture screenshot, verify PNG base64."""
+    async def test_screenshot_default_jpeg(self, tool: GuiScreenshotTool):
+        """Launch headless GUI, capture screenshot, verify JPEG base64 (default format)."""
         raw = await tool.execute(timeout_ms=25_000)
         result = json.loads(raw)
 
@@ -82,13 +82,15 @@ class TestGuiScreenshot:
             pytest.skip(f"GUI did not produce image (infra): {result.get('message', '')}")
 
         assert result.get("error") is None, f"Unexpected error: {result}"
-        assert result["image_format"] == "png"
+        assert result["image_format"] == "jpeg"  # default format
         assert result["size_bytes"] > 0
         assert result["session_id"] is not None
+        assert result["return_mode"] == "base64"
+        assert result["compression_applied"] is True
 
-        # Validate base64 payload
+        # Validate base64 payload (JPEG signature: FF D8)
         image_bytes = base64.b64decode(result["image_data"])
-        assert image_bytes[:4] == b"\x89PNG", "Response is not a valid PNG"
+        assert image_bytes[:2] == b"\xff\xd8", "Response is not a valid JPEG"
 
         # File should exist on disk as well
         assert Path(result["image_path"]).exists()
