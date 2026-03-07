@@ -32,6 +32,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+from ..config.settings import settings
 from ..core.manager import OpenROADManager
 from ..core.models import GuiScreenshotResult
 from ..interactive.models import SessionError, SessionNotFoundError, SessionTerminatedError
@@ -44,12 +45,8 @@ logger = get_logger("gui_tools")
 # Constants
 # ---------------------------------------------------------------------------
 
-# Default virtual framebuffer geometry  (WxHxDepth)
-DEFAULT_DISPLAY_RESOLUTION = "1280x1024x24"
-
 # Timeout defaults (ms)
 GUI_STARTUP_TIMEOUT_MS = 10_000
-IMAGE_CAPTURE_TIMEOUT_MS = 8_000
 
 # Maximum screenshot file size (MB)
 MAX_SCREENSHOT_SIZE_MB = 50
@@ -159,8 +156,8 @@ class GuiScreenshotTool(BaseTool):
         timeout_ms:
             How long to wait for the screenshot capture (default 8 000 ms).
         """
-        actual_timeout = timeout_ms or IMAGE_CAPTURE_TIMEOUT_MS
-        actual_resolution = resolution or DEFAULT_DISPLAY_RESOLUTION
+        actual_timeout = timeout_ms or settings.GUI_CAPTURE_TIMEOUT_MS
+        actual_resolution = resolution or settings.GUI_DISPLAY_RESOLUTION
 
         try:
             # ----------------------------------------------------------

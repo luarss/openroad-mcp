@@ -14,8 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from openroad_mcp.config.settings import settings
 from openroad_mcp.tools.gui import (
-    DEFAULT_DISPLAY_RESOLUTION,
     MAX_SCREENSHOT_SIZE_MB,
     GuiScreenshotTool,
     _find_free_display,
@@ -153,7 +153,7 @@ class TestGuiScreenshotTool:
             raw = await tool.execute(session_id="s1", output_path=str(out_file))
 
         result = json.loads(raw)
-        assert result["resolution"] == DEFAULT_DISPLAY_RESOLUTION
+        assert result["resolution"] == settings.GUI_DISPLAY_RESOLUTION
 
     async def test_custom_resolution(self, tool, mock_manager, tmp_path):
         """Custom resolution is threaded through to result and Xvfb start."""

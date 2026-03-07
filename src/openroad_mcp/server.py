@@ -131,8 +131,9 @@ async def gui_screenshot(
 ) -> str:
     """Capture a screenshot from an OpenROAD GUI session running under Xvfb.
 
-    Launches a headless OpenROAD GUI via xvfb-run if no session_id is provided.
-    Executes gui::save_image to capture the current view and returns base64-encoded PNG data.
+    Launches a headless OpenROAD GUI on an Xvfb virtual display if no session_id
+    is provided.  Uses ImageMagick ``import -window root`` to capture the X11 root
+    window and returns base64-encoded PNG data.
     """
     return await gui_screenshot_tool.execute(session_id, resolution, output_path, timeout_ms)
 

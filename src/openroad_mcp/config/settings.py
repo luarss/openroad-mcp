@@ -41,6 +41,16 @@ class Settings(BaseModel):
         description="Enable command validation to prevent command injection",
     )
 
+    # GUI screenshot settings
+    GUI_DISPLAY_RESOLUTION: str = Field(
+        default="1280x1024x24",
+        description="Default Xvfb virtual display resolution (WxHxDepth)",
+    )
+    GUI_CAPTURE_TIMEOUT_MS: int = Field(
+        default=8000,
+        description="Timeout in milliseconds for the screenshot capture",
+    )
+
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
         default=os.path.expanduser("~/OpenROAD-flow-scripts/flow"),
@@ -83,6 +93,8 @@ class Settings(BaseModel):
             "READ_CHUNK_SIZE": ("OPENROAD_READ_CHUNK_SIZE", int),
             "LOG_LEVEL": ("LOG_LEVEL", str),
             "LOG_FORMAT": ("LOG_FORMAT", str),
+            "GUI_DISPLAY_RESOLUTION": ("OPENROAD_GUI_DISPLAY_RESOLUTION", str),
+            "GUI_CAPTURE_TIMEOUT_MS": ("OPENROAD_GUI_CAPTURE_TIMEOUT_MS", int),
             "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),
         }
 
