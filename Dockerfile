@@ -20,7 +20,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # Second sync installs the project itself once source is present.
 COPY src/ ./src/
-COPY README.md ./ 
+COPY README.md ./
 RUN uv sync --frozen --no-dev
 
 
