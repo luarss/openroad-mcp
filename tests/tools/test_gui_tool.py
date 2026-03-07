@@ -21,6 +21,7 @@ from openroad_mcp.tools.gui import (
     GuiScreenshotTool,
     _find_free_display,
     _wait_for_display,
+    _wait_for_gui_ready,
 )
 
 # Minimal valid PNG (1×1 pixel, RGBA)
@@ -176,6 +177,7 @@ class TestGuiScreenshotTool:
             patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
             patch("asyncio.sleep", new_callable=AsyncMock),
             patch("openroad_mcp.tools.gui._wait_for_display", new_callable=AsyncMock, return_value=True),
+            patch("openroad_mcp.tools.gui._wait_for_gui_ready", new_callable=AsyncMock, return_value=True),
         ):
             raw = await tool.execute(output_path=str(out_file))
 
@@ -228,6 +230,7 @@ class TestGuiScreenshotTool:
             patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
             patch("asyncio.sleep", new_callable=AsyncMock),
             patch("openroad_mcp.tools.gui._wait_for_display", new_callable=AsyncMock, return_value=True),
+            patch("openroad_mcp.tools.gui._wait_for_gui_ready", new_callable=AsyncMock, return_value=True),
         ):
             raw = await tool.execute(resolution="1920x1080x24", output_path=str(out_file))
 
@@ -404,6 +407,7 @@ class TestGuiScreenshotTool:
             patch("asyncio.create_subprocess_exec", return_value=_make_xvfb_proc()),
             patch("asyncio.sleep", new_callable=AsyncMock),
             patch("openroad_mcp.tools.gui._wait_for_display", new_callable=AsyncMock, return_value=True),
+            patch("openroad_mcp.tools.gui._wait_for_gui_ready", new_callable=AsyncMock, return_value=True),
         ):
             raw = await tool.execute()
 
@@ -1066,5 +1070,99 @@ class TestWaitForDisplay:
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
             result = await _wait_for_display(42)
+
+        assert result is True
+
+
+@pytest.mark.asyncio
+class TestWaitForGuiReady:
+    """Tests for the _wait_for_gui_ready window-detection helper."""
+
+    def _make_xwininfo_proc(self, stdout_text: str, *, returncode: int = 0):
+        """Build a mock subprocess for xwininfo that returns *stdout_text*."""
+        proc = AsyncMock()
+        proc.returncode = returncode
+        proc.communicate = AsyncMock(return_value=(stdout_text.encode("utf-8"), b""))
+        return proc
+
+    # Example xwininfo output with no children (just root)
+    _NO_CHILDREN = """\
+xwininfo: Window id: 0x3e (the root window) "root"
+
+  Root window id: 0x3e (the root window) "root"
+  Parent window id: 0x0 (none)
+     0 children.
+"""
+
+    # Example xwininfo output with OpenROAD window present
+    _HAS_CHILDREN = """\
+xwininfo: Window id: 0x3e (the root window) "root"
+
+  Root window id: 0x3e (the root window) "root"
+  Parent window id: 0x0 (none)
+     1 child:
+     0x1400001 (has no name): ("openroad" "OpenROAD")  1280x1024+0+0  +0+0
+"""
+
+    async def test_gui_ready_immediately(self):
+        """Returns True when a child window is found on the first poll."""
+        proc = self._make_xwininfo_proc(self._HAS_CHILDREN)
+
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await _wait_for_gui_ready(42)
+
+        assert result is True
+
+    async def test_gui_ready_after_retries(self):
+        """Returns True when children appear after a few polls."""
+        call_count = [0]
+
+        async def _make_proc(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] < 3:
+                return self._make_xwininfo_proc(self._NO_CHILDREN)
+            return self._make_xwininfo_proc(self._HAS_CHILDREN)
+
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=_make_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await _wait_for_gui_ready(50)
+
+        assert result is True
+        assert call_count[0] >= 3
+
+    async def test_gui_ready_timeout(self):
+        """Returns False when no child window appears within timeout."""
+        proc = self._make_xwininfo_proc(self._NO_CHILDREN)
+
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            patch.object(settings, "GUI_APP_READY_TIMEOUT_S", 1.0),
+            patch.object(settings, "GUI_APP_READY_POLL_INTERVAL_S", 0.5),
+        ):
+            result = await _wait_for_gui_ready(99)
+
+        assert result is False
+
+    async def test_gui_ready_handles_oserror(self):
+        """Continues polling when xwininfo raises OSError."""
+        call_count = [0]
+
+        async def _make_proc(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                raise OSError("No such file")
+            return self._make_xwininfo_proc(self._HAS_CHILDREN)
+
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=_make_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await _wait_for_gui_ready(42)
 
         assert result is True

@@ -74,6 +74,14 @@ class Settings(BaseModel):
         default=0.5,
         description="Seconds between xdpyinfo readiness polls during GUI startup",
     )
+    GUI_APP_READY_TIMEOUT_S: float = Field(
+        default=15.0,
+        description="Max seconds to wait for the OpenROAD GUI window to render after Xvfb is ready",
+    )
+    GUI_APP_READY_POLL_INTERVAL_S: float = Field(
+        default=0.5,
+        description="Polling interval (seconds) when waiting for GUI application window",
+    )
     GUI_DEFAULT_IMAGE_FORMAT: str = Field(
         default="jpeg",
         description="Default image format for screenshots ('png', 'jpeg', or 'webp')",
@@ -133,6 +141,8 @@ class Settings(BaseModel):
             "GUI_DISPLAY_END": ("OPENROAD_GUI_DISPLAY_END", int),
             "GUI_STARTUP_TIMEOUT_S": ("OPENROAD_GUI_STARTUP_TIMEOUT_S", float),
             "GUI_STARTUP_POLL_INTERVAL_S": ("OPENROAD_GUI_STARTUP_POLL_INTERVAL_S", float),
+            "GUI_APP_READY_TIMEOUT_S": ("OPENROAD_GUI_APP_READY_TIMEOUT_S", float),
+            "GUI_APP_READY_POLL_INTERVAL_S": ("OPENROAD_GUI_APP_READY_POLL_INTERVAL_S", float),
             "GUI_DEFAULT_IMAGE_FORMAT": ("OPENROAD_GUI_DEFAULT_IMAGE_FORMAT", str),
             "GUI_DEFAULT_JPEG_QUALITY": ("OPENROAD_GUI_DEFAULT_JPEG_QUALITY", int),
             "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),

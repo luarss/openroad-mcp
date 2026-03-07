@@ -151,6 +151,64 @@ async def _wait_for_display(display_num: int) -> bool:
     return False
 
 
+async def _wait_for_gui_ready(display_num: int) -> bool:
+    """Poll *xwininfo -root -children* until a real application window appears.
+
+    ``_wait_for_display`` only confirms that Xvfb is accepting connections.
+    This function waits for OpenROAD's Qt GUI to create a child window on
+    the root, meaning the application has actually rendered.
+
+    Returns ``True`` when an application window is detected, ``False`` on
+    timeout.
+    """
+    timeout = settings.GUI_APP_READY_TIMEOUT_S
+    interval = settings.GUI_APP_READY_POLL_INTERVAL_S
+    display_env = {**os.environ, "DISPLAY": f":{display_num}"}
+    elapsed = 0.0
+
+    while elapsed < timeout:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "xwininfo",
+                "-root",
+                "-children",
+                env=display_env,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=3.0)
+            if proc.returncode == 0:
+                output = stdout.decode("utf-8", errors="replace")
+                # Count lines that look like real child windows.
+                # xwininfo output for children has lines like:
+                #   0x1400001 (has no name): ("openroad" "OpenROAD")  1280x1024+0+0...
+                # We look for indented hex window IDs under the "children:" section.
+                child_lines = [
+                    line
+                    for line in output.splitlines()
+                    if line.strip().startswith("0x") and "child" not in line.lower()
+                ]
+                if child_lines:
+                    logger.debug(
+                        "GUI window detected on :%d after %.1fs (%d children)",
+                        display_num,
+                        elapsed,
+                        len(child_lines),
+                    )
+                    return True
+        except (TimeoutError, OSError):
+            pass
+        await asyncio.sleep(interval)
+        elapsed += interval
+
+    logger.warning(
+        "No GUI window detected on :%d after %.1fs -- proceeding anyway",
+        display_num,
+        timeout,
+    )
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Tool
 # ---------------------------------------------------------------------------
@@ -636,5 +694,9 @@ class GuiScreenshotTool(BaseTool):
 
         # Wait for the X11 display to become ready (replaces fixed sleep)
         await _wait_for_display(display_num)
+
+        # Wait for OpenROAD GUI to create an actual window (prevents
+        # capturing a blank/black frame before the app has rendered).
+        await _wait_for_gui_ready(display_num)
 
         return session_id
