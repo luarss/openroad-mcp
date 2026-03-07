@@ -17,7 +17,8 @@ The lifecycle is:
 1. Start **Xvfb** on a deterministic display number.
 2. Launch ``openroad -gui -no_init`` via the session manager with
    ``DISPLAY`` pointed at that Xvfb instance.
-3. Sleep for a few seconds so Qt / OpenGL can initialise.
+3. Poll the display with ``xdpyinfo`` until a window appears (with a
+   configurable timeout fallback).
 4. Run ``import -window root <path>`` on the same ``DISPLAY``.
 5. Read the resulting PNG and return it as base-64.
 """
@@ -42,24 +43,11 @@ from .base import BaseTool
 logger = get_logger("gui_tools")
 
 # ---------------------------------------------------------------------------
-# Constants
+# Derived constants – computed once from centralised settings.
+# Module-level names kept for backward compatibility and test imports.
 # ---------------------------------------------------------------------------
 
-# Timeout defaults (ms)
-GUI_STARTUP_TIMEOUT_MS = 10_000
-
-# Maximum screenshot file size (MB)
-MAX_SCREENSHOT_SIZE_MB = 50
-
-# How long to sleep after starting OpenROAD before capturing.
-# In Docker the Qt / OpenGL init takes 4-6 s.
-_GUI_INIT_SLEEP = 6.0
-
-# Timeout for the ``import`` subprocess (seconds)
-_IMPORT_TIMEOUT = 15.0
-
-# Range of X11 display numbers to try when looking for a free one
-_DISPLAY_RANGE = range(42, 100)
+MAX_SCREENSHOT_SIZE_MB: int = settings.GUI_MAX_SCREENSHOT_SIZE_MB
 
 
 # ---------------------------------------------------------------------------
@@ -102,12 +90,52 @@ def _import_available() -> bool:
 
 def _find_free_display() -> int:
     """Return the first display number without an X lock file."""
-    for num in _DISPLAY_RANGE:
+    start = settings.GUI_DISPLAY_START
+    end = settings.GUI_DISPLAY_END
+    for num in range(start, end):
         lock = Path(f"/tmp/.X{num}-lock")
         if not lock.exists():
             return num
-    # Fallback – use a high random number
-    return 42 + uuid.uuid4().int % 200
+    # Fallback – use a high random number outside the configured range
+    return start + uuid.uuid4().int % 200
+
+
+async def _wait_for_display(display_num: int) -> bool:
+    """Poll *xdpyinfo* until the display is ready or the timeout expires.
+
+    Returns ``True`` when the display is responsive, ``False`` on timeout.
+    The timeout and polling interval are read from
+    ``settings.GUI_STARTUP_TIMEOUT_S`` and
+    ``settings.GUI_STARTUP_POLL_INTERVAL_S``.
+    """
+    timeout = settings.GUI_STARTUP_TIMEOUT_S
+    interval = settings.GUI_STARTUP_POLL_INTERVAL_S
+    display_env = {**os.environ, "DISPLAY": f":{display_num}"}
+    elapsed = 0.0
+
+    while elapsed < timeout:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "xdpyinfo",
+                env=display_env,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            rc = await asyncio.wait_for(proc.wait(), timeout=3.0)
+            if rc == 0:
+                logger.debug("Display :%d ready after %.1fs", display_num, elapsed)
+                return True
+        except (TimeoutError, OSError):
+            pass
+        await asyncio.sleep(interval)
+        elapsed += interval
+
+    logger.warning(
+        "Display :%d not ready after %.1fs – proceeding anyway",
+        display_num,
+        timeout,
+    )
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -250,15 +278,15 @@ class GuiScreenshotTool(BaseTool):
                     )
                 )
 
+            max_size = settings.GUI_MAX_SCREENSHOT_SIZE_MB
             file_size_mb = image_path.stat().st_size / (1024 * 1024)
-            if file_size_mb > MAX_SCREENSHOT_SIZE_MB:
+            if file_size_mb > max_size:
                 return self._format_result(
                     GuiScreenshotResult(
                         session_id=session_id,
                         error="FileTooLarge",
                         message=(
-                            f"Screenshot size ({file_size_mb:.2f} MB) exceeds "
-                            f"maximum allowed size ({MAX_SCREENSHOT_SIZE_MB} MB)."
+                            f"Screenshot size ({file_size_mb:.2f} MB) exceeds maximum allowed size ({max_size} MB)."
                         ),
                     )
                 )
@@ -405,7 +433,7 @@ class GuiScreenshotTool(BaseTool):
             xvfb_proc.pid,
         )
 
-        # Wait for Qt / OpenGL to finish initialising
-        await asyncio.sleep(_GUI_INIT_SLEEP)
+        # Wait for the X11 display to become ready (replaces fixed sleep)
+        await _wait_for_display(display_num)
 
         return session_id

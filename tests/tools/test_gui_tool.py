@@ -16,9 +16,9 @@ import pytest
 
 from openroad_mcp.config.settings import settings
 from openroad_mcp.tools.gui import (
-    MAX_SCREENSHOT_SIZE_MB,
     GuiScreenshotTool,
     _find_free_display,
+    _wait_for_display,
 )
 
 # Minimal valid PNG (1×1 pixel, RGBA)
@@ -126,6 +126,7 @@ class TestGuiScreenshotTool:
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
             patch("asyncio.sleep", new_callable=AsyncMock),
+            patch("openroad_mcp.tools.gui._wait_for_display", new_callable=AsyncMock, return_value=True),
         ):
             raw = await tool.execute(output_path=str(out_file))
 
@@ -177,6 +178,7 @@ class TestGuiScreenshotTool:
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", side_effect=_create_sub),
             patch("asyncio.sleep", new_callable=AsyncMock),
+            patch("openroad_mcp.tools.gui._wait_for_display", new_callable=AsyncMock, return_value=True),
         ):
             raw = await tool.execute(resolution="1920x1080x24", output_path=str(out_file))
 
@@ -320,10 +322,11 @@ class TestGuiScreenshotTool:
     # Negative: file too large
     # ------------------------------------------------------------------
     async def test_file_too_large_error(self, tool, tmp_path):
-        """Returns FileTooLarge when screenshot exceeds MAX_SCREENSHOT_SIZE_MB."""
+        """Returns FileTooLarge when screenshot exceeds configured max size."""
         out_file = tmp_path / "huge.png"
         self._register_display(tool, "s1")
-        huge_size = (MAX_SCREENSHOT_SIZE_MB + 1) * 1024 * 1024
+        max_mb = settings.GUI_MAX_SCREENSHOT_SIZE_MB
+        huge_size = (max_mb + 1) * 1024 * 1024
 
         mock_proc = AsyncMock()
         mock_proc.returncode = 0
@@ -339,7 +342,7 @@ class TestGuiScreenshotTool:
 
         result = json.loads(raw)
         assert result["error"] == "FileTooLarge"
-        assert str(MAX_SCREENSHOT_SIZE_MB) in result["message"]
+        assert str(max_mb) in result["message"]
 
     # ------------------------------------------------------------------
     # Negative: session display not registered
@@ -366,6 +369,7 @@ class TestGuiScreenshotTool:
             patch("openroad_mcp.tools.gui._import_available", return_value=True),
             patch("asyncio.create_subprocess_exec", return_value=_make_xvfb_proc()),
             patch("asyncio.sleep", new_callable=AsyncMock),
+            patch("openroad_mcp.tools.gui._wait_for_display", new_callable=AsyncMock, return_value=True),
         ):
             raw = await tool.execute()
 
@@ -504,12 +508,11 @@ class TestPreFlightHelpers:
             assert _import_available() is False
 
     def test_find_free_display_no_locks(self, tmp_path):
-        """Returns first number in range when no lock files exist."""
+        """Returns first number in configured range when no lock files exist."""
         with patch("openroad_mcp.tools.gui.Path") as MockPath:
             MockPath.return_value.exists.return_value = False
-            # _find_free_display expects /tmp/.X{N}-lock not to exist
             num = _find_free_display()
-            assert 42 <= num < 300
+            assert settings.GUI_DISPLAY_START <= num < settings.GUI_DISPLAY_START + 200
 
     def test_get_openroad_exe_from_env(self, tmp_path):
         """OPENROAD_EXE env var is preferred over PATH lookup."""
@@ -545,3 +548,76 @@ class TestPreFlightHelpers:
         ):
             result = _get_openroad_exe()
         assert result is None
+
+
+@pytest.mark.asyncio
+class TestWaitForDisplay:
+    """Tests for the _wait_for_display readiness polling helper."""
+
+    async def test_display_ready_immediately(self):
+        """Returns True when xdpyinfo succeeds on the first poll."""
+        mock_proc = AsyncMock()
+        mock_proc.wait = AsyncMock(return_value=0)
+
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=mock_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await _wait_for_display(42)
+
+        assert result is True
+
+    async def test_display_ready_after_retries(self):
+        """Returns True when xdpyinfo fails initially then succeeds."""
+        call_count = [0]
+
+        async def _make_proc(*args, **kwargs):
+            call_count[0] += 1
+            proc = AsyncMock()
+            # Succeed on 3rd attempt
+            proc.wait = AsyncMock(return_value=0 if call_count[0] >= 3 else 1)
+            return proc
+
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=_make_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await _wait_for_display(50)
+
+        assert result is True
+        assert call_count[0] >= 3
+
+    async def test_display_timeout(self):
+        """Returns False when display never becomes ready within timeout."""
+        mock_proc = AsyncMock()
+        mock_proc.wait = AsyncMock(return_value=1)  # always fail
+
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=mock_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+            patch.object(settings, "GUI_STARTUP_TIMEOUT_S", 1.0),
+            patch.object(settings, "GUI_STARTUP_POLL_INTERVAL_S", 0.5),
+        ):
+            result = await _wait_for_display(99)
+
+        assert result is False
+
+    async def test_display_handles_oserror(self):
+        """Continues polling if xdpyinfo raises OSError (e.g. not installed)."""
+        call_count = [0]
+
+        async def _make_proc(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                raise OSError("No such file")
+            proc = AsyncMock()
+            proc.wait = AsyncMock(return_value=0)
+            return proc
+
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=_make_proc),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            result = await _wait_for_display(42)
+
+        assert result is True

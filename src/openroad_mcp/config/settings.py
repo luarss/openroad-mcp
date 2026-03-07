@@ -50,6 +50,30 @@ class Settings(BaseModel):
         default=8000,
         description="Timeout in milliseconds for the screenshot capture",
     )
+    GUI_MAX_SCREENSHOT_SIZE_MB: int = Field(
+        default=50,
+        description="Maximum allowed screenshot file size in megabytes",
+    )
+    GUI_IMPORT_TIMEOUT_S: float = Field(
+        default=15.0,
+        description="Timeout in seconds for the ImageMagick import subprocess",
+    )
+    GUI_DISPLAY_START: int = Field(
+        default=42,
+        description="Start of the X11 display number range for Xvfb",
+    )
+    GUI_DISPLAY_END: int = Field(
+        default=100,
+        description="End (exclusive) of the X11 display number range for Xvfb",
+    )
+    GUI_STARTUP_TIMEOUT_S: float = Field(
+        default=15.0,
+        description="Maximum seconds to wait for the GUI to become ready",
+    )
+    GUI_STARTUP_POLL_INTERVAL_S: float = Field(
+        default=0.5,
+        description="Seconds between xdpyinfo readiness polls during GUI startup",
+    )
 
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
@@ -95,6 +119,12 @@ class Settings(BaseModel):
             "LOG_FORMAT": ("LOG_FORMAT", str),
             "GUI_DISPLAY_RESOLUTION": ("OPENROAD_GUI_DISPLAY_RESOLUTION", str),
             "GUI_CAPTURE_TIMEOUT_MS": ("OPENROAD_GUI_CAPTURE_TIMEOUT_MS", int),
+            "GUI_MAX_SCREENSHOT_SIZE_MB": ("OPENROAD_GUI_MAX_SCREENSHOT_SIZE_MB", int),
+            "GUI_IMPORT_TIMEOUT_S": ("OPENROAD_GUI_IMPORT_TIMEOUT_S", float),
+            "GUI_DISPLAY_START": ("OPENROAD_GUI_DISPLAY_START", int),
+            "GUI_DISPLAY_END": ("OPENROAD_GUI_DISPLAY_END", int),
+            "GUI_STARTUP_TIMEOUT_S": ("OPENROAD_GUI_STARTUP_TIMEOUT_S", float),
+            "GUI_STARTUP_POLL_INTERVAL_S": ("OPENROAD_GUI_STARTUP_POLL_INTERVAL_S", float),
             "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),
         }
 
