@@ -580,34 +580,39 @@ class GuiScreenshotTool(BaseTool):
                 )
 
             if mode == "preview":
-                # Generate a small thumbnail for preview
+                # Generate a small thumbnail for preview and save it to disk
                 preview_img: Image.Image = Image.open(io.BytesIO(processed_bytes))
                 preview_img.thumbnail((_PREVIEW_SIZE, _PREVIEW_SIZE), Image.Resampling.LANCZOS)
+                preview_w, preview_h = preview_img.size
                 preview_buf = io.BytesIO()
                 if fmt == "jpeg" and preview_img.mode in ("RGBA", "LA", "PA"):
                     preview_img = preview_img.convert("RGB")
                 preview_img.save(preview_buf, format=pil_fmt, **save_kwargs)
                 preview_img.close()
-                preview_b64 = base64.b64encode(preview_buf.getvalue()).decode("utf-8")
+                preview_bytes = preview_buf.getvalue()
+
+                # Overwrite the full-size file with the thumbnail
+                final_path.write_bytes(preview_bytes)
+
+                preview_b64 = base64.b64encode(preview_bytes).decode("utf-8")
                 return self._format_result(
                     GuiScreenshotResult(
                         session_id=session_id,
                         image_data=preview_b64,
                         image_path=str(final_path),
                         image_format=fmt,
-                        size_bytes=processed_size,
+                        size_bytes=len(preview_bytes),
                         original_size_bytes=original_size,
-                        resolution=actual_resolution,
+                        resolution=f"{preview_w}x{preview_h}",
                         timestamp=now,
                         return_mode=mode,
-                        compression_applied=compression_applied,
-                        compression_ratio=compression_ratio,
-                        width=final_w,
-                        height=final_h,
+                        compression_applied=True,
+                        compression_ratio=len(preview_bytes) / original_size if original_size > 0 else None,
+                        width=preview_w,
+                        height=preview_h,
                         message=(
-                            f"Preview thumbnail ({_PREVIEW_SIZE}px) returned. "
-                            f"Full image at {final_path} "
-                            f"({processed_size:,} bytes, {fmt})."
+                            f"Preview thumbnail ({preview_w}x{preview_h}) saved to {final_path} "
+                            f"({len(preview_bytes):,} bytes, {fmt})."
                         ),
                     )
                 )

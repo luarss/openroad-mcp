@@ -754,7 +754,17 @@ class TestGuiScreenshotTool:
         preview_bytes = base64.b64decode(result["image_data"])
         preview_img = PILImage.open(io.BytesIO(preview_bytes))
         assert max(preview_img.size) <= 256
+        # Result metadata must reflect the thumbnail, not the full image
+        assert result["width"] == preview_img.size[0]
+        assert result["height"] == preview_img.size[1]
+        assert result["size_bytes"] == len(preview_bytes)
         preview_img.close()
+
+        # File on disk must also be the thumbnail, not the full-size image
+        disk_img = PILImage.open(out_file)
+        assert max(disk_img.size) <= 256
+        assert disk_img.size == (result["width"], result["height"])
+        disk_img.close()
 
     async def test_return_mode_base64_default(self, tool, tmp_path):
         """Default return_mode is 'base64' with full image data."""
