@@ -60,7 +60,7 @@ _VALID_FORMATS = {"png", "jpeg", "webp"}
 _VALID_RETURN_MODES = {"base64", "path", "preview"}
 
 # Preview thumbnail max dimension (longest side)
-_PREVIEW_SIZE = 256
+_PREVIEW_SIZE: int = settings.GUI_PREVIEW_SIZE_PX
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ def _find_free_display() -> int:
         if not lock.exists():
             return num
     # Fallback – use a high random number outside the configured range
-    return start + uuid.uuid4().int % 200
+    return start + uuid.uuid4().int % settings.GUI_DISPLAY_FALLBACK_RANGE
 
 
 async def _wait_for_display(display_num: int) -> bool:
@@ -134,7 +134,7 @@ async def _wait_for_display(display_num: int) -> bool:
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )
-            rc = await asyncio.wait_for(proc.wait(), timeout=3.0)
+            rc = await asyncio.wait_for(proc.wait(), timeout=settings.GUI_SUBPROCESS_TIMEOUT_S)
             if rc == 0:
                 logger.debug("Display :%d ready after %.1fs", display_num, elapsed)
                 return True
@@ -176,7 +176,7 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=3.0)
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=settings.GUI_SUBPROCESS_TIMEOUT_S)
             if proc.returncode == 0:
                 output = stdout.decode("utf-8", errors="replace")
                 # Count lines that look like real child windows.
@@ -384,7 +384,7 @@ class GuiScreenshotTool(BaseTool):
             # 2.  Determine raw capture path (always PNG from import)
             # ----------------------------------------------------------
             tmp_dir = Path(tempfile.gettempdir())
-            raw_name = f"openroad_gui_raw_{uuid.uuid4().hex[:12]}.png"
+            raw_name = f"openroad_gui_raw_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}.png"
             raw_path = tmp_dir / raw_name
             raw_path.unlink(missing_ok=True)
 
@@ -423,7 +423,7 @@ class GuiScreenshotTool(BaseTool):
                 )
 
             if proc.returncode != 0:
-                err_text = stderr.decode("utf-8", errors="replace")[:500]
+                err_text = stderr.decode("utf-8", errors="replace")[: settings.GUI_ERROR_TRUNCATE_CHARS]
                 return self._format_result(
                     GuiScreenshotResult(
                         session_id=session_id,
@@ -529,7 +529,7 @@ class GuiScreenshotTool(BaseTool):
                 # Create parent directories if they don't exist
                 final_path.parent.mkdir(parents=True, exist_ok=True)
             else:
-                final_name = f"openroad_gui_{uuid.uuid4().hex[:12]}{ext_map[fmt]}"
+                final_name = f"openroad_gui_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}{ext_map[fmt]}"
                 final_path = tmp_dir / final_name
 
             final_path.write_bytes(processed_bytes)
@@ -714,7 +714,7 @@ class GuiScreenshotTool(BaseTool):
         )
 
         # Give Xvfb a moment to bind the display socket
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(settings.GUI_XVFB_SETTLE_S)
 
         # Check that Xvfb is still running
         if xvfb_proc.returncode is not None:

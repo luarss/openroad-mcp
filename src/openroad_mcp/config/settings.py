@@ -90,6 +90,30 @@ class Settings(BaseModel):
         default=85,
         description="Default JPEG/WebP quality (1-100). Lower = smaller file, more artifacts",
     )
+    GUI_PREVIEW_SIZE_PX: int = Field(
+        default=256,
+        description="Maximum dimension (px) of the longest side for preview thumbnails",
+    )
+    GUI_XVFB_SETTLE_S: float = Field(
+        default=1.0,
+        description="Seconds to wait after starting Xvfb before checking it is alive",
+    )
+    GUI_SUBPROCESS_TIMEOUT_S: float = Field(
+        default=3.0,
+        description="Timeout (seconds) for short-lived helper subprocesses (xdpyinfo, xwininfo)",
+    )
+    GUI_DISPLAY_FALLBACK_RANGE: int = Field(
+        default=200,
+        description="Random range added to GUI_DISPLAY_START when no free display is found",
+    )
+    GUI_ERROR_TRUNCATE_CHARS: int = Field(
+        default=500,
+        description="Max characters of stderr kept in error messages",
+    )
+    GUI_TEMP_UUID_LENGTH: int = Field(
+        default=12,
+        description="Hex characters from UUID used in temporary screenshot filenames",
+    )
 
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
@@ -145,6 +169,12 @@ class Settings(BaseModel):
             "GUI_APP_READY_POLL_INTERVAL_S": ("OPENROAD_GUI_APP_READY_POLL_INTERVAL_S", float),
             "GUI_DEFAULT_IMAGE_FORMAT": ("OPENROAD_GUI_DEFAULT_IMAGE_FORMAT", str),
             "GUI_DEFAULT_JPEG_QUALITY": ("OPENROAD_GUI_DEFAULT_JPEG_QUALITY", int),
+            "GUI_PREVIEW_SIZE_PX": ("OPENROAD_GUI_PREVIEW_SIZE_PX", int),
+            "GUI_XVFB_SETTLE_S": ("OPENROAD_GUI_XVFB_SETTLE_S", float),
+            "GUI_SUBPROCESS_TIMEOUT_S": ("OPENROAD_GUI_SUBPROCESS_TIMEOUT_S", float),
+            "GUI_DISPLAY_FALLBACK_RANGE": ("OPENROAD_GUI_DISPLAY_FALLBACK_RANGE", int),
+            "GUI_ERROR_TRUNCATE_CHARS": ("OPENROAD_GUI_ERROR_TRUNCATE_CHARS", int),
+            "GUI_TEMP_UUID_LENGTH": ("OPENROAD_GUI_TEMP_UUID_LENGTH", int),
             "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),
         }
 
