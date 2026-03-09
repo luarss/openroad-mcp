@@ -125,21 +125,21 @@ async def gui_screenshot(
         Field(description="File path to save the screenshot on disk. A temp file is used when omitted."),
     ] = "",
     timeout_ms: Annotated[
-        int | None,
+        str,
         Field(description="Timeout in milliseconds for the screenshot capture. Defaults to 8000."),
-    ] = None,
+    ] = "",
     image_format: Annotated[
         str,
         Field(description="Output format: 'png', 'jpeg', or 'webp'. Defaults to 'jpeg' (smaller, saves tokens)."),
     ] = "",
     quality: Annotated[
-        int | None,
+        str,
         Field(description="Compression quality for JPEG/WebP (1-100). Ignored for PNG. Defaults to 85."),
-    ] = None,
+    ] = "",
     scale: Annotated[
-        float | None,
+        str,
         Field(description="Downscale factor (0.0-1.0]. 0.5 = half size. Defaults to 1.0 (no scaling)."),
-    ] = None,
+    ] = "",
     crop: Annotated[
         str,
         Field(
@@ -172,14 +172,22 @@ async def gui_screenshot(
         v = str(v).strip()
         return v if v else None
 
+    def _int(v: str) -> int | None:
+        v = str(v).strip()
+        return int(v) if v else None
+
+    def _float(v: str) -> float | None:
+        v = str(v).strip()
+        return float(v) if v else None
+
     return await gui_screenshot_tool.execute(
         session_id=_clean(session_id),
         resolution=_clean(resolution),
         output_path=_clean(output_path),
-        timeout_ms=timeout_ms,
+        timeout_ms=_int(timeout_ms),
         image_format=_clean(image_format),
-        quality=quality,
-        scale=scale,
+        quality=_int(quality),
+        scale=_float(scale),
         crop=_clean(crop),
         return_mode=_clean(return_mode),
     )

@@ -1139,6 +1139,91 @@ class TestGuiScreenshotTool:
         assert result["image_data"] is None
         assert result["image_path"] is not None
 
+    # ------------------------------------------------------------------
+    # output_path as existing directory
+    # ------------------------------------------------------------------
+    async def test_output_path_existing_directory_generates_file_inside(self, tool, tmp_path):
+        """When output_path is an existing directory, generate a default filename inside it."""
+        out_dir = tmp_path / "screenshots"
+        out_dir.mkdir()
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_dir))
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        # The image should be inside the directory, not at the directory path itself
+        final = Path(result["image_path"])
+        assert final.parent == out_dir
+        assert final.name.startswith("openroad_gui_")
+        assert final.exists()
+
+    async def test_output_path_trailing_slash_treated_as_directory(self, tool, tmp_path):
+        """output_path ending with '/' should be treated as a directory."""
+        out_dir = tmp_path / "output"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_dir) + "/")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        final = Path(result["image_path"])
+        assert final.parent == out_dir
+        assert final.name.startswith("openroad_gui_")
+        assert final.exists()
+
+    async def test_output_path_directory_respects_format(self, tool, tmp_path):
+        """Directory output_path should generate file with correct format extension."""
+        out_dir = tmp_path / "pngs"
+        out_dir.mkdir()
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_dir), image_format="png")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        final = Path(result["image_path"])
+        assert final.suffix == ".png"
+
+    # ------------------------------------------------------------------
+    # Numeric params: empty/None resets to default
+    # ------------------------------------------------------------------
+    async def test_scale_none_resets_to_default(self, tool, tmp_path):
+        """scale=None should reset to 1.0 (no scaling), not retain previous value."""
+        out = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+        big_png = _create_test_png(100, 80)
+
+        # First call with scale=0.5
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect(png_data=big_png)):
+            raw1 = await tool.execute(session_id="s1", output_path=str(out), scale=0.5)
+        r1 = json.loads(raw1)
+        assert r1["error"] is None
+        assert r1["width"] == 50
+
+        # Second call without scale (None → default 1.0)
+        out2 = tmp_path / "shot2.jpg"
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect(png_data=big_png)):
+            raw2 = await tool.execute(session_id="s1", output_path=str(out2), scale=None)
+        r2 = json.loads(raw2)
+        assert r2["error"] is None
+        # Full-size image should be original dimensions
+        assert r2["width"] == 100
+
+    async def test_quality_none_uses_default(self, tool, tmp_path):
+        """quality=None should use the default quality setting."""
+        out = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out), quality=None)
+
+        result = json.loads(raw)
+        assert result["error"] is None
+
 
 # ------------------------------------------------------------------
 # Standalone helper tests

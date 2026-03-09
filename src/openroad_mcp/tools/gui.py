@@ -523,8 +523,14 @@ class GuiScreenshotTool(BaseTool):
             }
             if output_path:
                 final_path = Path(output_path)
+                # If output_path is an existing directory (or ends with /),
+                # generate a default filename inside it.
+                if final_path.is_dir() or output_path.endswith("/"):
+                    final_path.mkdir(parents=True, exist_ok=True)
+                    default_name = f"openroad_gui_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}{ext_map[fmt]}"
+                    final_path = final_path / default_name
                 # Correct the extension if it doesn't match the format
-                if final_path.suffix.lower() not in _valid_exts.get(fmt, set()):
+                elif final_path.suffix.lower() not in _valid_exts.get(fmt, set()):
                     final_path = final_path.with_suffix(ext_map[fmt])
                 # Create parent directories if they don't exist
                 final_path.parent.mkdir(parents=True, exist_ok=True)
