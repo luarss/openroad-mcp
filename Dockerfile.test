@@ -14,6 +14,11 @@ COPY . .
 # Install dependencies
 RUN uv sync --all-extras --inexact
 
+# Install X virtual framebuffer and utilities for headless GUI tests
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends xvfb x11-utils imagemagick && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set environment for tests
 ENV PYTHONPATH=/app/src
 ENV PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH"

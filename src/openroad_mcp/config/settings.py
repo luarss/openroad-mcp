@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Settings(BaseModel):
@@ -40,6 +40,98 @@ class Settings(BaseModel):
         default=True,
         description="Enable command validation to prevent command injection",
     )
+
+    # GUI screenshot settings
+    GUI_DISPLAY_RESOLUTION: str = Field(
+        default="1280x1024x24",
+        description="Default Xvfb virtual display resolution (WxHxDepth)",
+    )
+    GUI_CAPTURE_TIMEOUT_MS: int = Field(
+        default=8000,
+        description="Timeout in milliseconds for the screenshot capture",
+    )
+    GUI_MAX_SCREENSHOT_SIZE_MB: int = Field(
+        default=50,
+        description="Maximum allowed screenshot file size in megabytes",
+    )
+    GUI_IMPORT_TIMEOUT_S: float = Field(
+        default=15.0,
+        description="Timeout in seconds for the ImageMagick import subprocess",
+    )
+    GUI_DISPLAY_START: int = Field(
+        default=42,
+        description="Start of the X11 display number range for Xvfb",
+    )
+    GUI_DISPLAY_END: int = Field(
+        default=100,
+        description="End (exclusive) of the X11 display number range for Xvfb",
+    )
+    GUI_STARTUP_TIMEOUT_S: float = Field(
+        default=15.0,
+        description="Maximum seconds to wait for the GUI to become ready",
+    )
+    GUI_STARTUP_POLL_INTERVAL_S: float = Field(
+        default=0.5,
+        description="Seconds between xdpyinfo readiness polls during GUI startup",
+    )
+    GUI_APP_READY_TIMEOUT_S: float = Field(
+        default=15.0,
+        description="Max seconds to wait for the OpenROAD GUI window to render after Xvfb is ready",
+    )
+    GUI_APP_READY_POLL_INTERVAL_S: float = Field(
+        default=0.5,
+        description="Polling interval (seconds) when waiting for GUI application window",
+    )
+    GUI_DEFAULT_IMAGE_FORMAT: str = Field(
+        default="jpeg",
+        description="Default image format for screenshots ('png', 'jpeg', or 'webp')",
+    )
+    GUI_DEFAULT_JPEG_QUALITY: int = Field(
+        default=85,
+        description="Default JPEG/WebP quality (1-100). Lower = smaller file, more artifacts",
+    )
+    GUI_PREVIEW_SIZE_PX: int = Field(
+        default=256,
+        description="Maximum dimension (px) of the longest side for preview thumbnails",
+    )
+    GUI_XVFB_SETTLE_S: float = Field(
+        default=1.0,
+        description="Seconds to wait after starting Xvfb before checking it is alive",
+    )
+    GUI_SUBPROCESS_TIMEOUT_S: float = Field(
+        default=3.0,
+        description="Timeout (seconds) for short-lived helper subprocesses (xdpyinfo, xwininfo)",
+    )
+    GUI_DISPLAY_FALLBACK_RANGE: int = Field(
+        default=200,
+        description="Random range added to GUI_DISPLAY_START when no free display is found",
+    )
+    GUI_ERROR_TRUNCATE_CHARS: int = Field(
+        default=500,
+        description="Max characters of stderr kept in error messages",
+    )
+    GUI_TEMP_UUID_LENGTH: int = Field(
+        default=12,
+        description="Hex characters from UUID used in temporary screenshot filenames",
+    )
+
+    @model_validator(mode="after")
+    def _validate_display_range(self) -> "Settings":
+        if self.GUI_DISPLAY_START >= self.GUI_DISPLAY_END:
+            raise ValueError(
+                f"GUI_DISPLAY_START ({self.GUI_DISPLAY_START}) must be less than "
+                f"GUI_DISPLAY_END ({self.GUI_DISPLAY_END})"
+            )
+        if self.GUI_DISPLAY_FALLBACK_RANGE <= 0:
+            raise ValueError(
+                "GUI_DISPLAY_FALLBACK_RANGE must be greater than 0 "
+                "(used as modulo divisor in _find_free_display fallback)"
+            )
+        if self.GUI_STARTUP_POLL_INTERVAL_S <= 0:
+            raise ValueError("GUI_STARTUP_POLL_INTERVAL_S must be greater than 0")
+        if self.GUI_APP_READY_POLL_INTERVAL_S <= 0:
+            raise ValueError("GUI_APP_READY_POLL_INTERVAL_S must be greater than 0")
+        return self
 
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
@@ -83,6 +175,24 @@ class Settings(BaseModel):
             "READ_CHUNK_SIZE": ("OPENROAD_READ_CHUNK_SIZE", int),
             "LOG_LEVEL": ("LOG_LEVEL", str),
             "LOG_FORMAT": ("LOG_FORMAT", str),
+            "GUI_DISPLAY_RESOLUTION": ("OPENROAD_GUI_DISPLAY_RESOLUTION", str),
+            "GUI_CAPTURE_TIMEOUT_MS": ("OPENROAD_GUI_CAPTURE_TIMEOUT_MS", int),
+            "GUI_MAX_SCREENSHOT_SIZE_MB": ("OPENROAD_GUI_MAX_SCREENSHOT_SIZE_MB", int),
+            "GUI_IMPORT_TIMEOUT_S": ("OPENROAD_GUI_IMPORT_TIMEOUT_S", float),
+            "GUI_DISPLAY_START": ("OPENROAD_GUI_DISPLAY_START", int),
+            "GUI_DISPLAY_END": ("OPENROAD_GUI_DISPLAY_END", int),
+            "GUI_STARTUP_TIMEOUT_S": ("OPENROAD_GUI_STARTUP_TIMEOUT_S", float),
+            "GUI_STARTUP_POLL_INTERVAL_S": ("OPENROAD_GUI_STARTUP_POLL_INTERVAL_S", float),
+            "GUI_APP_READY_TIMEOUT_S": ("OPENROAD_GUI_APP_READY_TIMEOUT_S", float),
+            "GUI_APP_READY_POLL_INTERVAL_S": ("OPENROAD_GUI_APP_READY_POLL_INTERVAL_S", float),
+            "GUI_DEFAULT_IMAGE_FORMAT": ("OPENROAD_GUI_DEFAULT_IMAGE_FORMAT", str),
+            "GUI_DEFAULT_JPEG_QUALITY": ("OPENROAD_GUI_DEFAULT_JPEG_QUALITY", int),
+            "GUI_PREVIEW_SIZE_PX": ("OPENROAD_GUI_PREVIEW_SIZE_PX", int),
+            "GUI_XVFB_SETTLE_S": ("OPENROAD_GUI_XVFB_SETTLE_S", float),
+            "GUI_SUBPROCESS_TIMEOUT_S": ("OPENROAD_GUI_SUBPROCESS_TIMEOUT_S", float),
+            "GUI_DISPLAY_FALLBACK_RANGE": ("OPENROAD_GUI_DISPLAY_FALLBACK_RANGE", int),
+            "GUI_ERROR_TRUNCATE_CHARS": ("OPENROAD_GUI_ERROR_TRUNCATE_CHARS", int),
+            "GUI_TEMP_UUID_LENGTH": ("OPENROAD_GUI_TEMP_UUID_LENGTH", int),
             "ORFS_FLOW_PATH": ("ORFS_FLOW_PATH", str),
         }
 

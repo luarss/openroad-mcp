@@ -9,6 +9,7 @@ from ..core.models import (
     CommandHistoryResult,
     CommandResult,
     ContextInfo,
+    GuiScreenshotResult,
     InteractiveExecResult,
     InteractiveSessionInfo,
     InteractiveSessionListResult,
@@ -51,6 +52,7 @@ class BaseTool(ABC):
             | SessionMetricsResult
             | ListImagesResult
             | ReadImageResult
+            | GuiScreenshotResult
         ),
     ) -> str:
         """Format result as JSON string."""

@@ -1,12 +1,15 @@
 """Main MCP server setup and tool registration."""
 
 import asyncio
+from typing import Annotated
 
 from fastmcp import FastMCP
+from pydantic import Field
 
 from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
+from .tools.gui import GuiScreenshotTool
 from .tools.interactive import (
     CreateSessionTool,
     InspectSessionTool,
@@ -40,6 +43,9 @@ session_metrics_tool = SessionMetricsTool(manager)
 # Initialize report image tool instances
 list_report_images_tool = ListReportImagesTool(manager)
 read_report_image_tool = ReadReportImageTool(manager)
+
+# Initialize GUI tool instances
+gui_screenshot_tool = GuiScreenshotTool(manager)
 
 
 # Interactive session tools
@@ -103,10 +109,118 @@ async def read_report_image(platform: str, design: str, run_slug: str, image_nam
     return await read_report_image_tool.execute(platform, design, run_slug, image_name)
 
 
+# GUI tools
+@mcp.tool()
+async def gui_screenshot(
+    session_id: Annotated[
+        str,
+        Field(description="Existing GUI session ID to reuse. Leave empty to auto-create a new headless session."),
+    ] = "",
+    resolution: Annotated[
+        str,
+        Field(description="Virtual display resolution, e.g. '1920x1080x24'. Defaults to '1280x1024x24'."),
+    ] = "",
+    output_path: Annotated[
+        str,
+        Field(description="File path to save the screenshot on disk. A temp file is used when omitted."),
+    ] = "",
+    timeout_ms: Annotated[
+        str,
+        Field(description="Timeout in milliseconds for the screenshot capture. Defaults to 8000."),
+    ] = "",
+    image_format: Annotated[
+        str,
+        Field(description="Output format: 'png', 'jpeg', or 'webp'. Defaults to 'jpeg' (smaller, saves tokens)."),
+    ] = "",
+    quality: Annotated[
+        str,
+        Field(description="Compression quality for JPEG/WebP (1-100). Ignored for PNG. Defaults to 85."),
+    ] = "",
+    scale: Annotated[
+        str,
+        Field(description="Downscale factor (0.0-1.0]. 0.5 = half size. Defaults to 1.0 (no scaling)."),
+    ] = "",
+    crop: Annotated[
+        str,
+        Field(
+            description=(
+                "Pixel region to crop: 'x0,y0,x1,y1' or 'x0 y0 x1 y1'. "
+                "Applied before scaling. Leave empty for full image."
+            )
+        ),
+    ] = "",
+    return_mode: Annotated[
+        str,
+        Field(
+            description=(
+                "How to return the result: "
+                "'base64' (full image, default), "
+                "'path' (file path only, saves tokens), "
+                "'preview' (256px thumbnail + file path)."
+            )
+        ),
+    ] = "",
+) -> str:
+    """Capture a screenshot of the OpenROAD GUI running in a headless display.
+
+    Auto-creates a session if session_id is not provided. Use return_mode='path'
+    or 'preview' to save tokens. JPEG with quality=60-85 reduces size by 70-90%.
+    """
+
+    # Normalise inputs: empty strings → None so execute() applies defaults.
+    def _clean(v: str) -> str | None:
+        v = str(v).strip()
+        return v if v else None
+
+    def _int(v: str, name: str = "parameter") -> int | None:
+        v = str(v).strip()
+        if not v:
+            return None
+        try:
+            return int(v)
+        except ValueError:
+            raise ValueError(f"Invalid integer value for {name}: '{v}'") from None
+
+    def _float(v: str, name: str = "parameter") -> float | None:
+        v = str(v).strip()
+        if not v:
+            return None
+        try:
+            return float(v)
+        except ValueError:
+            raise ValueError(f"Invalid numeric value for {name}: '{v}'") from None
+
+    try:
+        return await gui_screenshot_tool.execute(
+            session_id=_clean(session_id),
+            resolution=_clean(resolution),
+            output_path=_clean(output_path),
+            timeout_ms=_int(timeout_ms, "timeout_ms"),
+            image_format=_clean(image_format),
+            quality=_int(quality, "quality"),
+            scale=_float(scale, "scale"),
+            crop=_clean(crop),
+            return_mode=_clean(return_mode),
+        )
+    except ValueError as e:
+        import json
+
+        from .core.models import GuiScreenshotResult
+
+        return json.dumps(
+            GuiScreenshotResult(error="InvalidParameter", message=str(e)).model_dump(),
+            indent=2,
+        )
+
+
 async def shutdown_openroad() -> None:
-    """Gracefully shutdown interactive OpenROAD sessions."""
+    """Gracefully shutdown interactive OpenROAD sessions and GUI displays."""
     try:
         logger.info("Initiating graceful shutdown of OpenROAD services...")
+
+        # Clean up any Xvfb displays managed by the GUI tool
+        for sid in list(gui_screenshot_tool._session_displays):
+            gui_screenshot_tool.cleanup_display(sid)
 
         await manager.cleanup_all()
 

@@ -1,5 +1,6 @@
 """MCP tools for OpenROAD operations."""
 
+from .gui import GuiScreenshotTool
 from .interactive import (
     CreateSessionTool,
     InspectSessionTool,
@@ -12,6 +13,7 @@ from .interactive import (
 
 __all__ = [
     "CreateSessionTool",
+    "GuiScreenshotTool",
     "InspectSessionTool",
     "InteractiveShellTool",
     "ListSessionsTool",
