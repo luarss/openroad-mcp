@@ -1,4 +1,3 @@
-# Pin to immutable digests — update deliberately when upgrading base images.
 ARG ORFS_VERSION=latest
 ARG ORFS_DIGEST=sha256:e360317c5c9688a7093e89b7a0406a6cf19d72f3ba852365cc68ecfe5fb60a07
 ARG UV_VERSION=latest
