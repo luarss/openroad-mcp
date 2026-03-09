@@ -1,13 +1,11 @@
-ARG ORFS_VERSION=latest
-ARG ORFS_DIGEST=sha256:e360317c5c9688a7093e89b7a0406a6cf19d72f3ba852365cc68ecfe5fb60a07
-ARG UV_VERSION=latest
-ARG UV_DIGEST=sha256:10902f58a1606787602f303954cea099626a4adb02acbac4c69920fe9d278f82
+ARG ORFS_VERSION=26Q1-534-g510137693
+ARG UV_VERSION=0.10.9
 
-FROM ghcr.io/astral-sh/uv:${UV_VERSION}@${UV_DIGEST} AS uv
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
 # Stage 1: builder - installs deps, discarded from final image.
 # Both stages share openroad/orfs because OpenROAD binaries are needed at runtime.
-FROM openroad/orfs:${ORFS_VERSION}@${ORFS_DIGEST} AS builder
+FROM openroad/orfs:${ORFS_VERSION} AS builder
 
 COPY --from=uv /uv /usr/local/bin/uv
 
@@ -28,8 +26,7 @@ RUN uv sync --frozen --no-dev --no-editable
 # Stage 2: runtime
 # Re-declare without defaults — values are inherited from the global ARGs above.
 ARG ORFS_VERSION
-ARG ORFS_DIGEST
-FROM openroad/orfs:${ORFS_VERSION}@${ORFS_DIGEST} AS runtime
+FROM openroad/orfs:${ORFS_VERSION} AS runtime
 
 RUN useradd --create-home --shell /bin/bash --uid 1000 --no-log-init appuser
 
