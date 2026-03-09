@@ -127,6 +127,10 @@ class Settings(BaseModel):
                 "GUI_DISPLAY_FALLBACK_RANGE must be greater than 0 "
                 "(used as modulo divisor in _find_free_display fallback)"
             )
+        if self.GUI_STARTUP_POLL_INTERVAL_S <= 0:
+            raise ValueError("GUI_STARTUP_POLL_INTERVAL_S must be greater than 0")
+        if self.GUI_APP_READY_POLL_INTERVAL_S <= 0:
+            raise ValueError("GUI_APP_READY_POLL_INTERVAL_S must be greater than 0")
         return self
 
     # ORFS integration settings

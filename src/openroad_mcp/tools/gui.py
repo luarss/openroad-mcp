@@ -127,9 +127,14 @@ async def _wait_for_display(display_num: int) -> bool:
     timeout = settings.GUI_STARTUP_TIMEOUT_S
     interval = settings.GUI_STARTUP_POLL_INTERVAL_S
     display_env = {**os.environ, "DISPLAY": f":{display_num}"}
-    elapsed = 0.0
 
-    while elapsed < timeout:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            break
         proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -138,9 +143,9 @@ async def _wait_for_display(display_num: int) -> bool:
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )
-            rc = await asyncio.wait_for(proc.wait(), timeout=settings.GUI_SUBPROCESS_TIMEOUT_S)
+            rc = await asyncio.wait_for(proc.wait(), timeout=min(settings.GUI_SUBPROCESS_TIMEOUT_S, remaining))
             if rc == 0:
-                logger.debug("Display :%d ready after %.1fs", display_num, elapsed)
+                logger.debug("Display :%d ready after %.1fs", display_num, timeout - remaining)
                 return True
         except TimeoutError:
             if proc is not None:
@@ -148,8 +153,7 @@ async def _wait_for_display(display_num: int) -> bool:
                 await proc.wait()
         except OSError:
             pass
-        await asyncio.sleep(interval)
-        elapsed += interval
+        await asyncio.sleep(min(interval, max(deadline - loop.time(), 0)))
 
     logger.warning(
         "Display :%d not ready after %.1fs – proceeding anyway",
@@ -172,9 +176,14 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
     timeout = settings.GUI_APP_READY_TIMEOUT_S
     interval = settings.GUI_APP_READY_POLL_INTERVAL_S
     display_env = {**os.environ, "DISPLAY": f":{display_num}"}
-    elapsed = 0.0
 
-    while elapsed < timeout:
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            break
         proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -185,13 +194,11 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=settings.GUI_SUBPROCESS_TIMEOUT_S)
+            stdout, _ = await asyncio.wait_for(
+                proc.communicate(), timeout=min(settings.GUI_SUBPROCESS_TIMEOUT_S, remaining)
+            )
             if proc.returncode == 0:
                 output = stdout.decode("utf-8", errors="replace")
-                # Count lines that look like real child windows.
-                # xwininfo output for children has lines like:
-                #   0x1400001 (has no name): ("openroad" "OpenROAD")  1280x1024+0+0...
-                # We look for indented hex window IDs under the "children:" section.
                 child_lines = [
                     line
                     for line in output.splitlines()
@@ -201,7 +208,7 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
                     logger.debug(
                         "GUI window detected on :%d after %.1fs (%d children)",
                         display_num,
-                        elapsed,
+                        timeout - remaining,
                         len(child_lines),
                     )
                     return True
@@ -211,8 +218,7 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
                 await proc.wait()
         except OSError:
             pass
-        await asyncio.sleep(interval)
-        elapsed += interval
+        await asyncio.sleep(min(interval, max(deadline - loop.time(), 0)))
 
     logger.warning(
         "No GUI window detected on :%d after %.1fs -- proceeding anyway",
