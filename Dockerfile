@@ -22,9 +22,11 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Second sync installs the project itself once source is present.
+# --no-editable ensures the package is installed into site-packages rather than
+# symlinked to src/, so the source tree is not needed at runtime.
 COPY src/ ./src/
 COPY README.md ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-editable
 
 
 # Stage 2: runtime
@@ -37,14 +39,12 @@ RUN useradd --create-home --shell /bin/bash --uid 1000 --no-log-init appuser
 WORKDIR /app
 
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
-COPY --from=builder --chown=appuser:appuser /app/src /app/src
 # Copy the uv-managed Python so the venv's symlinks resolve correctly.
 COPY --from=builder --chown=appuser:appuser /opt/python /opt/python
 
 USER appuser
 
-ENV PYTHONPATH=/app/src \
-    PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH" \
+ENV PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     ORFS_FLOW_PATH=/OpenROAD-flow-scripts/flow
