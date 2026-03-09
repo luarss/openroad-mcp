@@ -1,10 +1,13 @@
+ARG ORFS_VERSION=latest
+ARG UV_VERSION=latest
+
 # Stage 1: builder
-# Both stages use openroad/orfs:latest since OpenROAD binaries are required at
+# Both stages use openroad/orfs since OpenROAD binaries are required at
 # runtime. Multi-stage still keeps uv and build artifacts out of the final image.
 # Slimming the runtime by copying only specific binaries is a follow-up task.
-FROM openroad/orfs:latest AS builder
+FROM openroad/orfs:${ORFS_VERSION} AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION} /uv /usr/local/bin/uv
 
 # The base image ships Python < 3.13, but the project requires >=3.13.
 # Let uv download a managed Python, but redirect it to a portable directory
@@ -25,7 +28,8 @@ RUN uv sync --frozen --no-dev
 
 
 # Stage 2: runtime
-FROM openroad/orfs:latest AS runtime
+ARG ORFS_VERSION=latest
+FROM openroad/orfs:${ORFS_VERSION} AS runtime
 
 # --no-log-init avoids sparse /var/log/lastlog issues in Docker.
 RUN useradd --create-home --shell /bin/bash --uid 1000 --no-log-init appuser
