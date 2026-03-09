@@ -282,18 +282,32 @@ class GuiScreenshotTool(BaseTool):
             * ``"preview"`` – 256 px thumbnail as base-64 + file path
         """
         # ---- Normalise inputs ----
-        # MCP Inspector / FastMCP may pass empty strings for optional
-        # parameters the user left blank.  Treat "" the same as None.
-        if not image_format:  # None or ""
-            image_format = None
-        if not return_mode:
-            return_mode = None
-        if not resolution:
-            resolution = None
-        if not output_path:
-            output_path = None
-        if not crop:
-            crop = None
+        # MCP Inspector / FastMCP may pass empty strings or whitespace-
+        # padded values for optional parameters.  Strip and convert to
+        # None when empty so downstream defaults work correctly.
+        image_format = image_format.strip() if image_format else None
+        image_format = image_format or None
+        return_mode = return_mode.strip() if return_mode else None
+        return_mode = return_mode or None
+        resolution = resolution.strip() if resolution else None
+        resolution = resolution or None
+        output_path = output_path.strip() if output_path else None
+        output_path = output_path or None
+        crop = crop.strip() if crop else None
+        crop = crop or None
+
+        logger.debug(
+            "gui_screenshot params: session_id=%s resolution=%s output_path=%s "
+            "image_format=%s quality=%s scale=%s crop=%s return_mode=%s",
+            session_id,
+            resolution,
+            output_path,
+            image_format,
+            quality,
+            scale,
+            crop,
+            return_mode,
+        )
 
         actual_timeout = timeout_ms or settings.GUI_CAPTURE_TIMEOUT_MS
         actual_resolution = resolution or settings.GUI_DISPLAY_RESOLUTION
@@ -437,7 +451,7 @@ class GuiScreenshotTool(BaseTool):
             # Crop (pixel coordinates: "x0 y0 x1 y1")
             if crop:
                 try:
-                    coords = tuple(int(c) for c in crop.split())
+                    coords = tuple(int(c) for c in crop.replace(",", " ").split())
                     if len(coords) != 4:
                         raise ValueError("Expected 4 integers")
                     img = img.crop(coords)
@@ -449,7 +463,7 @@ class GuiScreenshotTool(BaseTool):
                             error="InvalidParameter",
                             message=(
                                 f"Invalid crop value '{crop}'. "
-                                "Expected 4 space-separated pixel coordinates: 'x0 y0 x1 y1'. "
+                                "Expected 4 pixel coordinates: 'x0,y0,x1,y1' or 'x0 y0 x1 y1'. "
                                 f"Error: {e}"
                             ),
                         )
@@ -501,13 +515,17 @@ class GuiScreenshotTool(BaseTool):
             # 6.  Write final file & build result
             # ----------------------------------------------------------
             ext_map = {"jpeg": ".jpg", "png": ".png", "webp": ".webp"}
+            # All extensions that are valid for each format
+            _valid_exts: dict[str, set[str]] = {
+                "jpeg": {".jpg", ".jpeg"},
+                "png": {".png"},
+                "webp": {".webp"},
+            }
             if output_path:
                 final_path = Path(output_path)
-                # Ensure the correct extension matches the requested format
-                expected_ext = ext_map[fmt]
-                if final_path.suffix.lower() not in (expected_ext, expected_ext.replace(".", "")):
-                    # Append or replace extension to match format
-                    final_path = final_path.with_suffix(expected_ext)
+                # Correct the extension if it doesn't match the format
+                if final_path.suffix.lower() not in _valid_exts.get(fmt, set()):
+                    final_path = final_path.with_suffix(ext_map[fmt])
                 # Create parent directories if they don't exist
                 final_path.parent.mkdir(parents=True, exist_ok=True)
             else:

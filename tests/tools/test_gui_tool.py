@@ -1053,6 +1053,92 @@ class TestGuiScreenshotTool:
         assert result["image_path"] == str(out_file)
         assert out_file.exists()
 
+    # ------------------------------------------------------------------
+    # Whitespace stripping (MCP Inspector may pad string values)
+    # ------------------------------------------------------------------
+    async def test_whitespace_padded_image_format(self, tool, tmp_path):
+        """Whitespace around image_format should be stripped."""
+        out_file = tmp_path / "shot.png"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), image_format="  png  ")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "png"
+
+    async def test_whitespace_padded_return_mode(self, tool, tmp_path):
+        """Whitespace around return_mode should be stripped."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), return_mode="  path  ")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["return_mode"] == "path"
+        assert result["image_data"] is None
+
+    # ------------------------------------------------------------------
+    # Crop: comma separators and numeric input
+    # ------------------------------------------------------------------
+    async def test_crop_with_commas(self, tool, tmp_path):
+        """Comma-separated crop values should be accepted."""
+        out_file = tmp_path / "cropped.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), crop="10,10,50,50")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+
+    async def test_crop_with_mixed_separators(self, tool, tmp_path):
+        """Crop values with mixed commas and spaces should be accepted."""
+        out_file = tmp_path / "cropped.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), crop="10, 10, 50, 50")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+
+    # ------------------------------------------------------------------
+    # Extension validation: .jpeg recognised for jpeg format
+    # ------------------------------------------------------------------
+    async def test_jpeg_extension_preserved(self, tool, tmp_path):
+        """.jpeg extension should be accepted for jpeg format."""
+        out_file = tmp_path / "shot.jpeg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), image_format="jpeg")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        # .jpeg should be preserved, not changed to .jpg
+        assert result["image_path"] == str(out_file)
+
+    # ------------------------------------------------------------------
+    # return_mode=path: no image data, only file path
+    # ------------------------------------------------------------------
+    async def test_return_mode_path_omits_image_data(self, tool, tmp_path):
+        """return_mode='path' should omit image_data."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), return_mode="path")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["return_mode"] == "path"
+        assert result["image_data"] is None
+        assert result["image_path"] is not None
+
 
 # ------------------------------------------------------------------
 # Standalone helper tests

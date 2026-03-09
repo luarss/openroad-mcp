@@ -113,25 +113,25 @@ async def read_report_image(platform: str, design: str, run_slug: str, image_nam
 @mcp.tool()
 async def gui_screenshot(
     session_id: Annotated[
-        str | None,
+        str,
         Field(description="Existing GUI session ID to reuse. Leave empty to auto-create a new headless session."),
-    ] = None,
+    ] = "",
     resolution: Annotated[
-        str | None,
+        str,
         Field(description="Virtual display resolution, e.g. '1920x1080x24'. Defaults to '1280x1024x24'."),
-    ] = None,
+    ] = "",
     output_path: Annotated[
-        str | None,
+        str,
         Field(description="File path to save the screenshot on disk. A temp file is used when omitted."),
-    ] = None,
+    ] = "",
     timeout_ms: Annotated[
         int | None,
         Field(description="Timeout in milliseconds for the screenshot capture. Defaults to 8000."),
     ] = None,
     image_format: Annotated[
-        str | None,
+        str,
         Field(description="Output format: 'png', 'jpeg', or 'webp'. Defaults to 'jpeg' (smaller, saves tokens)."),
-    ] = None,
+    ] = "",
     quality: Annotated[
         int | None,
         Field(description="Compression quality for JPEG/WebP (1-100). Ignored for PNG. Defaults to 85."),
@@ -141,11 +141,16 @@ async def gui_screenshot(
         Field(description="Downscale factor (0.0-1.0]. 0.5 = half size. Defaults to 1.0 (no scaling)."),
     ] = None,
     crop: Annotated[
-        str | None,
-        Field(description="Pixel region to crop: 'x0 y0 x1 y1'. Applied before scaling. Omit for full image."),
-    ] = None,
+        str,
+        Field(
+            description=(
+                "Pixel region to crop: 'x0,y0,x1,y1' or 'x0 y0 x1 y1'. "
+                "Applied before scaling. Leave empty for full image."
+            )
+        ),
+    ] = "",
     return_mode: Annotated[
-        str | None,
+        str,
         Field(
             description=(
                 "How to return the result: "
@@ -154,30 +159,29 @@ async def gui_screenshot(
                 "'preview' (256px thumbnail + file path)."
             )
         ),
-    ] = None,
+    ] = "",
 ) -> str:
-    """Capture a screenshot from an OpenROAD GUI session running under Xvfb.
+    """Capture a screenshot of the OpenROAD GUI running in a headless display.
 
-    Launches a headless OpenROAD GUI on an Xvfb virtual display if no session_id
-    is provided.  Uses ImageMagick ``import -window root`` to capture the X11 root
-    window, then post-processes (crop, scale, format conversion) using Pillow.
-
-    For token-efficient usage, set return_mode='path' (no image data returned)
-    or return_mode='preview' (small thumbnail only).  Use image_format='jpeg'
-    with quality=60-85 to reduce file sizes by 70-90% compared to raw PNG.
+    Auto-creates a session if session_id is not provided. Use return_mode='path'
+    or 'preview' to save tokens. JPEG with quality=60-85 reduces size by 70-90%.
     """
-    # Normalise empty strings from the MCP Inspector to None so the
-    # downstream execute() method applies correct defaults.
+
+    # Normalise inputs: empty strings → None so execute() applies defaults.
+    def _clean(v: str) -> str | None:
+        v = str(v).strip()
+        return v if v else None
+
     return await gui_screenshot_tool.execute(
-        session_id or None,
-        resolution or None,
-        output_path or None,
-        timeout_ms,
-        image_format or None,
-        quality,
-        scale,
-        crop or None,
-        return_mode or None,
+        session_id=_clean(session_id),
+        resolution=_clean(resolution),
+        output_path=_clean(output_path),
+        timeout_ms=timeout_ms,
+        image_format=_clean(image_format),
+        quality=quality,
+        scale=scale,
+        crop=_clean(crop),
+        return_mode=_clean(return_mode),
     )
 
 
