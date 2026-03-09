@@ -11,8 +11,6 @@ FROM openroad/orfs:${ORFS_VERSION}@${ORFS_DIGEST} AS builder
 
 COPY --from=uv /uv /usr/local/bin/uv
 
-# Base image lacks Python 3.13+; let uv download it to a portable directory
-# so it can be copied into the runtime stage.
 ENV UV_PYTHON_INSTALL_DIR=/opt/python
 
 WORKDIR /app
