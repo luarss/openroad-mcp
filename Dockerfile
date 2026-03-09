@@ -26,8 +26,9 @@ RUN uv sync --frozen --no-dev --no-editable
 
 
 # Stage 2: runtime
-ARG ORFS_VERSION=latest
-ARG ORFS_DIGEST=sha256:e360317c5c9688a7093e89b7a0406a6cf19d72f3ba852365cc68ecfe5fb60a07
+# Re-declare without defaults — values are inherited from the global ARGs above.
+ARG ORFS_VERSION
+ARG ORFS_DIGEST
 FROM openroad/orfs:${ORFS_VERSION}@${ORFS_DIGEST} AS runtime
 
 RUN useradd --create-home --shell /bin/bash --uid 1000 --no-log-init appuser
