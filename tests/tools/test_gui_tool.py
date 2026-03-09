@@ -925,6 +925,134 @@ class TestGuiScreenshotTool:
         """cleanup_display is a safe no-op for unknown session ids."""
         tool.cleanup_display("nonexistent")  # should not raise
 
+    # ------------------------------------------------------------------
+    # Empty-string normalisation (MCP Inspector sends "" for blank fields)
+    # ------------------------------------------------------------------
+    async def test_empty_string_image_format_uses_default(self, tool, tmp_path):
+        """Empty string for image_format should use default (jpeg), not error."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), image_format="")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "jpeg"  # default, not error
+
+    async def test_empty_string_return_mode_uses_default(self, tool, tmp_path):
+        """Empty string for return_mode should default to 'base64'."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), return_mode="")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["return_mode"] == "base64"
+
+    async def test_empty_string_resolution_uses_default(self, tool, tmp_path):
+        """Empty string for resolution should use default, not error."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), resolution="")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        # Should use default resolution, not error
+        assert result["resolution"] == settings.GUI_DISPLAY_RESOLUTION
+
+    async def test_empty_string_crop_ignored(self, tool, tmp_path):
+        """Empty string for crop should be treated as no crop."""
+        out_file = tmp_path / "shot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file), crop="")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+
+    # ------------------------------------------------------------------
+    # output_path: parent directory creation & extension correction
+    # ------------------------------------------------------------------
+    async def test_output_path_creates_parent_dirs(self, tool, tmp_path):
+        """output_path with non-existent parent directory should create it."""
+        nested_dir = tmp_path / "deep" / "nested" / "dir"
+        out_file = nested_dir / "screenshot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert nested_dir.exists()
+        assert Path(result["image_path"]).exists()
+
+    async def test_output_path_extension_corrected_for_format(self, tool, tmp_path):
+        """output_path with wrong extension gets corrected to match image_format."""
+        out_file = tmp_path / "screenshot.jpg"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                image_format="png",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "png"
+        # Extension should be corrected to .png
+        assert result["image_path"].endswith(".png")
+
+    async def test_output_path_correct_extension_preserved(self, tool, tmp_path):
+        """output_path with correct extension is preserved as-is."""
+        out_file = tmp_path / "screenshot.png"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(
+                session_id="s1",
+                output_path=str(out_file),
+                image_format="png",
+            )
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_path"] == str(out_file)
+
+    async def test_explicit_png_format_with_empty_string_output(self, tool, tmp_path):
+        """image_format='png' with output_path='' uses temp file with .png ext."""
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path="", image_format="png")
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "png"
+        assert result["image_path"].endswith(".png")
+
+    async def test_format_inferred_from_output_path_extension(self, tool, tmp_path):
+        """When image_format is omitted, format is inferred from output_path ext."""
+        out_file = tmp_path / "my_screenshot.png"
+        self._register_display(tool, "s1")
+
+        with patch("asyncio.create_subprocess_exec", side_effect=_make_import_side_effect()):
+            raw = await tool.execute(session_id="s1", output_path=str(out_file))
+
+        result = json.loads(raw)
+        assert result["error"] is None
+        assert result["image_format"] == "png"
+        assert result["image_path"] == str(out_file)
+        assert out_file.exists()
+
 
 # ------------------------------------------------------------------
 # Standalone helper tests

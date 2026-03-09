@@ -166,16 +166,18 @@ async def gui_screenshot(
     or return_mode='preview' (small thumbnail only).  Use image_format='jpeg'
     with quality=60-85 to reduce file sizes by 70-90% compared to raw PNG.
     """
+    # Normalise empty strings from the MCP Inspector to None so the
+    # downstream execute() method applies correct defaults.
     return await gui_screenshot_tool.execute(
-        session_id,
-        resolution,
-        output_path,
+        session_id or None,
+        resolution or None,
+        output_path or None,
         timeout_ms,
-        image_format,
+        image_format or None,
         quality,
         scale,
-        crop,
-        return_mode,
+        crop or None,
+        return_mode or None,
     )
 
 

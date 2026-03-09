@@ -281,8 +281,31 @@ class GuiScreenshotTool(BaseTool):
             * ``"path"``  – file path only, no image data (saves tokens)
             * ``"preview"`` – 256 px thumbnail as base-64 + file path
         """
+        # ---- Normalise inputs ----
+        # MCP Inspector / FastMCP may pass empty strings for optional
+        # parameters the user left blank.  Treat "" the same as None.
+        if not image_format:  # None or ""
+            image_format = None
+        if not return_mode:
+            return_mode = None
+        if not resolution:
+            resolution = None
+        if not output_path:
+            output_path = None
+        if not crop:
+            crop = None
+
         actual_timeout = timeout_ms or settings.GUI_CAPTURE_TIMEOUT_MS
         actual_resolution = resolution or settings.GUI_DISPLAY_RESOLUTION
+
+        # If the user did not specify image_format but provided an output_path
+        # with a recognised extension, infer the format from the path.
+        _ext_to_fmt: dict[str, str] = {".jpg": "jpeg", ".jpeg": "jpeg", ".png": "png", ".webp": "webp"}
+        if image_format is None and output_path:
+            inferred = _ext_to_fmt.get(Path(output_path).suffix.lower())
+            if inferred:
+                image_format = inferred
+
         fmt = (image_format or settings.GUI_DEFAULT_IMAGE_FORMAT).lower()
         actual_quality = quality if quality is not None else settings.GUI_DEFAULT_JPEG_QUALITY
         actual_scale = scale if scale is not None else 1.0
@@ -480,6 +503,13 @@ class GuiScreenshotTool(BaseTool):
             ext_map = {"jpeg": ".jpg", "png": ".png", "webp": ".webp"}
             if output_path:
                 final_path = Path(output_path)
+                # Ensure the correct extension matches the requested format
+                expected_ext = ext_map[fmt]
+                if final_path.suffix.lower() not in (expected_ext, expected_ext.replace(".", "")):
+                    # Append or replace extension to match format
+                    final_path = final_path.with_suffix(expected_ext)
+                # Create parent directories if they don't exist
+                final_path.parent.mkdir(parents=True, exist_ok=True)
             else:
                 final_name = f"openroad_gui_{uuid.uuid4().hex[:12]}{ext_map[fmt]}"
                 final_path = tmp_dir / final_name
