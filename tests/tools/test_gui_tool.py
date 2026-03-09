@@ -61,6 +61,7 @@ def _make_xvfb_proc(*, pid: int = 12345, returncode: int | None = None):
     proc = AsyncMock()
     proc.pid = pid
     proc.returncode = returncode
+    proc.terminate = MagicMock()
     return proc
 
 
@@ -1027,7 +1028,7 @@ class TestGuiScreenshotTool:
         assert result["error"] is None
         assert result["image_path"] == str(out_file)
 
-    async def test_explicit_png_format_with_empty_string_output(self, tool, tmp_path):
+    async def test_explicit_png_format_with_empty_string_output(self, tool):
         """image_format='png' with output_path='' uses temp file with .png ext."""
         self._register_display(tool, "s1")
 
@@ -1257,7 +1258,7 @@ class TestPreFlightHelpers:
 
             assert _import_available() is False
 
-    def test_find_free_display_no_locks(self, tmp_path):
+    def test_find_free_display_no_locks(self):
         """Returns first number in configured range when no lock files exist."""
         with patch("openroad_mcp.tools.gui.Path") as MockPath:
             MockPath.return_value.exists.return_value = False

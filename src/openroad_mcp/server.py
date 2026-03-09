@@ -172,31 +172,55 @@ async def gui_screenshot(
         v = str(v).strip()
         return v if v else None
 
-    def _int(v: str) -> int | None:
+    def _int(v: str, name: str = "parameter") -> int | None:
         v = str(v).strip()
-        return int(v) if v else None
+        if not v:
+            return None
+        try:
+            return int(v)
+        except ValueError:
+            raise ValueError(f"Invalid integer value for {name}: '{v}'") from None
 
-    def _float(v: str) -> float | None:
+    def _float(v: str, name: str = "parameter") -> float | None:
         v = str(v).strip()
-        return float(v) if v else None
+        if not v:
+            return None
+        try:
+            return float(v)
+        except ValueError:
+            raise ValueError(f"Invalid numeric value for {name}: '{v}'") from None
 
-    return await gui_screenshot_tool.execute(
-        session_id=_clean(session_id),
-        resolution=_clean(resolution),
-        output_path=_clean(output_path),
-        timeout_ms=_int(timeout_ms),
-        image_format=_clean(image_format),
-        quality=_int(quality),
-        scale=_float(scale),
-        crop=_clean(crop),
-        return_mode=_clean(return_mode),
-    )
+    try:
+        return await gui_screenshot_tool.execute(
+            session_id=_clean(session_id),
+            resolution=_clean(resolution),
+            output_path=_clean(output_path),
+            timeout_ms=_int(timeout_ms, "timeout_ms"),
+            image_format=_clean(image_format),
+            quality=_int(quality, "quality"),
+            scale=_float(scale, "scale"),
+            crop=_clean(crop),
+            return_mode=_clean(return_mode),
+        )
+    except ValueError as e:
+        import json
+
+        from .core.models import GuiScreenshotResult
+
+        return json.dumps(
+            GuiScreenshotResult(error="InvalidParameter", message=str(e)).model_dump(),
+            indent=2,
+        )
 
 
 async def shutdown_openroad() -> None:
-    """Gracefully shutdown interactive OpenROAD sessions."""
+    """Gracefully shutdown interactive OpenROAD sessions and GUI displays."""
     try:
         logger.info("Initiating graceful shutdown of OpenROAD services...")
+
+        # Clean up any Xvfb displays managed by the GUI tool
+        for sid in list(gui_screenshot_tool._session_displays):
+            gui_screenshot_tool.cleanup_display(sid)
 
         await manager.cleanup_all()
 

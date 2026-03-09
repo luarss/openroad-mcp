@@ -127,7 +127,7 @@ Once configured, the following tools are available:
 
 ### Headless GUI Support
 
-The `gui_screenshot` tool launches OpenROAD's GUI under a virtual X framebuffer (`xvfb-run`) so that screenshots can be captured without a physical display.  When called without a `session_id` the tool automatically creates a headless `xvfb-run openroad -gui` session, invokes the Tcl command `gui::save_image` to render the current view, and returns the resulting PNG as base64-encoded data.  You can also pass an existing GUI session ID to reuse a session that already has a design loaded.  This feature requires `xvfb` to be installed (`apt-get install -y xvfb`) and is pre-configured in the Docker test image.
+The `gui_screenshot` tool launches OpenROAD's GUI under a persistent **Xvfb** virtual display and captures the screen using ImageMagick's `import -window root` command — no physical display is required.  When called without a `session_id` the tool automatically starts Xvfb, launches `openroad -gui -no_init` on that display, waits for the GUI window to render, and returns the screenshot as base64-encoded JPEG by default (configurable to PNG or WebP).  You can reuse a previously created GUI session by passing its `session_id` (only sessions created by `gui_screenshot` can be reused).  This feature requires `xvfb` and ImageMagick to be installed (`apt-get install -y xvfb imagemagick`) and is pre-configured in the Docker test image.
 
 ## Troubleshooting
 

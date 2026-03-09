@@ -46,6 +46,9 @@ from .base import BaseTool
 
 logger = get_logger("gui_tools")
 
+# Module-level lock to prevent concurrent display allocation races
+_display_lock = asyncio.Lock()
+
 # ---------------------------------------------------------------------------
 # Derived constants – computed once from centralised settings.
 # Module-level names kept for backward compatibility and test imports.
@@ -127,6 +130,7 @@ async def _wait_for_display(display_num: int) -> bool:
     elapsed = 0.0
 
     while elapsed < timeout:
+        proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
                 "xdpyinfo",
@@ -138,7 +142,11 @@ async def _wait_for_display(display_num: int) -> bool:
             if rc == 0:
                 logger.debug("Display :%d ready after %.1fs", display_num, elapsed)
                 return True
-        except (TimeoutError, OSError):
+        except TimeoutError:
+            if proc is not None:
+                proc.kill()
+                await proc.wait()
+        except OSError:
             pass
         await asyncio.sleep(interval)
         elapsed += interval
@@ -167,6 +175,7 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
     elapsed = 0.0
 
     while elapsed < timeout:
+        proc = None
         try:
             proc = await asyncio.create_subprocess_exec(
                 "xwininfo",
@@ -196,7 +205,11 @@ async def _wait_for_gui_ready(display_num: int) -> bool:
                         len(child_lines),
                     )
                     return True
-        except (TimeoutError, OSError):
+        except TimeoutError:
+            if proc is not None:
+                proc.kill()
+                await proc.wait()
+        except OSError:
             pass
         await asyncio.sleep(interval)
         elapsed += interval
@@ -707,20 +720,21 @@ class GuiScreenshotTool(BaseTool):
             )
 
         # --- Start Xvfb on a free display ---
-        display_num = _find_free_display()
+        async with _display_lock:
+            display_num = _find_free_display()
 
-        xvfb_proc = await asyncio.create_subprocess_exec(
-            "Xvfb",
-            f":{display_num}",
-            "-screen",
-            "0",
-            resolution,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
+            xvfb_proc = await asyncio.create_subprocess_exec(
+                "Xvfb",
+                f":{display_num}",
+                "-screen",
+                "0",
+                resolution,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
 
-        # Give Xvfb a moment to bind the display socket
-        await asyncio.sleep(settings.GUI_XVFB_SETTLE_S)
+            # Give Xvfb a moment to bind the display socket
+            await asyncio.sleep(settings.GUI_XVFB_SETTLE_S)
 
         # Check that Xvfb is still running
         if xvfb_proc.returncode is not None:
@@ -732,10 +746,15 @@ class GuiScreenshotTool(BaseTool):
             )
 
         # --- Start OpenROAD on that display ---
-        session_id = await self.manager.create_session(
-            command=[openroad_exe, "-gui", "-no_init"],
-            env={"DISPLAY": f":{display_num}"},
-        )
+        try:
+            session_id = await self.manager.create_session(
+                command=[openroad_exe, "-gui", "-no_init"],
+                env={"DISPLAY": f":{display_num}"},
+            )
+        except Exception:
+            xvfb_proc.terminate()
+            await xvfb_proc.wait()
+            raise
 
         self._session_displays[session_id] = display_num
         self._xvfb_pids[session_id] = xvfb_proc.pid

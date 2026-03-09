@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Settings(BaseModel):
@@ -114,6 +114,15 @@ class Settings(BaseModel):
         default=12,
         description="Hex characters from UUID used in temporary screenshot filenames",
     )
+
+    @model_validator(mode="after")
+    def _validate_display_range(self) -> "Settings":
+        if self.GUI_DISPLAY_START >= self.GUI_DISPLAY_END:
+            raise ValueError(
+                f"GUI_DISPLAY_START ({self.GUI_DISPLAY_START}) must be less than "
+                f"GUI_DISPLAY_END ({self.GUI_DISPLAY_END})"
+            )
+        return self
 
     # ORFS integration settings
     ORFS_FLOW_PATH: str = Field(
