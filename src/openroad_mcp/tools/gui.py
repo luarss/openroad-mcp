@@ -113,7 +113,7 @@ def _find_free_display() -> int:
         if not lock.exists():
             return num
     # Fallback – use a high random number outside the configured range
-    return start + uuid.uuid4().int % settings.GUI_DISPLAY_FALLBACK_RANGE
+    return end + uuid.uuid4().int % settings.GUI_DISPLAY_FALLBACK_RANGE
 
 
 async def _wait_for_display(display_num: int) -> bool:
@@ -401,169 +401,228 @@ class GuiScreenshotTool(BaseTool):
             raw_path = tmp_dir / raw_name
             raw_path.unlink(missing_ok=True)
 
-            # ----------------------------------------------------------
-            # 3.  Capture the X11 root window via ImageMagick import
-            # ----------------------------------------------------------
-            display_env = {**os.environ, "DISPLAY": f":{display_num}"}
-            import_timeout = actual_timeout / 1000.0
-
-            proc = await asyncio.create_subprocess_exec(
-                "import",
-                "-window",
-                "root",
-                str(raw_path),
-                env=display_env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(),
-                    timeout=import_timeout,
-                )
-            except TimeoutError:
-                proc.kill()
-                return self._format_result(
-                    GuiScreenshotResult(
-                        session_id=session_id,
-                        error="ScreenshotFailed",
-                        message=(
-                            f"ImageMagick import timed out after {import_timeout:.0f}s.  "
-                            "The Xvfb display may not be responding."
-                        ),
-                    )
-                )
+                # ----------------------------------------------------------
+                # 3.  Capture the X11 root window via ImageMagick import
+                # ----------------------------------------------------------
+                display_env = {**os.environ, "DISPLAY": f":{display_num}"}
+                import_timeout = actual_timeout / 1000.0
 
-            if proc.returncode != 0:
-                err_text = stderr.decode("utf-8", errors="replace")[: settings.GUI_ERROR_TRUNCATE_CHARS]
-                return self._format_result(
-                    GuiScreenshotResult(
-                        session_id=session_id,
-                        error="ScreenshotFailed",
-                        message=f"ImageMagick import failed (rc={proc.returncode}): {err_text}",
-                    )
+                proc = await asyncio.create_subprocess_exec(
+                    "import",
+                    "-window",
+                    "root",
+                    str(raw_path),
+                    env=display_env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
                 )
 
-            if not raw_path.exists() or raw_path.stat().st_size == 0:
-                return self._format_result(
-                    GuiScreenshotResult(
-                        session_id=session_id,
-                        error="ScreenshotFailed",
-                        message=f"Screenshot file was not created at {raw_path}.",
-                    )
-                )
-
-            original_size = raw_path.stat().st_size
-
-            # ----------------------------------------------------------
-            # 4.  Post-process: crop → scale → format conversion
-            # ----------------------------------------------------------
-            img: Image.Image = Image.open(raw_path)
-
-            # Crop (pixel coordinates: "x0 y0 x1 y1")
-            if crop:
                 try:
-                    coords = tuple(int(c) for c in crop.replace(",", " ").split())
-                    if len(coords) != 4:
-                        raise ValueError("Expected 4 integers")
-                    img = img.crop(coords)
-                except (ValueError, TypeError) as e:
-                    img.close()
+                    stdout, stderr = await asyncio.wait_for(
+                        proc.communicate(),
+                        timeout=import_timeout,
+                    )
+                except TimeoutError:
+                    proc.kill()
                     return self._format_result(
                         GuiScreenshotResult(
                             session_id=session_id,
-                            error="InvalidParameter",
+                            error="ScreenshotFailed",
                             message=(
-                                f"Invalid crop value '{crop}'. "
-                                "Expected 4 pixel coordinates: 'x0,y0,x1,y1' or 'x0 y0 x1 y1'. "
-                                f"Error: {e}"
+                                f"ImageMagick import timed out after {import_timeout:.0f}s.  "
+                                "The Xvfb display may not be responding."
                             ),
                         )
                     )
 
-            # Scale
-            if actual_scale < 1.0:
-                new_w = max(int(img.width * actual_scale), 1)
-                new_h = max(int(img.height * actual_scale), 1)
-                img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-
-            final_w, final_h = img.size
-
-            # Convert to output format in-memory
-            pil_format_map = {"jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
-            pil_fmt = pil_format_map[fmt]
-
-            # JPEG doesn't support alpha — convert RGBA → RGB
-            if fmt == "jpeg" and img.mode in ("RGBA", "LA", "PA"):
-                img = img.convert("RGB")
-
-            buf = io.BytesIO()
-            save_kwargs: dict[str, int] = {}
-            if fmt in ("jpeg", "webp"):
-                save_kwargs["quality"] = actual_quality
-            img.save(buf, format=pil_fmt, **save_kwargs)
-            img.close()
-
-            processed_bytes = buf.getvalue()
-            processed_size = len(processed_bytes)
-
-            # ----------------------------------------------------------
-            # 5.  File size check
-            # ----------------------------------------------------------
-            max_size = settings.GUI_MAX_SCREENSHOT_SIZE_MB
-            file_size_mb = processed_size / (1024 * 1024)
-            if file_size_mb > max_size:
-                return self._format_result(
-                    GuiScreenshotResult(
-                        session_id=session_id,
-                        error="FileTooLarge",
-                        message=(
-                            f"Screenshot size ({file_size_mb:.2f} MB) exceeds maximum allowed size ({max_size} MB)."
-                        ),
+                if proc.returncode != 0:
+                    err_text = stderr.decode("utf-8", errors="replace")[: settings.GUI_ERROR_TRUNCATE_CHARS]
+                    return self._format_result(
+                        GuiScreenshotResult(
+                            session_id=session_id,
+                            error="ScreenshotFailed",
+                            message=f"ImageMagick import failed (rc={proc.returncode}): {err_text}",
+                        )
                     )
+
+                if not raw_path.exists() or raw_path.stat().st_size == 0:
+                    return self._format_result(
+                        GuiScreenshotResult(
+                            session_id=session_id,
+                            error="ScreenshotFailed",
+                            message=f"Screenshot file was not created at {raw_path}.",
+                        )
+                    )
+
+                original_size = raw_path.stat().st_size
+
+                # ----------------------------------------------------------
+                # 4.  Post-process: crop → scale → format conversion
+                # ----------------------------------------------------------
+                img: Image.Image = Image.open(raw_path)
+
+                # Crop (pixel coordinates: "x0 y0 x1 y1")
+                if crop:
+                    try:
+                        coords = tuple(int(c) for c in crop.replace(",", " ").split())
+                        if len(coords) != 4:
+                            raise ValueError("Expected 4 integers")
+                        img = img.crop(coords)
+                    except (ValueError, TypeError) as e:
+                        img.close()
+                        return self._format_result(
+                            GuiScreenshotResult(
+                                session_id=session_id,
+                                error="InvalidParameter",
+                                message=(
+                                    f"Invalid crop value '{crop}'. "
+                                    "Expected 4 pixel coordinates: 'x0,y0,x1,y1' or 'x0 y0 x1 y1'. "
+                                    f"Error: {e}"
+                                ),
+                            )
+                        )
+
+                # Scale
+                if actual_scale < 1.0:
+                    new_w = max(int(img.width * actual_scale), 1)
+                    new_h = max(int(img.height * actual_scale), 1)
+                    img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+                final_w, final_h = img.size
+
+                # Convert to output format in-memory
+                pil_format_map = {"jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
+                pil_fmt = pil_format_map[fmt]
+
+                # JPEG doesn't support alpha — convert RGBA → RGB
+                if fmt == "jpeg" and img.mode in ("RGBA", "LA", "PA"):
+                    img = img.convert("RGB")
+
+                buf = io.BytesIO()
+                save_kwargs: dict[str, int] = {}
+                if fmt in ("jpeg", "webp"):
+                    save_kwargs["quality"] = actual_quality
+                img.save(buf, format=pil_fmt, **save_kwargs)
+                img.close()
+
+                processed_bytes = buf.getvalue()
+                processed_size = len(processed_bytes)
+
+                # ----------------------------------------------------------
+                # 5.  File size check
+                # ----------------------------------------------------------
+                max_size = settings.GUI_MAX_SCREENSHOT_SIZE_MB
+                file_size_mb = processed_size / (1024 * 1024)
+                if file_size_mb > max_size:
+                    return self._format_result(
+                        GuiScreenshotResult(
+                            session_id=session_id,
+                            error="FileTooLarge",
+                            message=(
+                                f"Screenshot size ({file_size_mb:.2f} MB) exceeds maximum allowed size ({max_size} MB)."
+                            ),
+                        )
+                    )
+
+                # ----------------------------------------------------------
+                # 6.  Write final file & build result
+                # ----------------------------------------------------------
+                ext_map = {"jpeg": ".jpg", "png": ".png", "webp": ".webp"}
+                # All extensions that are valid for each format
+                _valid_exts: dict[str, set[str]] = {
+                    "jpeg": {".jpg", ".jpeg"},
+                    "png": {".png"},
+                    "webp": {".webp"},
+                }
+                if output_path:
+                    final_path = Path(output_path)
+                    # If output_path is an existing directory (or ends with /),
+                    # generate a default filename inside it.
+                    if final_path.is_dir() or output_path.endswith("/"):
+                        final_path.mkdir(parents=True, exist_ok=True)
+                        default_name = f"openroad_gui_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}{ext_map[fmt]}"
+                        final_path = final_path / default_name
+                    # Correct the extension if it doesn't match the format
+                    elif final_path.suffix.lower() not in _valid_exts.get(fmt, set()):
+                        final_path = final_path.with_suffix(ext_map[fmt])
+                    # Create parent directories if they don't exist
+                    final_path.parent.mkdir(parents=True, exist_ok=True)
+                else:
+                    final_name = f"openroad_gui_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}{ext_map[fmt]}"
+                    final_path = tmp_dir / final_name
+
+                final_path.write_bytes(processed_bytes)
+
+                compression_applied = fmt != "png" or actual_scale < 1.0 or crop is not None
+                compression_ratio = (
+                    processed_size / original_size if compression_applied and original_size > 0 else None
                 )
+                now = datetime.now().isoformat()
 
-            # ----------------------------------------------------------
-            # 6.  Write final file & build result
-            # ----------------------------------------------------------
-            ext_map = {"jpeg": ".jpg", "png": ".png", "webp": ".webp"}
-            # All extensions that are valid for each format
-            _valid_exts: dict[str, set[str]] = {
-                "jpeg": {".jpg", ".jpeg"},
-                "png": {".png"},
-                "webp": {".webp"},
-            }
-            if output_path:
-                final_path = Path(output_path)
-                # If output_path is an existing directory (or ends with /),
-                # generate a default filename inside it.
-                if final_path.is_dir() or output_path.endswith("/"):
-                    final_path.mkdir(parents=True, exist_ok=True)
-                    default_name = f"openroad_gui_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}{ext_map[fmt]}"
-                    final_path = final_path / default_name
-                # Correct the extension if it doesn't match the format
-                elif final_path.suffix.lower() not in _valid_exts.get(fmt, set()):
-                    final_path = final_path.with_suffix(ext_map[fmt])
-                # Create parent directories if they don't exist
-                final_path.parent.mkdir(parents=True, exist_ok=True)
-            else:
-                final_name = f"openroad_gui_{uuid.uuid4().hex[: settings.GUI_TEMP_UUID_LENGTH]}{ext_map[fmt]}"
-                final_path = tmp_dir / final_name
+                if mode == "path":
+                    return self._format_result(
+                        GuiScreenshotResult(
+                            session_id=session_id,
+                            image_path=str(final_path),
+                            image_format=fmt,
+                            size_bytes=processed_size,
+                            original_size_bytes=original_size,
+                            resolution=actual_resolution,
+                            timestamp=now,
+                            return_mode=mode,
+                            compression_applied=compression_applied,
+                            compression_ratio=compression_ratio,
+                            width=final_w,
+                            height=final_h,
+                            message=(f"Screenshot saved to {final_path} ({processed_size:,} bytes, {fmt})."),
+                        )
+                    )
 
-            final_path.write_bytes(processed_bytes)
+                if mode == "preview":
+                    # Generate a small thumbnail for preview and save it to disk
+                    preview_img: Image.Image = Image.open(io.BytesIO(processed_bytes))
+                    preview_img.thumbnail((_PREVIEW_SIZE, _PREVIEW_SIZE), Image.Resampling.LANCZOS)
+                    preview_w, preview_h = preview_img.size
+                    preview_buf = io.BytesIO()
+                    if fmt == "jpeg" and preview_img.mode in ("RGBA", "LA", "PA"):
+                        preview_img = preview_img.convert("RGB")
+                    preview_img.save(preview_buf, format=pil_fmt, **save_kwargs)
+                    preview_img.close()
+                    preview_bytes = preview_buf.getvalue()
 
-            # Clean up raw capture
-            raw_path.unlink(missing_ok=True)
+                    # Overwrite the full-size file with the thumbnail
+                    final_path.write_bytes(preview_bytes)
 
-            compression_applied = fmt != "png" or actual_scale < 1.0 or crop is not None
-            compression_ratio = processed_size / original_size if compression_applied and original_size > 0 else None
-            now = datetime.now().isoformat()
+                    preview_b64 = base64.b64encode(preview_bytes).decode("utf-8")
+                    return self._format_result(
+                        GuiScreenshotResult(
+                            session_id=session_id,
+                            image_data=preview_b64,
+                            image_path=str(final_path),
+                            image_format=fmt,
+                            size_bytes=len(preview_bytes),
+                            original_size_bytes=original_size,
+                            resolution=f"{preview_w}x{preview_h}",
+                            timestamp=now,
+                            return_mode=mode,
+                            compression_applied=True,
+                            compression_ratio=(len(preview_bytes) / original_size if original_size > 0 else None),
+                            width=preview_w,
+                            height=preview_h,
+                            message=(
+                                f"Preview thumbnail ({preview_w}x{preview_h}) saved to {final_path} "
+                                f"({len(preview_bytes):,} bytes, {fmt})."
+                            ),
+                        )
+                    )
 
-            if mode == "path":
+                # mode == "base64"  (default)
+                image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
                 return self._format_result(
                     GuiScreenshotResult(
                         session_id=session_id,
+                        image_data=image_b64,
                         image_path=str(final_path),
                         image_format=fmt,
                         size_bytes=processed_size,
@@ -575,68 +634,12 @@ class GuiScreenshotTool(BaseTool):
                         compression_ratio=compression_ratio,
                         width=final_w,
                         height=final_h,
-                        message=(f"Screenshot saved to {final_path} ({processed_size:,} bytes, {fmt})."),
+                        message="Screenshot captured successfully.",
                     )
                 )
-
-            if mode == "preview":
-                # Generate a small thumbnail for preview and save it to disk
-                preview_img: Image.Image = Image.open(io.BytesIO(processed_bytes))
-                preview_img.thumbnail((_PREVIEW_SIZE, _PREVIEW_SIZE), Image.Resampling.LANCZOS)
-                preview_w, preview_h = preview_img.size
-                preview_buf = io.BytesIO()
-                if fmt == "jpeg" and preview_img.mode in ("RGBA", "LA", "PA"):
-                    preview_img = preview_img.convert("RGB")
-                preview_img.save(preview_buf, format=pil_fmt, **save_kwargs)
-                preview_img.close()
-                preview_bytes = preview_buf.getvalue()
-
-                # Overwrite the full-size file with the thumbnail
-                final_path.write_bytes(preview_bytes)
-
-                preview_b64 = base64.b64encode(preview_bytes).decode("utf-8")
-                return self._format_result(
-                    GuiScreenshotResult(
-                        session_id=session_id,
-                        image_data=preview_b64,
-                        image_path=str(final_path),
-                        image_format=fmt,
-                        size_bytes=len(preview_bytes),
-                        original_size_bytes=original_size,
-                        resolution=f"{preview_w}x{preview_h}",
-                        timestamp=now,
-                        return_mode=mode,
-                        compression_applied=True,
-                        compression_ratio=len(preview_bytes) / original_size if original_size > 0 else None,
-                        width=preview_w,
-                        height=preview_h,
-                        message=(
-                            f"Preview thumbnail ({preview_w}x{preview_h}) saved to {final_path} "
-                            f"({len(preview_bytes):,} bytes, {fmt})."
-                        ),
-                    )
-                )
-
-            # mode == "base64"  (default)
-            image_b64 = base64.b64encode(processed_bytes).decode("utf-8")
-            return self._format_result(
-                GuiScreenshotResult(
-                    session_id=session_id,
-                    image_data=image_b64,
-                    image_path=str(final_path),
-                    image_format=fmt,
-                    size_bytes=processed_size,
-                    original_size_bytes=original_size,
-                    resolution=actual_resolution,
-                    timestamp=now,
-                    return_mode=mode,
-                    compression_applied=compression_applied,
-                    compression_ratio=compression_ratio,
-                    width=final_w,
-                    height=final_h,
-                    message="Screenshot captured successfully.",
-                )
-            )
+            finally:
+                # Always clean up the raw capture file
+                raw_path.unlink(missing_ok=True)
 
         except SessionNotFoundError as e:
             logger.warning("GUI session not found: %s", session_id)

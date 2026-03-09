@@ -1273,7 +1273,14 @@ class TestPreFlightHelpers:
         with patch("openroad_mcp.tools.gui.Path") as MockPath:
             MockPath.return_value.exists.return_value = False
             num = _find_free_display()
-            assert settings.GUI_DISPLAY_START <= num < settings.GUI_DISPLAY_START + 200
+            assert num == settings.GUI_DISPLAY_START
+
+    def test_find_free_display_all_occupied(self):
+        """Returns a fallback display >= GUI_DISPLAY_END when all are occupied."""
+        with patch("openroad_mcp.tools.gui.Path") as MockPath:
+            MockPath.return_value.exists.return_value = True
+            num = _find_free_display()
+            assert num >= settings.GUI_DISPLAY_END
 
     def test_get_openroad_exe_from_env(self, tmp_path):
         """OPENROAD_EXE env var is preferred over PATH lookup."""

@@ -122,6 +122,11 @@ class Settings(BaseModel):
                 f"GUI_DISPLAY_START ({self.GUI_DISPLAY_START}) must be less than "
                 f"GUI_DISPLAY_END ({self.GUI_DISPLAY_END})"
             )
+        if self.GUI_DISPLAY_FALLBACK_RANGE <= 0:
+            raise ValueError(
+                "GUI_DISPLAY_FALLBACK_RANGE must be greater than 0 "
+                "(used as modulo divisor in _find_free_display fallback)"
+            )
         return self
 
     # ORFS integration settings
