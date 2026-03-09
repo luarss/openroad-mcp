@@ -1,11 +1,13 @@
 ARG ORFS_VERSION=latest
 ARG UV_VERSION=latest
 
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
 # Stage 1: builder - installs deps, discarded from final image.
 # Both stages share openroad/orfs because OpenROAD binaries are needed at runtime.
 FROM openroad/orfs:${ORFS_VERSION} AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:${UV_VERSION} /uv /usr/local/bin/uv
+COPY --from=uv /uv /usr/local/bin/uv
 
 # Base image lacks Python 3.13+; let uv download it to a portable directory
 # so it can be copied into the runtime stage.
