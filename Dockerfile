@@ -43,7 +43,7 @@ ENV PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/Open
     PYTHONDONTWRITEBYTECODE=1 \
     ORFS_FLOW_PATH=/OpenROAD-flow-scripts/flow
 
-# Smoke-test: verify the package is importable as appuser.
-RUN /app/.venv/bin/python -c "import openroad_mcp"
+# Verify non-editable install
+RUN /app/.venv/bin/python -c "import openroad_mcp; print(openroad_mcp.__file__)"
 
 ENTRYPOINT ["openroad-mcp"]
