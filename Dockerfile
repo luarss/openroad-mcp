@@ -46,7 +46,8 @@ USER appuser
 ENV PYTHONPATH=/app/src \
     PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    ORFS_FLOW_PATH=/OpenROAD-flow-scripts/flow
 
 # Verify import works as appuser (same context as production runtime).
 RUN /app/.venv/bin/python -c "import openroad_mcp"
