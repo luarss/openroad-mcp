@@ -1,0 +1,1 @@
+"""MCP CLI integration tests."""

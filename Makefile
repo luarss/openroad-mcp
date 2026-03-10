@@ -84,3 +84,22 @@ test-all:
 	@$(MAKE) test-interactive
 	@$(MAKE) test-tools
 	@$(MAKE) test-integration
+
+# MCP CLI integration tests
+.PHONY: test-mcp-cli
+test-mcp-cli:
+	@echo "Running MCP CLI discovery tests..."
+	@./scripts/test-mcp-integration.sh
+
+.PHONY: test-mcp-cli-all
+test-mcp-cli-all:
+	@echo "Running all MCP CLI tests (requires OpenROAD)..."
+	@./scripts/test-mcp-integration.sh --all
+
+.PHONY: test-mcp-cli-docker
+test-mcp-cli-docker: docker-test-build
+	@echo "Running MCP CLI tests in Docker..."
+	@docker run --rm \
+		-e ANTHROPIC_API_KEY=$(ANTHROPIC_API_KEY) \
+		$(DOCKER_TEST_IMAGE) \
+		./scripts/test-mcp-integration.sh --all
