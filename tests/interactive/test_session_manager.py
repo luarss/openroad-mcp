@@ -1,15 +1,13 @@
 """Tests for SessionManager implementation."""
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.core.models import SessionState
 from openroad_mcp.interactive.models import SessionNotFoundError, SessionTerminatedError
-
-skip_hanging_tests = pytest.mark.skip(reason="Temporarily disabled - hanging due to background task issues")
 
 
 @pytest.mark.asyncio
@@ -37,18 +35,15 @@ class TestSessionManager:
         result = await session_manager.list_sessions()
         assert len(result) == 0
 
-    @skip_hanging_tests
     @patch("openroad_mcp.core.manager.InteractiveSession")
     async def test_create_session_default(self, mock_session_class, session_manager):
         """Test creating session with default parameters."""
-        # Create a proper mock that responds to session_id assignment
         mock_session = AsyncMock()
         mock_session.is_alive.return_value = True
         mock_session.start.return_value = None
         mock_session.terminate.return_value = None
         mock_session.cleanup.return_value = None
 
-        # Mock the constructor to capture session_id
         def mock_constructor(session_id, **kwargs):
             mock_session.session_id = session_id
             return mock_session
@@ -81,12 +76,13 @@ class TestSessionManager:
         # Cleanup
         await session_manager.terminate_session(session_id)
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_create_session_with_params(self, mock_pty_class, session_manager, tmp_path):
         """Test creating session with custom parameters."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session(
@@ -99,12 +95,13 @@ class TestSessionManager:
         # Cleanup
         await session_manager.terminate_session(session_id)
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_get_session_info(self, mock_pty_class, session_manager):
         """Test getting session information."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
@@ -127,12 +124,13 @@ class TestSessionManager:
 
         assert len(result) == 0
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_list_sessions_multiple(self, mock_pty_class, session_manager):
         """Test listing multiple sessions."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         # Create multiple sessions
@@ -153,12 +151,13 @@ class TestSessionManager:
         for session_id in session_ids:
             await session_manager.terminate_session(session_id)
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_execute_command_existing_session(self, mock_pty_class, session_manager):
         """Test executing command in existing session."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
@@ -185,12 +184,13 @@ class TestSessionManager:
         with pytest.raises(SessionNotFoundError):
             await session_manager.execute_command(session_id="non-existent", command="test")
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_terminate_session(self, mock_pty_class, session_manager):
         """Test terminating a session."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
@@ -204,12 +204,13 @@ class TestSessionManager:
         with pytest.raises(SessionNotFoundError):
             await session_manager.terminate_session("non-existent")
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_cleanup_session(self, mock_pty_class, session_manager):
         """Test cleaning up a session via termination."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
@@ -224,12 +225,13 @@ class TestSessionManager:
         with pytest.raises(SessionNotFoundError):
             await session_manager.terminate_session("non-existent")
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_cleanup_all_sessions(self, mock_pty_class, session_manager):
         """Test cleaning up all sessions."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         # Create multiple sessions
@@ -238,22 +240,19 @@ class TestSessionManager:
             session_id = await session_manager.create_session()
             session_ids.append(session_id)
 
-        # Call cleanup directly without patching - the actual cleanup method works
-        await session_manager.cleanup()
+        await session_manager.cleanup_all()
         assert session_manager.get_session_count() == 0
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_session_auto_cleanup_on_error(self, mock_pty_class, session_manager):
         """Test that sessions are auto-cleaned on errors."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
-
-        # Simulate session error
-        # Session will be in error state after cleanup
 
         with patch("openroad_mcp.interactive.session.InteractiveSession.send_command") as mock_send:
             mock_send.side_effect = SessionTerminatedError("Session terminated")
@@ -267,12 +266,13 @@ class TestSessionManager:
         except SessionNotFoundError:
             pass  # Session may already be cleaned up
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_concurrent_session_creation(self, mock_pty_class, session_manager):
         """Test concurrent session creation."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         async def create_session():
@@ -290,12 +290,13 @@ class TestSessionManager:
         for session_id in session_ids:
             await session_manager.terminate_session(session_id)
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_session_counter_increment(self, mock_pty_class, session_manager):
         """Test that multiple sessions are created with unique IDs."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id1 = await session_manager.create_session()
@@ -310,29 +311,29 @@ class TestSessionManager:
         await session_manager.terminate_session(session_id1)
         await session_manager.terminate_session(session_id2)
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_session_state_tracking(self, mock_pty_class, session_manager):
         """Test session state tracking through manager."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
 
-        # Get session info to verify state
         info = await session_manager.get_session_info(session_id)
         assert info.state in [SessionState.CREATING, SessionState.ACTIVE]
 
-        # Since we can't directly access sessions, just verify the session exists
         await session_manager.terminate_session(session_id)
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_session_command_history_tracking(self, mock_pty_class, session_manager):
         """Test command history tracking."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         session_id = await session_manager.create_session()
@@ -342,7 +343,6 @@ class TestSessionManager:
             patch("openroad_mcp.interactive.session.InteractiveSession.read_output") as mock_read,
             patch("openroad_mcp.interactive.session.InteractiveSession.get_info") as mock_info,
         ):
-            # Setup mock for execute_command
             from datetime import datetime
 
             from openroad_mcp.core.models import InteractiveExecResult
@@ -351,14 +351,11 @@ class TestSessionManager:
                 output="output", session_id=session_id, execution_time=0.05, timestamp=datetime.now().isoformat()
             )
 
-            # Setup mock for get_info with incrementing command count
             from openroad_mcp.core.models import InteractiveSessionInfo
 
-            # Create a counter that tracks how many times execute_command is called
             exec_count = 0
 
             async def mock_get_info():
-                # Return a count based on how many times execute_command was called
                 return InteractiveSessionInfo(
                     session_id=session_id,
                     created_at="2025-01-01T00:00:00",
@@ -366,19 +363,17 @@ class TestSessionManager:
                     command_count=exec_count,
                     buffer_size=0,
                     uptime_seconds=1.0,
-                    state="active",
+                    state=SessionState.ACTIVE,
                 )
 
             mock_info.side_effect = mock_get_info
             mock_send.return_value = None
 
-            # Execute multiple commands
             await session_manager.execute_command(session_id, "cmd1")
             exec_count += 1
             await session_manager.execute_command(session_id, "cmd2")
             exec_count += 1
 
-            # Verify command count increased
             info = await session_manager.get_session_info(session_id)
             assert info.command_count >= 2
 
@@ -390,12 +385,13 @@ class TestSessionManager:
 class TestSessionManagerAsync:
     """Async test runner for SessionManager."""
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_session_manager_lifecycle(self, mock_pty_class):
         """Test complete session manager lifecycle."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         manager = SessionManager()
@@ -418,15 +414,15 @@ class TestSessionManagerAsync:
             assert manager.get_session_count() == 0
 
         finally:
-            # Ensure cleanup
-            await manager.cleanup()
+            await manager.cleanup_all()
 
-    @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
     async def test_stress_session_operations(self, mock_pty_class):
         """Test stress operations on session manager."""
         mock_pty = AsyncMock()
-        mock_pty.is_process_alive.return_value = True
+        mock_pty.is_process_alive = MagicMock(return_value=True)
+        mock_pty.wait_for_exit.return_value = None
+        mock_pty.read_output.return_value = None
         mock_pty_class.return_value = mock_pty
 
         num_sessions = 50
@@ -458,4 +454,4 @@ class TestSessionManagerAsync:
             assert manager.get_session_count() == num_sessions - sessions_to_cleanup
 
         finally:
-            await manager.cleanup()
+            await manager.cleanup_all()
