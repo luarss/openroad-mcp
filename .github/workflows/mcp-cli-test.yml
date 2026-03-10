@@ -32,7 +32,7 @@ jobs:
 
       - name: Install Claude CLI
         run: |
-          curl -fsSL https://claude.ai/install.sh | sh
+          curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Configure Claude CLI
