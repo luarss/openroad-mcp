@@ -9,7 +9,6 @@ These tests exercise the full MCP server stack with real processes:
 Run via: make test-integration (requires Docker with OpenROAD installed)
 """
 
-import asyncio
 import io
 import json
 import os
@@ -20,8 +19,9 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 from PIL import Image
+
+from tests.integration.conftest import _mcp_session
 
 # ---------------------------------------------------------------------------
 # Skip helpers
@@ -36,7 +36,7 @@ skip_if_no_openroad = pytest.mark.skipif(
 
 
 def get_orfs_flow_path() -> Path:
-    """Get ORFS flow path from environment, evaluated at runtime."""
+    """Get ORFS flow path from environment variable ORFS_FLOW_PATH."""
     return Path(os.environ.get("ORFS_FLOW_PATH", "/OpenROAD-flow-scripts/flow"))
 
 
@@ -392,21 +392,13 @@ class TestORFSReportImagesMCP:
             command="python",
             args=["-m", "openroad_mcp.main"],
             env={
+                **os.environ,
                 "ORFS_FLOW_PATH": str(synthetic_orfs_run["root"]),
                 "OPENROAD_ENABLE_COMMAND_VALIDATION": "false",
             },
         )
-        try:
-            async with stdio_client(server_params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    await asyncio.sleep(1.0)
-                    yield session
-        except RuntimeError as e:
-            if "cancel scope" in str(e).lower():
-                pass
-            else:
-                raise
+        async with _mcp_session(server_params) as session:
+            yield session
 
     @pytest_asyncio.fixture
     async def synthetic_orfs_run(self, tmp_path):
@@ -474,7 +466,8 @@ class TestORFSReportImagesMCP:
         assert data.get("error") is None
         assert "final" in data["images_by_stage"]
         assert "cts" not in data["images_by_stage"]
-        assert data["total_images"] == 4  # final_all, final_routing, final_congestion, final_placement
+        expected_final_count = sum(1 for f in synthetic_orfs_run["images"] if f.startswith("final_"))
+        assert data["total_images"] == expected_final_count
 
     async def test_read_image_synthetic_run(self, synthetic_orfs_run, mcp_client):
         """read_report_image returns base64-encoded data and metadata."""
@@ -528,7 +521,7 @@ class TestORFSReportImagesMCP:
 class TestORFSFilesystemIntegration:
     """Tests that use the real ORFS flow directory structure."""
 
-    async def test_orfs_platforms_discoverable(self, mcp_client):
+    async def test_orfs_platforms_discoverable(self):
         """ORFS platforms directory contains expected platforms."""
         orfs_path = get_orfs_flow_path()
         platforms_dir = orfs_path / "platforms"
@@ -536,7 +529,7 @@ class TestORFSFilesystemIntegration:
         platforms = [d.name for d in platforms_dir.iterdir() if d.is_dir()]
         assert platforms, "No platforms found in ORFS flow directory"
 
-    async def test_orfs_gcd_design_exists(self, mcp_client):
+    async def test_orfs_gcd_design_exists(self):
         """GCD design is present in the ORFS flow directory."""
         orfs_path = get_orfs_flow_path()
         gcd_dir = orfs_path / "designs" / "nangate45" / "gcd"
