@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "MCP Integration Test Cases",
-  "description": "Test cases for verifying MCP server integration with Claude CLI",
-  "version": "1.0.0",
+  "description": "Test cases for verifying MCP server integration using MCP Inspector CLI",
+  "version": "2.0.0",
 
   "discovery": {
     "description": "Tests that verify MCP server discovery without requiring OpenROAD",
@@ -11,7 +11,7 @@
       {
         "name": "list_tools",
         "description": "Verify all MCP tools are discoverable",
-        "prompt": "List all MCP tools available from the openroad-mcp server. Just list their names.",
+        "method": "tools/list",
         "expect_contains": [
           "interactive_openroad",
           "create_interactive_session",
@@ -21,19 +21,23 @@
           "inspect_interactive_session",
           "get_session_history"
         ],
-        "timeout_seconds": 60
+        "timeout_seconds": 30
       },
       {
         "name": "get_metrics",
         "description": "Verify get_session_metrics returns valid response",
-        "prompt": "Call the get_session_metrics MCP tool and report the result.",
-        "expect_contains": ["total_sessions", "active_sessions"],
+        "method": "tools/call",
+        "tool_name": "get_session_metrics",
+        "tool_args": {},
+        "expect_contains": ["active_sessions", "total_sessions"],
         "timeout_seconds": 30
       },
       {
         "name": "list_sessions",
         "description": "Verify list_interactive_sessions returns valid response",
-        "prompt": "Use the list_interactive_sessions MCP tool to show all current sessions.",
+        "method": "tools/call",
+        "tool_name": "list_interactive_sessions",
+        "tool_args": {},
         "expect_contains": ["sessions"],
         "timeout_seconds": 30
       }
@@ -53,57 +57,73 @@
       {
         "name": "create_session",
         "description": "Verify session creation",
-        "prompt_template": "Create an OpenROAD interactive session with session_id '{session_id}'. Report the session_id created.",
+        "method": "tools/call",
+        "tool_name": "create_interactive_session",
+        "tool_args_template": {"session_id": "{session_id}"},
         "expect_contains": ["session_id"],
         "timeout_seconds": 60
       },
       {
         "name": "execute_simple_command",
         "description": "Verify basic command execution",
-        "prompt_template": "In session '{session_id}', execute the TCL command 'puts hello' using interactive_openroad.",
+        "method": "tools/call",
+        "tool_name": "interactive_openroad",
+        "tool_args_template": {"session_id": "{session_id}", "command": "puts hello"},
         "expect_contains": ["hello"],
         "timeout_seconds": 30
       },
       {
         "name": "execute_math_command",
         "description": "Verify mathematical command execution",
-        "prompt_template": "In session '{session_id}', execute 'expr 2 + 2' and report the result.",
+        "method": "tools/call",
+        "tool_name": "interactive_openroad",
+        "tool_args_template": {"session_id": "{session_id}", "command": "expr 2 + 2"},
         "expect_contains": ["4"],
         "timeout_seconds": 30
       },
       {
         "name": "get_history",
         "description": "Verify session history retrieval",
-        "prompt_template": "Get the command history for session '{session_id}' using get_session_history.",
+        "method": "tools/call",
+        "tool_name": "get_session_history",
+        "tool_args_template": {"session_id": "{session_id}"},
         "expect_contains": ["puts", "expr"],
         "timeout_seconds": 30
       },
       {
         "name": "inspect_session",
         "description": "Verify session inspection",
-        "prompt_template": "Inspect session '{session_id}' using inspect_interactive_session and report its state.",
+        "method": "tools/call",
+        "tool_name": "inspect_interactive_session",
+        "tool_args_template": {"session_id": "{session_id}"},
         "expect_contains": ["session_id", "state"],
         "timeout_seconds": 30
       },
       {
         "name": "list_sessions_after_create",
         "description": "Verify session appears in list",
-        "prompt_template": "Use list_interactive_sessions to verify session '{session_id}' exists.",
-        "expect_contains": ["{session_id}"],
+        "method": "tools/call",
+        "tool_name": "list_interactive_sessions",
+        "tool_args_template": {},
+        "expect_contains_template": ["{session_id}"],
         "timeout_seconds": 30
       },
       {
         "name": "terminate_session",
         "description": "Verify session termination",
-        "prompt_template": "Terminate session '{session_id}' using terminate_interactive_session.",
+        "method": "tools/call",
+        "tool_name": "terminate_interactive_session",
+        "tool_args_template": {"session_id": "{session_id}"},
         "expect_contains": ["terminated", "success"],
         "timeout_seconds": 30
       },
       {
         "name": "verify_session_gone",
         "description": "Verify session no longer exists after termination",
-        "prompt_template": "Use list_interactive_sessions to verify session '{session_id}' no longer exists.",
-        "expect_not_contains": ["{session_id}"],
+        "method": "tools/call",
+        "tool_name": "list_interactive_sessions",
+        "tool_args_template": {},
+        "expect_not_contains_template": ["{session_id}"],
         "timeout_seconds": 30
       }
     ]
@@ -116,7 +136,9 @@
       {
         "name": "list_report_images",
         "description": "List available report images",
-        "prompt": "Use list_report_images to check for available reports. List platforms and designs if any.",
+        "method": "tools/call",
+        "tool_name": "list_report_images",
+        "tool_args": {"platform": "asap7", "design": "gcd", "run_slug": "base"},
         "expect_any": ["platforms", "designs", "no reports", "empty"],
         "timeout_seconds": 30
       }
@@ -130,14 +152,19 @@
       {
         "name": "invalid_session_operation",
         "description": "Verify error handling for non-existent session",
-        "prompt": "Try to inspect a session with ID 'nonexistent-session-xyz' using inspect_interactive_session. Report what happens.",
-        "expect_contains": ["error", "not found", "does not exist"],
+        "method": "tools/call",
+        "tool_name": "inspect_interactive_session",
+        "tool_args": {"session_id": "nonexistent-session-xyz"},
+        "expect_contains": ["error", "not found"],
         "timeout_seconds": 30
       },
       {
         "name": "terminate_nonexistent_session",
         "description": "Verify error handling when terminating non-existent session",
-        "prompt": "Try to terminate session 'nonexistent-session-xyz' using terminate_interactive_session. Report what happens.",
+        "method": "tools/call",
+        "tool_name": "terminate_interactive_session",
+        "tool_args": {"session_id": "nonexistent-session-xyz"},
+        "expect_contains": ["error", "not found"],
         "timeout_seconds": 30
       }
     ]

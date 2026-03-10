@@ -98,8 +98,7 @@ test-mcp-cli-all:
 
 .PHONY: test-mcp-cli-docker
 test-mcp-cli-docker: docker-test-build
-	@echo "Running MCP CLI tests in Docker..."
+	@echo "Running MCP Inspector CLI tests in Docker..."
 	@docker run --rm \
-		-e ANTHROPIC_API_KEY=$(ANTHROPIC_API_KEY) \
 		$(DOCKER_TEST_IMAGE) \
 		./scripts/test-mcp-integration.sh --all

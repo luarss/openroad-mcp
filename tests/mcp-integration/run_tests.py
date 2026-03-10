@@ -2,8 +2,14 @@
 """
 MCP Integration Test Runner
 
-Runs test cases against the MCP server using the Claude CLI.
+Runs test cases against the MCP server using the MCP Inspector CLI.
 Tests are defined in test_cases.json.
+
+Benefits of MCP Inspector CLI:
+- No API key or OAuth required
+- Direct MCP protocol access (deterministic JSON output)
+- Faster execution (no LLM inference)
+- Free (no API costs)
 
 Usage:
     python run_tests.py                          # Run discovery tests only
@@ -12,7 +18,6 @@ Usage:
     python run_tests.py --list                   # List available tests
 
 Environment:
-    CLAUDE_BIN     - Path to claude binary (default: claude)
     OPENROAD_EXE   - Path to openroad binary (required for session tests)
 """
 
@@ -64,17 +69,15 @@ class Colors:
 
 
 class MCPTestRunner:
-    """Runs MCP integration tests using Claude CLI."""
+    """Runs MCP integration tests using MCP Inspector CLI."""
 
     def __init__(
         self,
         mcp_config: Path,
         test_cases_file: Path,
-        claude_bin: str = "claude",
         results_dir: Path | None = None,
     ):
         self.mcp_config = mcp_config
-        self.claude_bin = claude_bin
         self.results_dir = results_dir or Path(".test-results/mcp-cli")
         self.results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -85,24 +88,24 @@ class MCPTestRunner:
         """Verify all prerequisites are met."""
         print(f"{Colors.YELLOW}Checking prerequisites...{Colors.NC}")
 
-        # Check claude binary
+        # Check Node.js
         try:
             result = subprocess.run(
-                [self.claude_bin, "--version"],
+                ["node", "--version"],
                 capture_output=True,
                 text=True,
                 timeout=10,
             )
             if result.returncode == 0:
-                print(f"  {Colors.GREEN}✓{Colors.NC} Claude CLI found: {self.claude_bin}")
+                print(f"  {Colors.GREEN}✓{Colors.NC} Node.js found: {result.stdout.strip()}")
             else:
-                print(f"  {Colors.RED}✗{Colors.NC} Claude CLI returned error")
+                print(f"  {Colors.RED}✗{Colors.NC} Node.js returned error")
                 return False
         except FileNotFoundError:
-            print(f"  {Colors.RED}✗{Colors.NC} Claude CLI not found at '{self.claude_bin}'")
+            print(f"  {Colors.RED}✗{Colors.NC} Node.js not found")
             return False
         except subprocess.TimeoutExpired:
-            print(f"  {Colors.RED}✗{Colors.NC} Claude CLI timed out")
+            print(f"  {Colors.RED}✗{Colors.NC} Node.js timed out")
             return False
 
         # Check MCP config
@@ -122,24 +125,42 @@ class MCPTestRunner:
         print()
         return True
 
-    def run_claude_prompt(
+    def run_mcp_method(
         self,
-        prompt: str,
+        method: str,
+        tool_name: str | None = None,
+        tool_args: dict[str, Any] | None = None,
         timeout: int = 60,
     ) -> tuple[str, str, int]:
         """
-        Run a prompt through Claude CLI with MCP config.
+        Run an MCP method through MCP Inspector CLI.
 
         Returns:
             Tuple of (stdout, stderr, exit_code)
         """
         cmd = [
-            self.claude_bin,
-            "--mcp-config",
+            "npx",
+            "@modelcontextprotocol/inspector@latest",
+            "--cli",
+            "--config",
             str(self.mcp_config),
-            "--print",
-            prompt,
+            "--server",
+            "openroad-mcp",
+            "--method",
+            method,
         ]
+
+        if tool_name:
+            cmd.extend(["--tool-name", tool_name])
+
+        if tool_args:
+            for key, value in tool_args.items():
+                # Convert value to JSON string for complex types
+                if isinstance(value, dict | list):
+                    value_str = json.dumps(value)
+                else:
+                    value_str = str(value)
+                cmd.extend(["--tool-arg", f"{key}={value_str}"])
 
         try:
             result = subprocess.run(
@@ -191,25 +212,41 @@ class MCPTestRunner:
     ) -> TestResult:
         """Run a single test case."""
         name = test["name"]
-        prompt = test.get("prompt", test.get("prompt_template", ""))
+        method = test["method"]
+        tool_name = test.get("tool_name")
+        tool_args = test.get("tool_args", test.get("tool_args_template", {}))
 
-        # Substitute session_id if provided
-        if session_id and "{session_id}" in prompt:
-            prompt = prompt.replace("{session_id}", session_id)
+        # Substitute session_id in tool_args if provided
+        if session_id:
+            tool_args_str = json.dumps(tool_args)
+            if "{session_id}" in tool_args_str:
+                tool_args = json.loads(tool_args_str.replace("{session_id}", session_id))
+
+        # Handle template-based expectations
+        expect_contains = test.get("expect_contains", test.get("expect_contains_template", []))
+        if session_id and test.get("expect_contains_template"):
+            expect_contains = [p.replace("{session_id}", session_id) for p in test["expect_contains_template"]]
+
+        expect_not_contains = test.get("expect_not_contains", test.get("expect_not_contains_template", []))
+        if session_id and test.get("expect_not_contains_template"):
+            expect_not_contains = [p.replace("{session_id}", session_id) for p in test["expect_not_contains_template"]]
 
         timeout = test.get("timeout_seconds", 60)
-        expect_contains = test.get("expect_contains")
-        expect_not_contains = test.get("expect_not_contains")
 
         print(f"{Colors.YELLOW}Running: {name}{Colors.NC}")
-        print(f"  Prompt: {prompt[:80]}{'...' if len(prompt) > 80 else ''}")
+        print(f"  Method: {method}")
+        if tool_name:
+            print(f"  Tool: {tool_name}")
+        if tool_args:
+            args_preview = json.dumps(tool_args)[:60]
+            print(f"  Args: {args_preview}{'...' if len(json.dumps(tool_args)) > 60 else ''}")
 
         start_time = datetime.now()
-        stdout, stderr, exit_code = self.run_claude_prompt(prompt, timeout=timeout)
+        stdout, stderr, exit_code = self.run_mcp_method(method, tool_name, tool_args, timeout=timeout)
         duration = (datetime.now() - start_time).total_seconds()
 
         # Save output
-        output_file = self.results_dir / f"{name}.txt"
+        output_file = self.results_dir / f"{name}.json"
         with open(output_file, "w") as f:
             f.write(f"=== STDOUT ===\n{stdout}\n\n=== STDERR ===\n{stderr}\n")
 
@@ -366,7 +403,7 @@ class MCPTestRunner:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run MCP integration tests using Claude CLI")
+    parser = argparse.ArgumentParser(description="Run MCP integration tests using MCP Inspector CLI")
     parser.add_argument(
         "--all",
         "-a",
@@ -392,11 +429,6 @@ def main() -> int:
         help="Path to MCP config file",
     )
     parser.add_argument(
-        "--claude-bin",
-        default=os.environ.get("CLAUDE_BIN", "claude"),
-        help="Path to claude binary",
-    )
-    parser.add_argument(
         "--no-color",
         action="store_true",
         help="Disable colored output",
@@ -418,7 +450,6 @@ def main() -> int:
     runner = MCPTestRunner(
         mcp_config=args.mcp_config,
         test_cases_file=test_cases_file,
-        claude_bin=args.claude_bin,
     )
 
     if args.list:

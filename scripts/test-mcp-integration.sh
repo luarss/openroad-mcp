@@ -1,20 +1,24 @@
 #!/bin/bash
-# Test MCP server integration with Claude CLI
+# Test MCP server integration with MCP Inspector CLI
 #
 # Usage:
 #   ./scripts/test-mcp-integration.sh              # Run discovery tests only
 #   ./scripts/test-mcp-integration.sh --all        # Run all tests (requires OpenROAD)
-#   CLAUDE_BIN=/path/to/claude ./scripts/test-mcp-integration.sh
 #
 # Environment variables:
-#   CLAUDE_BIN     - Path to claude binary (default: claude)
 #   OPENROAD_EXE   - Path to openroad binary (for --all tests)
+#
+# Benefits of MCP Inspector CLI:
+#   - No API key or OAuth required
+#   - Direct MCP protocol access (deterministic JSON output)
+#   - Faster execution (no LLM inference)
+#   - Free (no API costs)
 
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_CONFIG="${PROJECT_ROOT}/.mcp.json"
-CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+INSPECTOR="npx @modelcontextprotocol/inspector@latest --cli"
 RESULTS_DIR="${PROJECT_ROOT}/.test-results/mcp-cli"
 RUN_ALL=false
 
@@ -39,7 +43,6 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h   Show this help message"
             echo ""
             echo "Environment variables:"
-            echo "  CLAUDE_BIN    Path to claude binary (default: claude)"
             echo "  OPENROAD_EXE  Path to openroad binary (required for --all)"
             exit 0
             ;;
@@ -53,25 +56,17 @@ done
 # Setup results directory
 mkdir -p "${RESULTS_DIR}"
 
-# Check for nested session (running inside Claude Code)
-if [[ -n "${CLAUDECODE}" ]]; then
-    echo -e "${YELLOW}WARNING: Running inside Claude Code session.${NC}"
-    echo "Tests will fail due to nested session restriction."
-    echo "This is expected - tests will pass in CI environment."
-    echo ""
-fi
-
 # Check prerequisites
 check_prerequisites() {
     echo -e "${YELLOW}Checking prerequisites...${NC}"
 
-    # Check claude binary
-    if ! command -v "${CLAUDE_BIN}" &> /dev/null; then
-        echo -e "${RED}ERROR: Claude CLI not found at '${CLAUDE_BIN}'${NC}"
-        echo "Install from: https://docs.anthropic.com/en/docs/claude-cli"
+    # Check Node.js
+    if ! command -v node &> /dev/null; then
+        echo -e "${RED}ERROR: Node.js not found${NC}"
+        echo "Install from: https://nodejs.org/"
         exit 1
     fi
-    echo -e "  ${GREEN}✓${NC} Claude CLI found: $(command -v "${CLAUDE_BIN}")"
+    echo -e "  ${GREEN}✓${NC} Node.js found: $(node --version)"
 
     # Check MCP config
     if [[ ! -f "${MCP_CONFIG}" ]]; then
@@ -92,27 +87,57 @@ check_prerequisites() {
     echo ""
 }
 
+# Run MCP method and capture output
+# Args: method_name [--tool-name name] [--tool-arg key=value]...
+run_mcp_method() {
+    local method="$1"
+    shift
+
+    local cmd="${INSPECTOR} --config \"${MCP_CONFIG}\" --server openroad-mcp --method ${method}"
+    while [[ $# -gt 0 ]]; do
+        cmd="${cmd} $1 \"$2\""
+        shift 2
+    done
+
+    eval "${cmd}" 2>&1
+}
+
 # Run a single test
-# Args: test_name prompt [expected_pattern]
+# Args: test_name method [tool_name] [tool_args_json]
 run_test() {
     local name="$1"
-    local prompt="$2"
-    local expected="${3:-}"
-    local output_file="${RESULTS_DIR}/${name}.txt"
+    local method="$2"
+    local tool_name="${3:-}"
+    local tool_args="${4:-}"
+    local expected_patterns="${5:-}"
+    local output_file="${RESULTS_DIR}/${name}.json"
     local start_time end_time duration
 
     echo -e "${YELLOW}Running: ${name}${NC}"
-    echo "  Prompt: ${prompt}"
+    echo "  Method: ${method}"
+    [[ -n "${tool_name}" ]] && echo "  Tool: ${tool_name}"
+    [[ -n "${tool_args}" ]] && echo "  Args: ${tool_args}"
 
     start_time=$(date +%s)
 
-    # Run claude with the prompt
+    # Build command
+    local cmd="${INSPECTOR} --config \"${MCP_CONFIG}\" --server openroad-mcp --method ${method}"
+    if [[ -n "${tool_name}" ]]; then
+        cmd="${cmd} --tool-name ${tool_name}"
+    fi
+    if [[ -n "${tool_args}" ]]; then
+        # Parse JSON args and add as --tool-arg key=value
+        while IFS= read -r line; do
+            if [[ -n "${line}" ]]; then
+                cmd="${cmd} --tool-arg ${line}"
+            fi
+        done < <(echo "${tool_args}" | jq -r 'to_entries[] | "\(.key)=\(.value | tojson)"' 2>/dev/null || true)
+    fi
+
+    # Run MCP inspector
     set +e
     local stdout stderr exit_code
-    stdout=$("${CLAUDE_BIN}" \
-        --mcp-config "${MCP_CONFIG}" \
-        --print \
-        "${prompt}" 2>&1)
+    stdout=$(eval "${cmd}" 2>&1)
     exit_code=$?
     set -e
 
@@ -130,11 +155,19 @@ run_test() {
         return 1
     fi
 
-    # Check expected pattern if provided
-    if [[ -n "${expected}" ]] && ! echo "${stdout}" | grep -qiE "${expected}"; then
-        echo -e "  ${RED}✗ FAILED${NC} (expected pattern not found: ${expected})"
-        echo "  Output saved to: ${output_file}"
-        return 1
+    # Check expected patterns if provided
+    if [[ -n "${expected_patterns}" ]]; then
+        local pattern_failed=false
+        for pattern in ${expected_patterns//,/ }; do
+            if ! echo "${stdout}" | grep -qiE "${pattern}"; then
+                echo -e "  ${RED}✗ FAILED${NC} (expected pattern not found: ${pattern})"
+                pattern_failed=true
+            fi
+        done
+        if [[ "${pattern_failed}" == "true" ]]; then
+            echo "  Output saved to: ${output_file}"
+            return 1
+        fi
     fi
 
     echo -e "  ${GREEN}✓ PASSED${NC} (${duration}s)"
@@ -151,8 +184,7 @@ run_discovery_tests() {
     local failed=0
 
     # Test 1: List tools
-    if run_test "list_tools" \
-        "List all MCP tools available from the openroad-mcp server. Just list their names." \
+    if run_test "list_tools" "tools/list" "" "" \
         "interactive_openroad|create_interactive_session"; then
         ((passed++))
     else
@@ -160,17 +192,15 @@ run_discovery_tests() {
     fi
 
     # Test 2: Get session metrics
-    if run_test "get_metrics" \
-        "Call the get_session_metrics MCP tool and report the result." \
-        "total_sessions|active_sessions"; then
+    if run_test "get_metrics" "tools/call" "get_session_metrics" "" \
+        "active_sessions|total_sessions"; then
         ((passed++))
     else
         ((failed++))
     fi
 
     # Test 3: List sessions
-    if run_test "list_sessions" \
-        "Use the list_interactive_sessions MCP tool to show all current sessions." \
+    if run_test "list_sessions" "tools/call" "list_interactive_sessions" "" \
         "sessions"; then
         ((passed++))
     else
@@ -195,48 +225,49 @@ run_session_tests() {
     local session_id="test-cli-$$"
 
     # Test 1: Create session
-    if run_test "create_session" \
-        "Create an OpenROAD interactive session with session_id '${session_id}'. Report the session_id created."; then
+    if run_test "create_session" "tools/call" "create_interactive_session" \
+        "{\"session_id\": \"${session_id}\"}" \
+        "session_id"; then
         ((passed++))
     else
         ((failed++))
     fi
 
     # Test 2: Execute command
-    if run_test "execute_command" \
-        "In session '${session_id}', execute the TCL command 'puts hello' using interactive_openroad."; then
+    if run_test "execute_command" "tools/call" "interactive_openroad" \
+        "{\"session_id\": \"${session_id}\", \"command\": \"puts hello\"}" \
+        "hello"; then
         ((passed++))
     else
         ((failed++))
     fi
 
     # Test 3: Get history
-    if run_test "get_history" \
-        "Get the command history for session '${session_id}' using get_session_history."; then
+    if run_test "get_history" "tools/call" "get_session_history" \
+        "{\"session_id\": \"${session_id}\"}" \
+        "puts"; then
         ((passed++))
     else
         ((failed++))
     fi
 
     # Test 4: Inspect session
-    if run_test "inspect_session" \
-        "Inspect session '${session_id}' using inspect_interactive_session and report its state."; then
+    if run_test "inspect_session" "tools/call" "inspect_interactive_session" \
+        "{\"session_id\": \"${session_id}\"}" \
+        "session_id|state"; then
         ((passed++))
     else
         ((failed++))
     fi
 
     # Test 5: Terminate session
-    if run_test "terminate_session" \
-        "Terminate session '${session_id}' using terminate_interactive_session."; then
+    if run_test "terminate_session" "tools/call" "terminate_interactive_session" \
+        "{\"session_id\": \"${session_id}\"}" \
+        "terminated|success"; then
         ((passed++))
     else
         ((failed++))
     fi
-
-    # Cleanup: ensure session is terminated
-    "${CLAUDE_BIN}" --mcp-config "${MCP_CONFIG}" --print \
-        "Terminate session '${session_id}' if it exists." 2>/dev/null || true
 
     echo ""
     echo -e "${YELLOW}Session Tests Summary:${NC} ${passed} passed, ${failed} failed"
@@ -255,8 +286,8 @@ run_report_tests() {
     local failed=0
 
     # Test: List report images (may fail if no data available)
-    if run_test "list_report_images" \
-        "Use list_report_images to check for available reports. List platforms and designs if any."; then
+    if run_test "list_report_images" "tools/call" "list_report_images" \
+        "{\"platform\": \"asap7\", \"design\": \"gcd\", \"run_slug\": \"base\"}" ""; then
         ((passed++))
     else
         ((failed++))
@@ -272,7 +303,7 @@ run_report_tests() {
 # Main
 main() {
     echo "========================================"
-    echo "  MCP CLI Integration Tests"
+    echo "  MCP Inspector CLI Integration Tests"
     echo "========================================"
     echo ""
 

@@ -1,21 +1,25 @@
 # MCP CLI Testing Guide
 
-This guide explains how to test the OpenROAD MCP server integration with Claude CLI.
+This guide explains how to test the OpenROAD MCP server integration using MCP Inspector CLI.
+
+## Why MCP Inspector CLI?
+
+The MCP Inspector CLI provides several advantages over Claude CLI for automated testing:
+
+- **No authentication required** - No API key or OAuth needed
+- **Direct MCP protocol access** - Deterministic JSON output
+- **Faster execution** - No LLM inference delays
+- **Free** - No API costs for running tests
 
 ## Prerequisites
 
-1. **Claude CLI** - Install from [Anthropic documentation](https://docs.anthropic.com/en/docs/claude-cli)
+1. **Node.js** (v18+) - Required for MCP Inspector
    ```bash
    # Verify installation
-   claude --version
+   node --version
    ```
 
-2. **Anthropic API Access** - Ensure `ANTHROPIC_API_KEY` is set
-   ```bash
-   export ANTHROPIC_API_KEY=your-api-key
-   ```
-
-3. **OpenROAD** (for session tests) - Required only for `--all` tests
+2. **OpenROAD** (for session tests) - Required only for `--all` tests
    ```bash
    export OPENROAD_EXE=/path/to/openroad
    ```
@@ -40,46 +44,43 @@ make test-mcp-cli-all
 
 These tests verify MCP server discovery without requiring OpenROAD:
 
-| Test | Description |
-|------|-------------|
-| `list_tools` | Verifies all 7 MCP tools are discoverable |
-| `get_metrics` | Checks `get_session_metrics` returns valid response |
-| `list_sessions` | Checks `list_interactive_sessions` works |
+| Test | Method | Tool | Description |
+|------|--------|------|-------------|
+| `list_tools` | `tools/list` | - | Verifies all MCP tools are discoverable |
+| `get_metrics` | `tools/call` | `get_session_metrics` | Checks metrics endpoint |
+| `list_sessions` | `tools/call` | `list_interactive_sessions` | Lists current sessions |
 
 ### Session Tests
 
 These tests verify interactive session functionality (requires OpenROAD):
 
-| Test | Description |
-|------|-------------|
-| `create_session` | Creates a new interactive session |
-| `execute_simple_command` | Runs `puts hello` in the session |
-| `execute_math_command` | Runs `expr 2 + 2` in the session |
-| `get_history` | Retrieves command history |
-| `inspect_session` | Inspects session state |
-| `terminate_session` | Terminates the session |
+| Test | Tool | Description |
+|------|------|-------------|
+| `create_session` | `create_interactive_session` | Creates a new interactive session |
+| `execute_simple_command` | `interactive_openroad` | Runs `puts hello` in the session |
+| `execute_math_command` | `interactive_openroad` | Runs `expr 2 + 2` in the session |
+| `get_history` | `get_session_history` | Retrieves command history |
+| `inspect_session` | `inspect_interactive_session` | Inspects session state |
+| `terminate_session` | `terminate_interactive_session` | Terminates the session |
 
 ### Error Handling Tests
 
 Tests for error conditions and edge cases:
 
-| Test | Description |
-|------|-------------|
-| `invalid_session_operation` | Accessing non-existent session |
-| `terminate_nonexistent_session` | Terminating non-existent session |
+| Test | Tool | Description |
+|------|------|-------------|
+| `invalid_session_operation` | `inspect_interactive_session` | Accessing non-existent session |
+| `terminate_nonexistent_session` | `terminate_interactive_session` | Terminating non-existent session |
 
 ## Running Tests
 
 ### Shell Script
 
 ```bash
-# Basic usage
+# Basic usage (discovery tests only)
 ./scripts/test-mcp-integration.sh
 
-# With custom claude binary
-CLAUDE_BIN=/path/to/claude ./scripts/test-mcp-integration.sh
-
-# Run all tests
+# Run all tests (requires OpenROAD)
 ./scripts/test-mcp-integration.sh --all
 
 # Show help
@@ -100,11 +101,6 @@ python tests/mcp-integration/run_tests.py --category discovery
 
 # List available tests
 python tests/mcp-integration/run_tests.py --list
-
-# Custom options
-python tests/mcp-integration/run_tests.py \
-  --mcp-config /path/to/.mcp.json \
-  --claude-bin /path/to/claude
 ```
 
 ### Makefile Targets
@@ -123,9 +119,9 @@ Test results are saved to `.test-results/mcp-cli/`:
 
 ```
 .test-results/mcp-cli/
-├── list_tools.txt      # Output from list_tools test
-├── get_metrics.txt     # Output from get_metrics test
-├── report.json         # JSON report with all results
+├── list_tools.json      # Output from list_tools test
+├── get_metrics.json     # Output from get_metrics test
+├── report.json          # JSON report with all results
 └── ...
 ```
 
@@ -150,47 +146,44 @@ Test results are saved to `.test-results/mcp-cli/`:
 }
 ```
 
-## Interpreting Results
+## Direct MCP Inspector Usage
 
-### Success Indicators
-
-- ✅ All discovery tests pass → MCP server is properly configured
-- ✅ All session tests pass → OpenROAD integration is working
-- ✅ All error handling tests pass → Proper error handling
-
-### Common Issues
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "Claude CLI not found" | claude not in PATH | Install Claude CLI or set `CLAUDE_BIN` |
-| "MCP config not found" | Wrong working directory | Run from project root |
-| "OPENROAD_EXE not set" | OpenROAD not configured | Set `OPENROAD_EXE` environment variable |
-| "expected pattern not found" | Tool output format changed | Check `.test-results/mcp-cli/*.txt` for actual output |
-
-## Interactive Testing
-
-For manual/interactive testing:
+You can also use MCP Inspector CLI directly for debugging:
 
 ```bash
-# Start an interactive session with MCP tools
-claude --mcp-config .mcp.json
+# List all tools
+npx @modelcontextprotocol/inspector@latest --cli \
+  --config .mcp.json \
+  --server openroad-mcp \
+  --method tools/list
 
-# Or with a specific prompt
-claude --mcp-config .mcp.json "List all MCP tools from openroad-mcp"
+# Call a specific tool
+npx @modelcontextprotocol/inspector@latest --cli \
+  --config .mcp.json \
+  --server openroad-mcp \
+  --method tools/call \
+  --tool-name get_session_metrics
 
-# Print mode (non-interactive)
-claude --mcp-config .mcp.json --print "Create an OpenROAD session"
+# Call a tool with arguments
+npx @modelcontextprotocol/inspector@latest --cli \
+  --config .mcp.json \
+  --server openroad-mcp \
+  --method tools/call \
+  --tool-name interactive_openroad \
+  --tool-arg session_id=my-session \
+  --tool-arg command="puts hello"
 ```
 
 ## CI/CD Integration
 
 ### GitHub Actions
 
+The workflow is simplified since no authentication is required:
+
 ```yaml
-- name: Test MCP Integration
-  env:
-    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+- name: Run MCP Inspector tests
   run: |
+    make sync
     ./scripts/test-mcp-integration.sh
 ```
 
@@ -201,10 +194,7 @@ claude --mcp-config .mcp.json --print "Create an OpenROAD session"
 make docker-test-build
 
 # Run tests in Docker
-docker run --rm \
-  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-  openroad-mcp-test \
-  ./scripts/test-mcp-integration.sh --all
+docker run --rm openroad-mcp-test ./scripts/test-mcp-integration.sh --all
 ```
 
 ## Adding New Tests
@@ -216,7 +206,9 @@ docker run --rm \
 {
   "name": "my_new_test",
   "description": "What this test verifies",
-  "prompt": "The prompt to send to Claude",
+  "method": "tools/call",
+  "tool_name": "some_tool",
+  "tool_args": {"arg1": "value1"},
   "expect_contains": ["expected", "output", "patterns"],
   "timeout_seconds": 60
 }
@@ -249,3 +241,12 @@ make inspect
 # Check .mcp.json is valid JSON
 cat .mcp.json | python -m json.tool
 ```
+
+### Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Node.js not found" | node not in PATH | Install Node.js v18+ |
+| "MCP config not found" | Wrong working directory | Run from project root |
+| "OPENROAD_EXE not set" | OpenROAD not configured | Set `OPENROAD_EXE` environment variable |
+| "expected pattern not found" | Tool output format changed | Check `.test-results/mcp-cli/*.json` for actual output |

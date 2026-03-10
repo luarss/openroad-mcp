@@ -209,3 +209,6 @@ __marimo__/
 gcd_final
 gcd_optimization
 gcd_opt_v2
+
+# Test results
+.test-results/
