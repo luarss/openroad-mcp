@@ -6,7 +6,26 @@ on:
     tags: ["v*.*.*"]
 
 jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: make sync
+
+      - name: Run tests
+        run: make test
+
+      - name: Run checks
+        run: make check
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
