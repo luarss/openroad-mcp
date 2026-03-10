@@ -70,6 +70,8 @@ class OpenROADManager:
                 actual_buffer_size = buffer_size or self._default_buffer_size
                 session = InteractiveSession(session_id, buffer_size=actual_buffer_size)
                 await session.start(command, env, cwd)
+                await asyncio.sleep(settings.COMMAND_COMPLETION_DELAY * 1.5)
+                await session.output_buffer.drain_all()
 
                 self._sessions[session_id] = session
                 self.logger.info(f"Created session {session_id}, total sessions: {len(self._sessions)}")
