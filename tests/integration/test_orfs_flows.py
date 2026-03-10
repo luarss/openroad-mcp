@@ -9,7 +9,6 @@ These tests exercise the full MCP server stack with real processes:
 Run via: make test-integration (requires Docker with OpenROAD installed)
 """
 
-import io
 import json
 import os
 import shutil
@@ -19,7 +18,6 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from mcp import ClientSession, StdioServerParameters
-from PIL import Image
 
 from tests.integration.conftest import _mcp_session
 
@@ -327,6 +325,7 @@ class TestOpenROADSessionMCP:
             )
             data = _parse_tool_result(exec_result)
             output = data.get("output", "")
+            assert data.get("error") is None, f"Version command failed: {data}"
             # OpenROAD outputs a version string like "2.0-..." or similar
             assert output.strip(), f"Expected version output, got empty: {data}"
         finally:
@@ -348,8 +347,9 @@ class TestOpenROADSessionMCP:
                     {"command": cmd, "session_id": session_id, "timeout_ms": 15000},
                 )
                 data = _parse_tool_result(exec_result)
-                # Output should exist (even if it's an error message the session stays alive)
+                assert data.get("error") is None, f"Command failed: {cmd}: {data}"
                 assert data.get("session_id") == session_id
+                assert data.get("output", "").strip(), f"Expected output from {cmd}, got: {data}"
         finally:
             await mcp_client.call_tool("terminate_interactive_session", {"session_id": session_id, "force": True})
 
@@ -411,10 +411,12 @@ class TestORFSReportImagesMCP:
         run_dir = tmp_path / "reports" / platform / design / run_slug
         run_dir.mkdir(parents=True)
 
-        # Create synthetic webp images for each ORFS stage (valid 1x1 WebP via PIL)
-        _buf = io.BytesIO()
-        Image.new("RGB", (1, 1), color=(0, 0, 0)).save(_buf, format="WEBP")
-        minimal_webp = _buf.getvalue()
+        # Minimal valid 1×1 black WebP (lossless, codec-independent)
+        minimal_webp = (
+            b"RIFF$\x00\x00\x00WEBPVP8L\x18\x00\x00\x00"
+            b"/\x00\x00\x00\x00\x00\xfe\x00\x00\xfe\x00\x00\xfe\x00\x00\xfe"
+            b"\x00\x00\x00"
+        )
 
         stage_images = [
             "cts_clk.webp",

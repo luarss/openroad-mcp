@@ -3,15 +3,22 @@
 import gc
 
 import pytest
+import pytest_asyncio
 
 
-@pytest.fixture(autouse=True)
-def reset_manager_singleton():
+@pytest_asyncio.fixture(autouse=True)
+async def reset_manager_singleton():
     """Reset OpenROADManager singleton before and after each test."""
     from openroad_mcp.core.manager import OpenROADManager
 
     OpenROADManager._instance = None
     yield
+    instance = OpenROADManager._instance
+    if instance is not None:
+        try:
+            await instance.cleanup_all()
+        except Exception:
+            pass  # best-effort cleanup
     OpenROADManager._instance = None
     gc.collect()
 

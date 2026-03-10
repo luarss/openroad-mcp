@@ -66,6 +66,7 @@ class OpenROADManager:
 
             self._sessions[session_id] = None
 
+            session = None
             try:
                 actual_buffer_size = buffer_size or self._default_buffer_size
                 session = InteractiveSession(session_id, buffer_size=actual_buffer_size)
@@ -79,6 +80,12 @@ class OpenROADManager:
                 return session_id
 
             except Exception as e:
+                # Terminate the subprocess if it was started before the failure
+                if session is not None:
+                    try:
+                        await session.terminate(force=True)
+                    except Exception:
+                        self.logger.warning(f"Failed to terminate orphaned session {session_id} during cleanup")
                 if session_id in self._sessions:
                     del self._sessions[session_id]
                 self.logger.exception(f"Failed to create session {session_id}")
