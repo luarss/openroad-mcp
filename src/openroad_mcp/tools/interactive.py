@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 
-from ..config.command_whitelist import is_modify_command, is_readonly_command
+from ..config.command_whitelist import is_exec_command, is_query_command
 from ..config.settings import settings
 from ..core.models import (
     InteractiveExecResult,
@@ -48,7 +48,7 @@ class QueryShellTool(BaseTool):
     ) -> str:
         """Execute a read-only command in an interactive OpenROAD session."""
         if settings.WHITELIST_ENABLED:
-            allowed, blocked_verb = is_readonly_command(command)
+            allowed, blocked_verb = is_query_command(command)
             if not allowed:
                 logger.warning("Blocked read-only query '%s' in session %s", blocked_verb, session_id)
                 return _blocked_error(command, blocked_verb or command.split()[0], session_id)
@@ -112,7 +112,7 @@ class ExecShellTool(BaseTool):
     ) -> str:
         """Execute a modifying command in an interactive OpenROAD session."""
         if settings.WHITELIST_ENABLED:
-            allowed, blocked_verb = is_modify_command(command)
+            allowed, blocked_verb = is_exec_command(command)
             if not allowed:
                 logger.warning("Blocked exec command '%s' in session %s", blocked_verb, session_id)
                 return _blocked_error(command, blocked_verb or command.split()[0], session_id)
