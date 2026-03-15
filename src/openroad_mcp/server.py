@@ -3,15 +3,17 @@
 import asyncio
 
 from fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from openroad_mcp.config.cli import CLIConfig
 
 from .core.manager import OpenROADManager
 from .tools.interactive import (
     CreateSessionTool,
+    ExecShellTool,
     InspectSessionTool,
-    InteractiveShellTool,
     ListSessionsTool,
+    QueryShellTool,
     SessionHistoryTool,
     SessionMetricsTool,
     TerminateSessionTool,
@@ -29,7 +31,8 @@ mcp: FastMCP = FastMCP("openroad-mcp")
 manager = OpenROADManager()
 
 # Initialize interactive tool instances
-interactive_shell_tool = InteractiveShellTool(manager)
+query_shell_tool = QueryShellTool(manager)
+exec_shell_tool = ExecShellTool(manager)
 list_sessions_tool = ListSessionsTool(manager)
 create_session_tool = CreateSessionTool(manager)
 terminate_session_tool = TerminateSessionTool(manager)
@@ -43,19 +46,69 @@ read_report_image_tool = ReadReportImageTool(manager)
 
 
 # Interactive session tools
-@mcp.tool()
-async def interactive_openroad(command: str, session_id: str | None = None, timeout_ms: int | None = None) -> str:
-    """Execute a command in an interactive OpenROAD session with PTY support."""
-    return await interactive_shell_tool.execute(command, session_id, timeout_ms)
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
+async def interactive_openroad_query(
+    command: str,
+    session_id: str | None = None,
+    timeout_ms: int | None = None,
+) -> str:
+    """Execute a read-only OpenROAD command (report_*, get_*, check_*, sta, help, etc.).
+
+    Use this for querying design state, generating reports, and inspecting timing.
+    Commands that modify design state are blocked — use interactive_openroad_exec instead.
+    """
+    return await query_shell_tool.execute(command, session_id, timeout_ms)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
+async def interactive_openroad_exec(
+    command: str,
+    session_id: str | None = None,
+    timeout_ms: int | None = None,
+) -> str:
+    """Execute a state-modifying OpenROAD command (set_*, create_*, read_*, write_*, flow commands).
+
+    Use this for loading designs, running placement/routing, applying constraints,
+    and writing output files. Read-only commands are blocked — use interactive_openroad_query instead.
+    """
+    return await exec_shell_tool.execute(command, session_id, timeout_ms)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def list_interactive_sessions() -> str:
     """List all active interactive OpenROAD sessions."""
     return await list_sessions_tool.execute()
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
+    )
+)
 async def create_interactive_session(
     session_id: str | None = None,
     command: list[str] | None = None,
@@ -66,38 +119,80 @@ async def create_interactive_session(
     return await create_session_tool.execute(session_id, command, env, cwd)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def terminate_interactive_session(session_id: str, force: bool = False) -> str:
     """Terminate an interactive OpenROAD session."""
     return await terminate_session_tool.execute(session_id, force)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def inspect_interactive_session(session_id: str) -> str:
     """Get detailed inspection data for an interactive OpenROAD session."""
     return await inspect_session_tool.execute(session_id)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def get_session_history(session_id: str, limit: int | None = None, search: str | None = None) -> str:
     """Get command history for an interactive OpenROAD session."""
     return await session_history_tool.execute(session_id, limit, search)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def get_session_metrics() -> str:
     """Get comprehensive metrics for all interactive OpenROAD sessions."""
     return await session_metrics_tool.execute()
 
 
 # Report image tools
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def list_report_images(platform: str, design: str, run_slug: str, stage: str = "all") -> str:
     """List available report images from ORFS runs organized by stage."""
     return await list_report_images_tool.execute(platform, design, run_slug, stage)
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        readOnlyHint=True,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    )
+)
 async def read_report_image(platform: str, design: str, run_slug: str, image_name: str) -> str:
     """Read a report image and return base64-encoded data with metadata."""
     return await read_report_image_tool.execute(platform, design, run_slug, image_name)

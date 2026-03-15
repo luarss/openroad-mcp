@@ -40,7 +40,7 @@ The pre-release phase focuses on:
 - [x] Command history tracking
 - [x] Performance metrics collection
 - [x] Report image visualization
-- [ ] Docker deployment support
+- [ ] Pre-built Docker image (bundles OpenROAD + MCP server; zero-install onboarding via `docker run`)
 - [ ] Windows/WSL2 support validation
 - [ ] Session persistence across restarts
 
