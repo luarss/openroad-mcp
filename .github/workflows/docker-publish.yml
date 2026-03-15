@@ -4,8 +4,8 @@ on:
   workflow_call:
     inputs:
       image_tag:
-        description: Docker image tag to publish
-        required: false
+        description: Docker image tag to publish (e.g. v0.1.0)
+        required: true
         type: string
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
       contents: read
       packages: write
     env:
-      IMAGE_TAG: ${{ inputs.image_tag || '' }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
 
     steps:
       - name: Checkout repository
@@ -29,17 +29,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
-        run: |
-          if [ -n "$IMAGE_TAG" ]; then
-            make build ORFS_VERSION="$IMAGE_TAG"
-          else
-            make build
-          fi
+        run: make build
 
       - name: Push Docker image
         run: |
-          if [ -n "$IMAGE_TAG" ]; then
-            docker push ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"
-          else
-            docker push ghcr.io/luarss/openroad-mcp:$(make --no-print-directory print-ORFS_VERSION)
-          fi
+          ORFS_VER=$(make --no-print-directory print-ORFS_VERSION)
+          docker tag ghcr.io/luarss/openroad-mcp:$ORFS_VER ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"
+          docker push ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"

@@ -73,9 +73,3 @@ jobs:
       uses: codecov/test-results-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-
-  publish-docker:
-    needs: coverage
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/docker-publish.yml
-    secrets: inherit
