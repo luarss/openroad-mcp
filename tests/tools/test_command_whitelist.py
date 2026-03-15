@@ -41,10 +41,14 @@ class TestExtractVerb:
         assert _extract_verb("  # comment") is None
 
     def test_dollar_substitution(self):
-        assert _extract_verb("$variable") is None
+        # $-prefixed tokens are no longer silently skipped; the verb is returned
+        # so the allowlist can reject it.
+        assert _extract_verb("$variable") == "$variable"
 
     def test_bracket_expression(self):
-        assert _extract_verb("[report_wns]") is None
+        # [-prefixed tokens are no longer silently skipped; the verb is returned
+        # so the allowlist can reject it.
+        assert _extract_verb("[report_wns]") == "[report_wns]"
 
     def test_trailing_semicolon(self):
         assert _extract_verb("puts;") == "puts"
@@ -172,6 +176,18 @@ class TestIsQueryCommand:
         allowed, verb = is_query_command(cmd)
         assert allowed is False
         assert verb == "global_placement"
+
+    def test_bracket_exec_rejected_by_query(self):
+        # "[exec ls]" must not bypass the allowlist via the old early-return path.
+        allowed, verb = is_query_command("[exec ls]")
+        assert allowed is False
+        assert verb == "[exec"
+
+    def test_dollar_cmd_rejected_by_query(self):
+        # "$cmd" must not bypass the allowlist via the old early-return path.
+        allowed, verb = is_query_command("$cmd")
+        assert allowed is False
+        assert verb == "$cmd"
 
 
 # ── is_exec_command ───────────────────────────────────────────────────────────

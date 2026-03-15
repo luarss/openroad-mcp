@@ -139,14 +139,12 @@ READONLY_PATTERNS: tuple[str, ...] = (
 def _extract_verb(statement: str) -> str | None:
     """Return the command verb (first token) of a single Tcl statement.
 
-    Returns None for blank lines, comments, and lines that start with a
-    substitution or grouping character (not a bare command invocation).
+    Returns None only for blank lines and comment lines.  Lines that start with
+    a substitution or grouping character (``$``, ``[``, ``]``, ``{``, ``}``)
+    are returned as-is so the caller can reject them via the allowlist.
     """
     stripped = statement.strip()
     if not stripped or stripped.startswith("#"):
-        return None
-    # Lines beginning with $ or [ are sub-expressions, not top-level commands.
-    if stripped[0] in ("$", "[", "]", "{", "}"):
         return None
     return stripped.split()[0].rstrip(";")
 
