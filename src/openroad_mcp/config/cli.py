@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 class TransportConfig(BaseModel):
     """Configuration for different transport modes."""
 
-    mode: str = Field(description="Transport mode: 'stdio' or 'http'")
+    mode: str = Field(description="Transport mode: 'stdio' or 'http' or 'streamable-http'")
     host: str = Field(default="localhost", description="HTTP server host (http mode only)")
     port: int = Field(default=8000, description="HTTP server port (http mode only)")
 
@@ -54,7 +54,7 @@ Examples:
   %(prog)s --transport stdio
 
   # Run with HTTP transport on custom host/port
-  %(prog)s --transport http --host 0.0.0.0 --port 8080
+  %(prog)s --transport streamable-http --host 0.0.0.0 --port 8080
 
   # Enable verbose logging
   %(prog)s --verbose --log-level DEBUG
@@ -66,7 +66,7 @@ Examples:
     transport_group.add_argument(
         "--transport",
         "-t",
-        choices=["stdio", "http"],
+        choices=["stdio", "http", "streamable-http"],
         default="stdio",
         help="Transport mode for the MCP server (default: %(default)s)",
     )
@@ -109,11 +109,10 @@ def parse_cli_args(args: list[str] | None = None) -> CLIConfig:
     parsed_args = parser.parse_args(args)
 
     # Validate that HTTP options are only used with http transport
-    if parsed_args.transport != "http":
+    if parsed_args.transport == "stdio":
         # Check if HTTP-specific options were explicitly set
         if parsed_args.host != "localhost" or parsed_args.port != 8000:
-            if not (parsed_args.host == "localhost" and parsed_args.port == 8000):
-                parser.error("--host and --port options are only valid with --transport http")
+            parser.error("--host and --port options are only valid with --transport http")
 
     return CLIConfig.from_args(parsed_args)
 

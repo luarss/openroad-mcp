@@ -53,6 +53,11 @@ class TestArgumentParsing:
         with pytest.raises(SystemExit):
             argument_parser.parse_args(["--port", "not-a-number"])
 
+    def test_streamable_http_transport(self, argument_parser: ArgumentParser) -> None:
+        """Test streamable-http transport mode."""
+        args = argument_parser.parse_args(["--transport", "streamable-http"])
+        assert args.transport == "streamable-http"
+
 
 class TestValidation:
     """Test core business logic validation."""
