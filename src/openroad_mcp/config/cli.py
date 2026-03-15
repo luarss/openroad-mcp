@@ -109,7 +109,7 @@ def parse_cli_args(args: list[str] | None = None) -> CLIConfig:
     parsed_args = parser.parse_args(args)
 
     # Validate that HTTP options are only used with http transport
-    if parsed_args.transport == "stdio":
+    if parsed_args.transport not in ("http", "streamable-http"):
         # Check if HTTP-specific options were explicitly set
         if parsed_args.host != "localhost" or parsed_args.port != 8000:
             parser.error("--host and --port options are only valid with --transport http")
