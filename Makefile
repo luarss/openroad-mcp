@@ -29,7 +29,7 @@ check:
 .PHONY: test
 test:
 	@echo "Running core tests..."
-	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration
+	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration tests/performance/test_mcp_quality.py
 
 # Build Docker test image
 .PHONY: docker-test-build

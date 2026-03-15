@@ -30,10 +30,20 @@ SerializableProcessState = Annotated[ProcessState, PlainSerializer(lambda x: x.v
 SerializableSessionState = Annotated[SessionState, PlainSerializer(lambda x: x.value if x else None, return_type=str)]
 
 
+class ErrorCode(str, Enum):
+    """Semantic error codes for MCP tool results."""
+
+    NOT_FOUND = "not_found"
+    NOT_PERMITTED = "not_permitted"
+    INVALID_INPUT = "invalid_input"
+    TEMPORARY_FAILURE = "temporary_failure"
+
+
 class BaseResult(BaseModel):
     """Base class for all MCP tool result objects with standardized error handling."""
 
     error: str | None = None
+    error_code: ErrorCode | None = None
 
 
 class CommandRecord(BaseModel):

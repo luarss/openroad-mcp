@@ -9,7 +9,7 @@ from PIL import Image
 
 from ..config.settings import settings
 from ..core.exceptions import ValidationError
-from ..core.models import ImageInfo, ImageMetadata, ListImagesResult, ReadImageResult
+from ..core.models import ErrorCode, ImageInfo, ImageMetadata, ListImagesResult, ReadImageResult
 from ..utils.logging import get_logger
 from ..utils.path_security import validate_path_segment, validate_safe_path_containment
 from .base import BaseTool
@@ -144,6 +144,7 @@ class ListReportImagesTool(BaseTool):
                 return self._format_result(
                     ListImagesResult(
                         error="RunSlugNotFound",
+                        error_code=ErrorCode.NOT_FOUND,
                         message=f"Run slug '{run_slug}' not found in {reports_base}. "
                         f"Available run slugs: {', '.join(sorted(available_runs)[:5]) if available_runs else 'none'}",
                     )
@@ -197,12 +198,15 @@ class ListReportImagesTool(BaseTool):
 
             return self._format_result(result)
         except ValidationError as e:
-            return self._format_result(ListImagesResult(error=type(e).__name__, message=str(e)))
+            return self._format_result(
+                ListImagesResult(error=type(e).__name__, error_code=ErrorCode.INVALID_INPUT, message=str(e))
+            )
         except Exception as e:
             logger.exception(f"Failed to list report images: {e}")
             return self._format_result(
                 ListImagesResult(
                     error="UnexpectedError",
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                     message=f"Failed to list report images: {str(e)}",
                 )
             )
@@ -231,6 +235,7 @@ class ReadReportImageTool(BaseTool):
                 return self._format_result(
                     ReadImageResult(
                         error="RunSlugNotFound",
+                        error_code=ErrorCode.NOT_FOUND,
                         message=f"Run slug '{run_slug}' not found in {reports_base}. "
                         "Use list_report_images to see available runs.",
                     )
@@ -246,6 +251,7 @@ class ReadReportImageTool(BaseTool):
                 return self._format_result(
                     ReadImageResult(
                         error="ImageNotFound",
+                        error_code=ErrorCode.NOT_FOUND,
                         message=f"Image '{image_name}' not found in {run_path}. "
                         f"Available images: {', '.join(available_images) if available_images else 'none'}. "
                         "Use list_report_images to see all available images.",
@@ -257,6 +263,7 @@ class ReadReportImageTool(BaseTool):
                 return self._format_result(
                     ReadImageResult(
                         error="InvalidImagePath",
+                        error_code=ErrorCode.INVALID_INPUT,
                         message=f"Image path {image_name} is not a regular file.",
                     )
                 )
@@ -266,6 +273,7 @@ class ReadReportImageTool(BaseTool):
                 return self._format_result(
                     ReadImageResult(
                         error="FileTooLarge",
+                        error_code=ErrorCode.INVALID_INPUT,
                         message=f"Image size ({file_size_mb:.2f}MB) exceeds maximum "
                         f"allowed size ({MAX_IMAGE_SIZE_MB}MB).",
                     )
@@ -312,12 +320,15 @@ class ReadReportImageTool(BaseTool):
 
             return self._format_result(result)
         except ValidationError as e:
-            return self._format_result(ReadImageResult(error=type(e).__name__, message=str(e)))
+            return self._format_result(
+                ReadImageResult(error=type(e).__name__, error_code=ErrorCode.INVALID_INPUT, message=str(e))
+            )
         except Exception as e:
             logger.exception(f"Failed to read report image: {e}")
             return self._format_result(
                 ReadImageResult(
                     error="UnexpectedError",
+                    error_code=ErrorCode.TEMPORARY_FAILURE,
                     message=f"Failed to read report image: {str(e)}",
                 )
             )
