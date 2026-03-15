@@ -1,0 +1,291 @@
+================================================================================
+OPENROAD MCP: AI-POWERED CHIP DESIGN THROUGH MODEL CONTEXT PROTOCOL
+Free Silicon Conference 2026 - Presentation Script
+================================================================================
+
+PRESENTER: Jack Luar
+DURATION: ~7-8 minutes presentation + 2-3 minutes Q&A
+TOTAL: 10 minutes
+
+================================================================================
+TIMING GUIDE
+================================================================================
+
+[00:00 - 00:45] Introduction & Problem Statement (Slides 1-2)
+[00:45 - 01:30] Solution Overview (Slides 3-4)
+[01:30 - 02:30] Architecture & Features (Slides 5-6)
+[02:30 - 04:00] Demo & Security (Slides 7-8)
+[04:00 - 05:00] Innovations & Use Cases (Slides 9-10)
+[05:00 - 06:00] Roadmap & Call to Action (Slides 11-12)
+[06:00 - 06:30] Summary & Questions (Slides 13-14)
+[06:30 - 10:00] Q&A Session
+
+================================================================================
+FULL SCRIPT
+================================================================================
+
+--------------------------------------------------------------------------------
+[SLIDE 1: TITLE] - 15 seconds
+--------------------------------------------------------------------------------
+
+Good morning everyone. Thank you for having me at FSiC 2026.
+
+My name is Jack Luar, and today I'm excited to present OpenROAD MCP — a project
+that bridges AI assistants with open-source chip design tools.
+
+--------------------------------------------------------------------------------
+[SLIDE 2: THE PROBLEM] - 30 seconds
+--------------------------------------------------------------------------------
+
+Here's a situation every VLSI engineer knows.
+
+You're staring at debug logs. 23 setup violations. WNS is -0.05 ns. The clock
+period is 0.46 ns and the design just won't close.
+
+You already know the answer is probably in the constraints. But confirming that
+means reading critical paths, estimating what the design can achieve, adjusting
+the SDC, re-running the flow, and checking again. An hour of mechanical work to
+answer a question you could have answered in thirty seconds if someone handed
+you the right report.
+
+That's the loop I wanted to break.
+
+--------------------------------------------------------------------------------
+[SLIDE 3: THE SOLUTION] - 20 seconds
+--------------------------------------------------------------------------------
+
+That's exactly what OpenROAD MCP enables.
+
+It's a Model Context Protocol server that sits between AI assistants like Claude
+or Gemini and the OpenROAD chip design flow. It allows natural language
+interaction with your design tools.
+
+The best part? It's open source and works with any MCP-compatible AI client.
+
+--------------------------------------------------------------------------------
+[SLIDE 4: WHAT IS MCP?] - 25 seconds
+--------------------------------------------------------------------------------
+
+For those unfamiliar, the Model Context Protocol is a standardized way for AI
+assistants to interact with external tools. It's developed by Anthropic and is
+rapidly gaining adoption in the industry.
+
+Think of it as a universal adapter — once you build an MCP server, any
+MCP-compatible AI can use it. The communication is JSON-RPC based, making it
+language-agnostic and easy to integrate.
+
+--------------------------------------------------------------------------------
+[SLIDE 5: ARCHITECTURE] - 30 seconds
+--------------------------------------------------------------------------------
+
+Here's how OpenROAD MCP works under the hood.
+
+OpenROAD expects an interactive terminal. Using a plain subprocess pipe gives
+you buffering issues, broken prompts, and unreliable output. Instead, we create
+a PTY — a pseudo-terminal — for each session. OpenROAD sees a real terminal
+and behaves exactly as it would in an interactive shell.
+
+Sessions persist across commands. You load LEF, then Liberty, then Verilog,
+then SDC — building up design state exactly as you would manually. And the
+SessionManager can hold multiple concurrent sessions, which matters for design
+space exploration: run the same design with three SDC variants in parallel,
+collect the results, pick the winner.
+
+--------------------------------------------------------------------------------
+[SLIDE 6: CORE FEATURES] - 20 seconds
+--------------------------------------------------------------------------------
+
+Let me quickly walk through the core features:
+
+You can create interactive OpenROAD sessions that persist across commands,
+execute Tcl commands with configurable timeouts, visualize design reports like
+placement and routing images, and manage multiple sessions simultaneously.
+
+Everything you'd normally do in OpenROAD, but now accessible through an AI
+assistant.
+
+--------------------------------------------------------------------------------
+[SLIDE 7: EXAMPLE WORKFLOW] - 30 seconds
+--------------------------------------------------------------------------------
+
+Here's what the workflow looks like in practice.
+
+First, you create an interactive session. Then load your design with read_verilog.
+Run synthesis, check timing with report_timing, and view the results — including
+placement and routing images.
+
+This is all accessible through natural language. You tell the AI what you want
+to do, and it translates that into the appropriate OpenROAD commands.
+
+The key insight is that sessions persist — you build up design state across
+multiple commands, just like you would in an interactive OpenROAD shell.
+
+--------------------------------------------------------------------------------
+[SLIDE 8: SECURITY MODEL] - 45 seconds
+--------------------------------------------------------------------------------
+
+Now, you might be thinking: "This sounds dangerous. An AI executing commands on
+my chip design?"
+
+That's a valid concern, and we've designed security as a first-class feature.
+
+We use a deny-by-default whitelist approach. Safe commands like report_timing,
+get_cells, set_property — these execute immediately. But potentially dangerous
+commands like exec, source, or exit — the AI has to ask for your explicit
+confirmation before running them.
+
+We call this the "permission-ask" model. Instead of blocking outright, the AI
+returns a message saying "I need your permission to run this command." This
+balances security with usability — you stay in control while still getting
+AI assistance.
+
+--------------------------------------------------------------------------------
+[SLIDE 9: UNIQUE INNOVATIONS] - 30 seconds
+--------------------------------------------------------------------------------
+
+What makes OpenROAD MCP unique?
+
+First, it's the first MCP server specifically designed for EDA and chip design.
+
+Second, we use true pseudo-terminal emulation, not just pipe-based I/O. This
+means interactive programs that require real terminal behavior work correctly.
+
+Third, our permission-ask security model is innovative for AI agents.
+
+Fourth, we have deep integration with OpenROAD-flow-scripts, automatically
+discovering designs and platforms.
+
+And fifth, it's production-ready with over 80% test coverage.
+
+--------------------------------------------------------------------------------
+[SLIDE 10: USE CASES / DEMO] - 30 seconds
+--------------------------------------------------------------------------------
+
+Let me show you a real use case: the GCD timing closure demo.
+
+The nangate45/gcd design ships with a 0.46 ns clock constraint that fails timing
+out of the box — 23 setup violations, WNS is -0.05 ns, status FAILED.
+
+Using OpenROAD MCP, the AI loads the design, runs report_clock_min_period, and
+finds the minimum achievable period is 0.51 ns. It recommends relaxing the
+constraint to 0.52 ns.
+
+After the change: WNS is ~0.00 ns, only 4 negligible violations remain, and
+timing PASSES.
+
+The full demo is available in the demo/orfs-gcd-timing/ directory in the repo.
+
+--------------------------------------------------------------------------------
+[SLIDE 11: ROADMAP] - 20 seconds
+--------------------------------------------------------------------------------
+
+What's next for OpenROAD MCP?
+
+For version 0.2, we're working on complete RTL-to-GDS flow orchestration,
+design space exploration, and real-time monitoring during long runs.
+
+Looking further ahead, we plan machine learning integration for optimization
+and multi-objective design exploration.
+
+--------------------------------------------------------------------------------
+[SLIDE 12: GET INVOLVED] - 15 seconds
+--------------------------------------------------------------------------------
+
+I encourage you to try it today.
+
+Installation is just a pip install. Use it with Claude Code or Gemini CLI.
+The code is on GitHub, open source under Apache 2.0 license.
+
+Contributions and feedback are always welcome.
+
+--------------------------------------------------------------------------------
+[SLIDE 13: SUMMARY] - 15 seconds
+--------------------------------------------------------------------------------
+
+To summarize:
+
+OpenROAD MCP bridges AI assistants with chip design, provides a natural
+language interface to OpenROAD, uses a security-first design, is production-
+ready and open source.
+
+--------------------------------------------------------------------------------
+[SLIDE 14: QUESTIONS] - Transition to Q&A
+--------------------------------------------------------------------------------
+
+Thank you for your attention. I'm happy to take any questions.
+
+[PAUSE FOR Q&A]
+
+--------------------------------------------------------------------------------
+ANTICIPATED Q&A QUESTIONS & ANSWERS
+--------------------------------------------------------------------------------
+
+Q1: What OpenROAD versions are supported?
+A1: We support OpenROAD 2.0 and later. The MCP server detects the version
+    automatically and adjusts behavior accordingly.
+
+Q2: Can this work with other EDA tools besides OpenROAD?
+A2: The architecture is designed to be extensible. While we currently focus on
+    OpenROAD, the same pattern could be applied to other Tcl-based EDA tools
+    with minimal modifications.
+
+Q3: How does the PTY approach compare to simple pipe-based I/O?
+A3: PTY emulation is essential for programs that check terminal properties,
+    like readline-based tools or programs that produce colored output. It also
+    handles interactive prompts correctly, which pipes cannot do.
+
+Q4: What's the performance overhead?
+A4: Minimal. The async architecture and circular buffers keep overhead under
+    5% for typical workloads. Session creation takes about 100-200ms.
+
+Q5: Is there support for remote OpenROAD instances?
+A5: Currently, we support local OpenROAD instances. SSH tunneling or remote
+    execution is on the roadmap for v0.3.
+
+Q6: How do you handle long-running synthesis or routing jobs?
+A6: Commands have configurable timeouts (default 30 seconds). For long jobs,
+    you can set longer timeouts or implement polling patterns using the
+    session inspection tools.
+
+Q7: What AI models work best with OpenROAD MCP?
+A7: Claude 3.5+ and Gemini 2.0+ work excellently due to their strong
+    instruction following and code understanding. The MCP protocol is model-
+    agnostic, so any MCP-compatible client works.
+
+Q8: Can multiple users share the same MCP server?
+A8: The current design is single-user per server instance. For multi-user
+    scenarios, we recommend running separate instances or implementing an
+    HTTP transport layer (planned for future releases).
+
+================================================================================
+PRESENTER NOTES
+================================================================================
+
+BEFORE THE TALK:
+- Test laptop connection to projector
+- Have backup PDF of slides
+- Bring clicker/remote if available
+- Test any live demo beforehand
+- Have water nearby
+
+DURING THE TALK:
+- Maintain eye contact
+- Speak slowly and clearly
+- Use hand gestures when explaining architecture
+- Pause after key points
+- Watch time — don't overrun
+
+IF THINGS GO WRONG:
+- If live demo fails: Say "Let me show you the concept instead" and use the
+  code examples
+- If projector fails: Offer to present from your laptop screen
+- If running out of time: Skip detailed demo, go straight to summary
+
+AFTER THE TALK:
+- Thank the organizers
+- Offer to continue discussions during break
+- Share contact information for follow-up
+
+================================================================================
+END OF SCRIPT
+================================================================================
