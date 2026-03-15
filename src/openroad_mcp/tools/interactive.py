@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 
-from ..config.command_whitelist import BLOCKED_COMMANDS, is_command_allowed
+from ..config.command_whitelist import is_modify_command, is_readonly_command
 from ..config.settings import settings
 from ..core.models import (
     InteractiveExecResult,
@@ -20,93 +20,51 @@ from .base import BaseTool
 
 logger = get_logger("interactive_tools")
 
-_RISK_REASONS: dict[str, str] = {
-    "exec": "executes arbitrary OS commands outside OpenROAD",
-    "source": "loads and runs an arbitrary Tcl script from disk",
-    "exit": "terminates the OpenROAD process and destroys the session",
-    "quit": "terminates the OpenROAD process and destroys the session",
-    "open": "opens raw file handles, bypassing OpenROAD I/O wrappers",
-    "close": "closes file handles",
-    "socket": "opens network connections",
-    "load": "loads compiled C extensions into the interpreter",
-    "file": "manipulates the filesystem (delete, rename, mkdir…)",
-    "cd": "changes the working directory",
-    "glob": "enumerates the filesystem",
-    "fconfigure": "reconfigures I/O channels",
-    "chan": "performs low-level channel operations",
-    "vwait": "blocks the event loop",
-    "rename": "renames or removes commands, bypassing top-level whitelist checks",
-    "uplevel": "evaluates scripts in a different call-stack level",
-    "after": "schedules arbitrary code for deferred execution",
-    "subst": "performs substitutions that can invoke arbitrary commands",
-}
 
-
-def _permission_request(command: str, blocked_verb: str, session_id: str | None) -> str:
-    """Return a structured permission-request result (no execution yet)."""
-    reason = _RISK_REASONS.get(blocked_verb, "is not on the OpenROAD command allowlist")
-    if blocked_verb in BLOCKED_COMMANDS:
-        risk_label = "potentially dangerous"
-    else:
-        risk_label = "unrecognised"
-
-    output = (
-        f"Permission required\n\n"
-        f"Command '{blocked_verb}' is {risk_label}: it {reason}.\n"
-        f"Full command: {command!r}\n\n"
-        f"To proceed, call interactive_openroad again with confirmed=True.\n"
-        f"To cancel, do not call again."
-    )
+def _blocked_error(command: str, blocked_verb: str, session_id: str | None) -> str:
+    """Return a hard-block error result for a disallowed command."""
     result = InteractiveExecResult(
-        output=output,
+        output=f"Command blocked: '{blocked_verb}' is not on the OpenROAD allowlist.\nFull command: {command!r}",
         session_id=session_id,
         timestamp=datetime.now().isoformat(),
         execution_time=0.0,
-        error=f"ConfirmationRequired: '{command}'",
+        error=f"CommandBlocked: '{blocked_verb}'",
     )
     return json.dumps(result.model_dump(), indent=2, default=str)
 
 
-class InteractiveShellTool(BaseTool):
-    """Tool for executing commands in interactive OpenROAD sessions."""
+class QueryShellTool(BaseTool):
+    """Tool for executing read-only queries in interactive OpenROAD sessions.
+
+    Only READONLY_PATTERNS commands are permitted (report_*, get_*, check_*,
+    sta, estimate_parasitics, help, version, and safe Tcl built-ins).
+    """
 
     async def execute(
         self,
         command: str,
         session_id: str | None = None,
         timeout_ms: int | None = None,
-        confirmed: bool = False,
     ) -> str:
-        """Execute a command in an interactive OpenROAD session.
-
-        Risky or unrecognised commands are intercepted and a permission request
-        is returned instead of executing.  Pass ``confirmed=True`` to explicitly
-        approve and run the command.
-        """
-        if settings.WHITELIST_ENABLED and not confirmed:
-            allowed, blocked_verb = is_command_allowed(command)
+        """Execute a read-only command in an interactive OpenROAD session."""
+        if settings.WHITELIST_ENABLED:
+            allowed, blocked_verb = is_readonly_command(command)
             if not allowed:
-                logger.warning("Permission request for command '%s' in session %s", blocked_verb, session_id)
-                return _permission_request(command, blocked_verb or command.split()[0], session_id)
-
-        if confirmed and settings.WHITELIST_ENABLED:
-            _, blocked_verb = is_command_allowed(command)
-            if blocked_verb:
-                logger.warning("User confirmed execution of '%s' in session %s (audit)", blocked_verb, session_id)
+                logger.warning("Blocked read-only query '%s' in session %s", blocked_verb, session_id)
+                return _blocked_error(command, blocked_verb or command.split()[0], session_id)
 
         try:
             if session_id is None:
                 session_id = await self.manager.create_session()
 
             result = await self.manager.execute_command(session_id, command, timeout_ms)
-
             return self._format_result(result)
 
         except SessionNotFoundError as e:
-            logger.warning(f"Session not found: {session_id}")
+            logger.warning("Session not found: %s", session_id)
             return self._format_result(
                 InteractiveExecResult(
-                    output=f"Error: Session '{session_id}' not found. Please check session ID or create a new session.",
+                    output=f"Error: Session '{session_id}' not found.",
                     session_id=session_id,
                     timestamp=datetime.now().isoformat(),
                     execution_time=0.0,
@@ -115,10 +73,10 @@ class InteractiveShellTool(BaseTool):
             )
 
         except (SessionTerminatedError, SessionError) as e:
-            logger.error(f"Session error for {session_id}: {e}")
+            logger.error("Session error for %s: %s", session_id, e)
             return self._format_result(
                 InteractiveExecResult(
-                    output=f"Session Error: {str(e)}. The session may have terminated or encountered an issue.",
+                    output=f"Session Error: {str(e)}.",
                     session_id=session_id,
                     timestamp=datetime.now().isoformat(),
                     execution_time=0.0,
@@ -127,16 +85,84 @@ class InteractiveShellTool(BaseTool):
             )
 
         except Exception as e:
-            logger.exception(f"Unexpected error executing command in session {session_id}")
+            logger.exception("Unexpected error executing command in session %s", session_id)
             return self._format_result(
                 InteractiveExecResult(
-                    output=f"Unexpected error occurred: {str(e)}. Please try again or contact support.",
+                    output=f"Unexpected error: {str(e)}.",
                     session_id=session_id,
                     timestamp=datetime.now().isoformat(),
                     execution_time=0.0,
                     error=str(e),
                 )
             )
+
+
+class ExecShellTool(BaseTool):
+    """Tool for executing state-modifying commands in interactive OpenROAD sessions.
+
+    Only MODIFY_PATTERNS commands are permitted (set_*, create_*, read_*, write_*,
+    flow/repair commands, and safe Tcl built-ins).
+    """
+
+    async def execute(
+        self,
+        command: str,
+        session_id: str | None = None,
+        timeout_ms: int | None = None,
+    ) -> str:
+        """Execute a modifying command in an interactive OpenROAD session."""
+        if settings.WHITELIST_ENABLED:
+            allowed, blocked_verb = is_modify_command(command)
+            if not allowed:
+                logger.warning("Blocked exec command '%s' in session %s", blocked_verb, session_id)
+                return _blocked_error(command, blocked_verb or command.split()[0], session_id)
+
+        try:
+            if session_id is None:
+                session_id = await self.manager.create_session()
+
+            result = await self.manager.execute_command(session_id, command, timeout_ms)
+            return self._format_result(result)
+
+        except SessionNotFoundError as e:
+            logger.warning("Session not found: %s", session_id)
+            return self._format_result(
+                InteractiveExecResult(
+                    output=f"Error: Session '{session_id}' not found.",
+                    session_id=session_id,
+                    timestamp=datetime.now().isoformat(),
+                    execution_time=0.0,
+                    error=str(e),
+                )
+            )
+
+        except (SessionTerminatedError, SessionError) as e:
+            logger.error("Session error for %s: %s", session_id, e)
+            return self._format_result(
+                InteractiveExecResult(
+                    output=f"Session Error: {str(e)}.",
+                    session_id=session_id,
+                    timestamp=datetime.now().isoformat(),
+                    execution_time=0.0,
+                    error=str(e),
+                )
+            )
+
+        except Exception as e:
+            logger.exception("Unexpected error executing command in session %s", session_id)
+            return self._format_result(
+                InteractiveExecResult(
+                    output=f"Unexpected error: {str(e)}.",
+                    session_id=session_id,
+                    timestamp=datetime.now().isoformat(),
+                    execution_time=0.0,
+                    error=str(e),
+                )
+            )
+
+
+# Keep InteractiveShellTool as an alias for backward compatibility with existing tests.
+InteractiveShellTool = QueryShellTool
 
 
 class ListSessionsTool(BaseTool):
@@ -147,7 +173,6 @@ class ListSessionsTool(BaseTool):
         try:
             sessions = await self.manager.list_sessions()
 
-            # Count active sessions
             active_count = sum(1 for session in sessions if session.is_alive)
 
             result = InteractiveSessionListResult(
@@ -187,7 +212,7 @@ class CreateSessionTool(BaseTool):
             return self._format_result(session_info)
 
         except SessionError as e:
-            logger.error(f"Session creation error: {e}")
+            logger.error("Session creation error: %s", e)
             return self._format_result(
                 InteractiveSessionInfo(
                     session_id=session_id or "failed",
@@ -200,7 +225,7 @@ class CreateSessionTool(BaseTool):
             )
 
         except Exception as e:
-            logger.exception(f"Unexpected error creating session {session_id}")
+            logger.exception("Unexpected error creating session %s", session_id)
             return self._format_result(
                 InteractiveSessionInfo(
                     session_id=session_id or "failed",
@@ -232,7 +257,7 @@ class TerminateSessionTool(BaseTool):
             return self._format_result(result)
 
         except SessionNotFoundError as e:
-            logger.warning(f"Attempted to terminate non-existent session: {session_id}")
+            logger.warning("Attempted to terminate non-existent session: %s", session_id)
             return self._format_result(
                 SessionTerminationResult(
                     session_id=session_id,
@@ -243,7 +268,7 @@ class TerminateSessionTool(BaseTool):
             )
 
         except Exception as e:
-            logger.exception(f"Failed to terminate session {session_id}")
+            logger.exception("Failed to terminate session %s", session_id)
             return self._format_result(
                 SessionTerminationResult(
                     session_id=session_id,
@@ -264,7 +289,7 @@ class InspectSessionTool(BaseTool):
             return self._format_result(SessionInspectionResult(session_id=session_id, metrics=metrics))
 
         except SessionNotFoundError as e:
-            logger.warning(f"Attempted to inspect non-existent session: {session_id}")
+            logger.warning("Attempted to inspect non-existent session: %s", session_id)
             return self._format_result(
                 SessionInspectionResult(
                     session_id=session_id,
@@ -274,7 +299,7 @@ class InspectSessionTool(BaseTool):
             )
 
         except Exception as e:
-            logger.exception(f"Failed to inspect session {session_id}")
+            logger.exception("Failed to inspect session %s", session_id)
             return self._format_result(
                 SessionInspectionResult(
                     session_id=session_id,
@@ -302,7 +327,7 @@ class SessionHistoryTool(BaseTool):
             return self._format_result(result)
 
         except SessionNotFoundError as e:
-            logger.warning(f"Attempted to get history for non-existent session: {session_id}")
+            logger.warning("Attempted to get history for non-existent session: %s", session_id)
             return self._format_result(
                 SessionHistoryResult(
                     session_id=session_id,
@@ -315,7 +340,7 @@ class SessionHistoryTool(BaseTool):
             )
 
         except Exception as e:
-            logger.exception(f"Failed to get history for session {session_id}")
+            logger.exception("Failed to get history for session %s", session_id)
             return self._format_result(
                 SessionHistoryResult(
                     session_id=session_id,

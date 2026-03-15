@@ -3,8 +3,8 @@
 Defines allowed Tcl/OpenROAD command patterns for interactive PTY sessions.
 Prevents accidental execution of destructive system-level commands by AI agents.
 
-Design: deny-by-default. A command verb must match at least one pattern in
-ALLOWED_PATTERNS and must NOT appear in BLOCKED_COMMANDS to be permitted.
+Design: deny-by-default. A command verb must match at least one pattern in the
+relevant pattern set and must NOT appear in BLOCKED_COMMANDS to be permitted.
 """
 
 import fnmatch
@@ -13,7 +13,7 @@ from ..utils.logging import get_logger
 
 logger = get_logger("command_whitelist")
 
-# Explicitly blocked commands — take priority over ALLOWED_PATTERNS.
+# Explicitly blocked commands — take priority over all pattern sets.
 BLOCKED_COMMANDS: frozenset[str] = frozenset(
     [
         "exec",  # OS-level command execution
@@ -37,40 +37,8 @@ BLOCKED_COMMANDS: frozenset[str] = frozenset(
     ]
 )
 
-# Glob patterns (fnmatch) for permitted command verbs.
-ALLOWED_PATTERNS: tuple[str, ...] = (
-    # ── OpenROAD reporting ────────────────────────────────────────────────
-    "report_*",
-    # ── OpenROAD design queries ───────────────────────────────────────────
-    "get_*",
-    # ── OpenROAD constraints / design setup ──────────────────────────────
-    "set_*",
-    "create_*",
-    # ── File I/O through OpenROAD wrappers ───────────────────────────────
-    "read_*",
-    "write_*",
-    # ── OpenROAD flow commands ────────────────────────────────────────────
-    "initialize_floorplan",
-    "place_pins",
-    "global_placement",
-    "detailed_placement",
-    "clock_tree_synthesis",
-    "global_route",
-    "detailed_route",
-    "repair_design",
-    "repair_timing",
-    "repair_clock_nets",
-    "check_placement",
-    "check_route",
-    "check_antennas",
-    "estimate_parasitics",
-    "sta",
-    # ── OpenROAD utility ──────────────────────────────────────────────────
-    "help",
-    "version",
-    "log_begin",
-    "log_end",
-    # ── Safe Tcl built-ins ────────────────────────────────────────────────
+# Safe Tcl built-ins — included in both pattern sets.
+_TCL_BUILTINS: tuple[str, ...] = (
     "puts",
     "set",
     "expr",
@@ -114,6 +82,51 @@ ALLOWED_PATTERNS: tuple[str, ...] = (
     "unset",
 )
 
+# Read-only OpenROAD commands: reporting, querying, checking, and analysis.
+# Use with interactive_openroad_query.
+READONLY_PATTERNS: tuple[str, ...] = (
+    # ── OpenROAD reporting ────────────────────────────────────────────────
+    "report_*",
+    # ── OpenROAD design queries ───────────────────────────────────────────
+    "get_*",
+    # ── OpenROAD validation ───────────────────────────────────────────────
+    "check_*",
+    # ── OpenROAD analysis ─────────────────────────────────────────────────
+    "estimate_parasitics",
+    "sta",
+    # ── OpenROAD utility ──────────────────────────────────────────────────
+    "help",
+    "version",
+) + _TCL_BUILTINS
+
+# State-modifying OpenROAD commands: flow execution, file I/O, design changes.
+# Use with interactive_openroad_exec.
+MODIFY_PATTERNS: tuple[str, ...] = (
+    # ── OpenROAD constraints / design setup ──────────────────────────────
+    "set_*",
+    "create_*",
+    # ── File I/O through OpenROAD wrappers ───────────────────────────────
+    "read_*",
+    "write_*",
+    # ── OpenROAD flow commands ────────────────────────────────────────────
+    "initialize_floorplan",
+    "place_pins",
+    "global_placement",
+    "detailed_placement",
+    "clock_tree_synthesis",
+    "global_route",
+    "detailed_route",
+    "repair_design",
+    "repair_timing",
+    "repair_clock_nets",
+    # ── OpenROAD utility ──────────────────────────────────────────────────
+    "log_begin",
+    "log_end",
+) + _TCL_BUILTINS
+
+# Union of both sets — used by is_command_allowed for backward compatibility.
+ALLOWED_PATTERNS: tuple[str, ...] = tuple(dict.fromkeys(READONLY_PATTERNS + MODIFY_PATTERNS))
+
 
 def _extract_verb(statement: str) -> str | None:
     """Return the command verb (first token) of a single Tcl statement.
@@ -130,8 +143,8 @@ def _extract_verb(statement: str) -> str | None:
     return stripped.split()[0].rstrip(";")
 
 
-def is_command_allowed(command: str) -> tuple[bool, str | None]:
-    """Validate that every statement in *command* is on the allowlist.
+def _check_command(command: str, patterns: tuple[str, ...]) -> tuple[bool, str | None]:
+    """Validate every statement in *command* against *patterns* and BLOCKED_COMMANDS.
 
     Multi-statement inputs (separated by ``;`` or newlines) are checked
     individually — all must be allowed.
@@ -159,8 +172,23 @@ def is_command_allowed(command: str) -> tuple[bool, str | None]:
             return False, verb
 
         # Must match at least one allowed pattern.
-        if not any(fnmatch.fnmatch(verb, pattern) for pattern in ALLOWED_PATTERNS):
+        if not any(fnmatch.fnmatch(verb, pattern) for pattern in patterns):
             logger.warning("Blocked command '%s' (not in whitelist)", verb)
             return False, verb
 
     return True, None
+
+
+def is_command_allowed(command: str) -> tuple[bool, str | None]:
+    """Check *command* against the full union of READONLY and MODIFY patterns."""
+    return _check_command(command, ALLOWED_PATTERNS)
+
+
+def is_readonly_command(command: str) -> tuple[bool, str | None]:
+    """Check *command* against READONLY_PATTERNS only."""
+    return _check_command(command, READONLY_PATTERNS)
+
+
+def is_modify_command(command: str) -> tuple[bool, str | None]:
+    """Check *command* against MODIFY_PATTERNS only."""
+    return _check_command(command, MODIFY_PATTERNS)
