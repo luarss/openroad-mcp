@@ -19,7 +19,6 @@ from .base import BaseTool
 logger = get_logger("interactive_tools")
 
 
-
 class InteractiveShellTool(BaseTool):
     """Tool for executing commands in interactive OpenROAD sessions."""
 
