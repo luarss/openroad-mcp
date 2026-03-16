@@ -45,6 +45,16 @@ def classify_image_type(filename: str) -> tuple[str, str]:
     return stage, image_type
 
 
+def _resolve_run_path(platform: str, design: str, run_slug: str) -> tuple[Path, Path]:
+    """Validate inputs and return (reports_base, run_path)."""
+    validate_platform_design(platform, design)
+    validate_path_segment(run_slug, "run_slug")
+    reports_base = settings.flow_path / "reports" / platform / design
+    run_path = reports_base / run_slug
+    validate_safe_path_containment(run_path, reports_base, "run directory")
+    return reports_base, run_path
+
+
 def validate_platform_design(platform: str, design: str) -> None:
     """Validate platform and design exist in ORFS structure."""
     if platform not in settings.platforms:
@@ -130,13 +140,7 @@ class ListReportImagesTool(BaseTool):
     async def execute(self, platform: str, design: str, run_slug: str, stage: str = "all") -> str:
         """List available report images for a specific run."""
         try:
-            validate_platform_design(platform, design)
-            validate_path_segment(run_slug, "run_slug")
-
-            reports_base = settings.flow_path / "reports" / platform / design
-            run_path = reports_base / run_slug
-
-            validate_safe_path_containment(run_path, reports_base, "run directory")
+            reports_base, run_path = _resolve_run_path(platform, design, run_slug)
 
             if not run_path.exists():
                 logger.warning(f"Run slug not found: {run_slug}")
@@ -214,17 +218,11 @@ class ReadReportImageTool(BaseTool):
     async def execute(self, platform: str, design: str, run_slug: str, image_name: str) -> str:
         """Read a specific report image and return base64-encoded data."""
         try:
-            validate_platform_design(platform, design)
-            validate_path_segment(run_slug, "run_slug")
+            reports_base, run_path = _resolve_run_path(platform, design, run_slug)
             validate_path_segment(image_name, "image_name")
 
             if not image_name.endswith(".webp"):
                 raise ValidationError(f"Image filename must have .webp extension: {image_name}")
-
-            reports_base = settings.flow_path / "reports" / platform / design
-            run_path = reports_base / run_slug
-
-            validate_safe_path_containment(run_path, reports_base, "run directory")
 
             if not run_path.exists():
                 logger.warning(f"Run slug not found: {run_slug}")

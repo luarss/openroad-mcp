@@ -110,9 +110,7 @@ class OpenROADManager:
         await self._cleanup_terminated_sessions_with_lock()
 
         session_infos = []
-        for session in self._sessions.values():
-            if session is None:
-                continue
+        for _, session in self._iter_initialized_sessions():
             try:
                 info = await session.get_info()
                 session_infos.append(info)
@@ -199,9 +197,7 @@ class OpenROADManager:
         total_cpu_time = 0.0
         total_memory_mb = 0.0
 
-        for session in self._sessions.values():
-            if session is None:
-                continue
+        for _, session in self._iter_initialized_sessions():
             try:
                 metrics = await session.get_detailed_metrics()
                 session_details.append(metrics)
@@ -231,13 +227,9 @@ class OpenROADManager:
     async def cleanup_idle_sessions(self, idle_threshold_seconds: float = 300, force: bool = False) -> int:
         """Clean up sessions that have been idle too long."""
         cleaned_count = 0
-        session_ids = list(self._sessions.keys())
 
-        for session_id in session_ids:
+        for session_id, session in self._iter_initialized_sessions():
             try:
-                session = self._sessions[session_id]
-                if session is None:
-                    continue
                 if await session.is_idle_timeout(idle_threshold_seconds):
                     await self.terminate_session(session_id, force)
                     cleaned_count += 1
@@ -274,9 +266,7 @@ class OpenROADManager:
             await self.terminate_all_sessions(force=True)
 
             async with self._cleanup_lock:
-                for session in list(self._sessions.values()):
-                    if session is None:
-                        continue
+                for _, session in self._iter_initialized_sessions():
                     try:
                         await session.cleanup()
                     except Exception as e:
@@ -298,6 +288,10 @@ class OpenROADManager:
         """Get the number of active sessions."""
         return len([s for s in self._sessions.values() if s is not None and s.is_alive()])
 
+    def _iter_initialized_sessions(self) -> list[tuple[str, InteractiveSession]]:
+        """Return (session_id, session) pairs for all fully-initialized sessions."""
+        return [(sid, s) for sid, s in self._sessions.items() if s is not None]
+
     def _get_session(self, session_id: str) -> InteractiveSession:
         """Get session by ID, raising error if not found or still being created."""
         if session_id not in self._sessions:
@@ -316,28 +310,17 @@ class OpenROADManager:
 
     async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
         """Clean up terminated sessions with graceful degradation."""
-        terminated_ids = []
         current_time = datetime.now()
+        terminated: list[tuple[str, InteractiveSession, bool]] = []
 
-        for session_id, session in self._sessions.items():
-            if session is None:
-                continue
+        for session_id, session in self._iter_initialized_sessions():
             if not session.is_alive():
                 time_since_death = (current_time - session.last_activity).total_seconds()
-                if time_since_death > force_cleanup_after_seconds:
-                    terminated_ids.append((session_id, True))
-                else:
-                    terminated_ids.append((session_id, False))
+                terminated.append((session_id, session, time_since_death > force_cleanup_after_seconds))
 
         cleaned_count = 0
-        for session_id, force_cleanup in terminated_ids:
+        for session_id, session, force_cleanup in terminated:
             try:
-                session = self._sessions[session_id]
-                if session is None:
-                    del self._sessions[session_id]
-                    cleaned_count += 1
-                    continue
-
                 if force_cleanup:
                     self.logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
                     try:
