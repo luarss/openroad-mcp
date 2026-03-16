@@ -149,6 +149,7 @@ class TestLiveToolCompactness:
     its own serialize/execute method, which static model tests miss.
     """
 
+    @pytest.mark.asyncio
     async def test_list_sessions_tool_output_is_compact(self) -> None:
         """ListSessionsTool.execute() must return compact JSON."""
         manager = MagicMock()
@@ -254,16 +255,19 @@ class TestTokenCostReport:
         exec_typical = results[1]
         session_empty = results[2]
 
-        assert exec_minimal["estimated_tokens"] == token_estimate(exec_minimal["compact_json"]), (
-            "ExecResult(minimal) token count mismatch"
+        # Assert token math against pinned expected values.
+        # If these fail, a model field was added/removed or serializer changed.
+        assert exec_minimal["estimated_tokens"] == 34, (
+            f"ExecResult(minimal) token count changed to {exec_minimal['estimated_tokens']} "
+            "(was 34) — model fields may have changed"
         )
-
-        assert exec_typical["estimated_tokens"] == token_estimate(exec_typical["compact_json"]), (
-            "ExecResult(typical) token count mismatch"
+        assert exec_typical["estimated_tokens"] == 41, (
+            f"ExecResult(typical) token count changed to {exec_typical['estimated_tokens']} "
+            "(was 41) — model fields may have changed"
         )
-
-        assert session_empty["estimated_tokens"] == token_estimate(session_empty["compact_json"]), (
-            "SessionList(empty) token count mismatch"
+        assert session_empty["estimated_tokens"] == 15, (
+            f"SessionList(empty) token count changed to {session_empty['estimated_tokens']} "
+            "(was 15) — model fields may have changed"
         )
 
         # Assert savings are positive (compact is always smaller than pretty)
