@@ -21,6 +21,16 @@ from .base import BaseTool
 logger = get_logger("interactive_tools")
 
 
+def _session_not_found_exec_result(session_id: str | None, error: Exception) -> InteractiveExecResult:
+    return InteractiveExecResult(
+        output=f"Error: Session '{session_id}' not found.",
+        session_id=session_id,
+        timestamp=datetime.now().isoformat(),
+        execution_time=0.0,
+        error=str(error),
+    )
+
+
 def _blocked_error(command: str, blocked_verb: str, session_id: str | None) -> str:
     """Return a hard-block error result for a disallowed command."""
     result = InteractiveExecResult(
@@ -62,15 +72,7 @@ class QueryShellTool(BaseTool):
 
         except SessionNotFoundError as e:
             logger.warning("Session not found: %s", session_id)
-            return self._format_result(
-                InteractiveExecResult(
-                    output=f"Error: Session '{session_id}' not found.",
-                    session_id=session_id,
-                    timestamp=datetime.now().isoformat(),
-                    execution_time=0.0,
-                    error=str(e),
-                )
-            )
+            return self._format_result(_session_not_found_exec_result(session_id, e))
 
         except (SessionTerminatedError, SessionError) as e:
             logger.error("Session error for %s: %s", session_id, e)
@@ -126,15 +128,7 @@ class ExecShellTool(BaseTool):
 
         except SessionNotFoundError as e:
             logger.warning("Session not found: %s", session_id)
-            return self._format_result(
-                InteractiveExecResult(
-                    output=f"Error: Session '{session_id}' not found.",
-                    session_id=session_id,
-                    timestamp=datetime.now().isoformat(),
-                    execution_time=0.0,
-                    error=str(e),
-                )
-            )
+            return self._format_result(_session_not_found_exec_result(session_id, e))
 
         except (SessionTerminatedError, SessionError) as e:
             logger.error("Session error for %s: %s", session_id, e)
