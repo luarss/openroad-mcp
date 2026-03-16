@@ -132,10 +132,10 @@ async def run_server(config: CLIConfig) -> None:
         if config.transport.mode == "stdio":
             logger.info("Using stdio transport")
             server_task = asyncio.create_task(mcp.run_async(transport="stdio"))
-        elif config.transport.mode in ("http", "streamable-http"):
+        elif config.transport.mode == "http":
             logger.info(
                 f"Using HTTP transport on {config.transport.host}:{config.transport.port}"
-            )
+                )
 
             server_task = asyncio.create_task(
                 mcp.run_async(

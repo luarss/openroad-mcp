@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationError
 class TransportConfig(BaseModel):
     """Configuration for different transport modes."""
 
-    mode: str = Field(description="Transport mode: 'stdio' or 'http' or 'streamable-http'")
+    mode: str = Field(description="Transport mode: 'stdio' or 'http'")
     host: str = Field(default="localhost", description="HTTP server host (http mode only)")
     port: int = Field(default=8000, description="HTTP server port (http mode only)")
 
@@ -66,7 +66,7 @@ Examples:
     transport_group.add_argument(
         "--transport",
         "-t",
-        choices=["stdio", "http", "streamable-http"],
+        choices=["stdio", "http"],
         default="stdio",
         help="Transport mode for the MCP server (default: %(default)s)",
     )
