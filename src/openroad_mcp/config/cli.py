@@ -54,7 +54,7 @@ Examples:
   %(prog)s --transport stdio
 
   # Run with HTTP transport on custom host/port
-  %(prog)s --transport streamable-http --host 0.0.0.0 --port 8080
+  %(prog)s --transport http --host 0.0.0.0 --port 8080
 
   # Enable verbose logging
   %(prog)s --verbose --log-level DEBUG
@@ -109,7 +109,7 @@ def parse_cli_args(args: list[str] | None = None) -> CLIConfig:
     parsed_args = parser.parse_args(args)
 
     # Validate that HTTP options are only used with http transport
-    if parsed_args.transport not in ("http", "streamable-http"):
+    if parsed_args.transport != "http":
         # Check if HTTP-specific options were explicitly set
         if parsed_args.host != "localhost" or parsed_args.port != 8000:
             parser.error("--host and --port options are only valid with --transport http")
