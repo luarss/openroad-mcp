@@ -3,7 +3,6 @@
 import asyncio
 import uuid
 from datetime import datetime
-from typing import cast
 
 from ..config.settings import settings
 from ..core.models import InteractiveExecResult, InteractiveSessionInfo
@@ -311,22 +310,17 @@ class OpenROADManager:
 
     async def _cleanup_terminated_sessions(self, force_cleanup_after_seconds: float = 60.0) -> int:
         """Clean up terminated sessions with graceful degradation."""
-        terminated_ids = []
         current_time = datetime.now()
+        terminated: list[tuple[str, InteractiveSession, bool]] = []
 
         for session_id, session in self._iter_initialized_sessions():
             if not session.is_alive():
                 time_since_death = (current_time - session.last_activity).total_seconds()
-                if time_since_death > force_cleanup_after_seconds:
-                    terminated_ids.append((session_id, True))
-                else:
-                    terminated_ids.append((session_id, False))
+                terminated.append((session_id, session, time_since_death > force_cleanup_after_seconds))
 
         cleaned_count = 0
-        for session_id, force_cleanup in terminated_ids:
+        for session_id, session, force_cleanup in terminated:
             try:
-                session = cast(InteractiveSession, self._sessions[session_id])
-
                 if force_cleanup:
                     self.logger.warning(f"Force cleaning up session {session_id} after {force_cleanup_after_seconds}s")
                     try:
