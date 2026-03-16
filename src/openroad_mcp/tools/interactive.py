@@ -1,6 +1,7 @@
 """Interactive shell tools for OpenROAD MCP server."""
 
 import json
+from collections.abc import Callable
 from datetime import datetime
 
 from ..config.command_whitelist import is_exec_command, is_query_command
@@ -43,6 +44,21 @@ def _blocked_error(command: str, blocked_verb: str, session_id: str | None) -> s
     return json.dumps(result.model_dump(), indent=2, default=str)
 
 
+def _apply_whitelist(
+    command: str,
+    validator: Callable[[str], tuple[bool, str | None]],
+    session_id: str | None,
+) -> str | None:
+    """Return a blocked-error string if the command is disallowed, else None."""
+    if not settings.WHITELIST_ENABLED:
+        return None
+    allowed, blocked_verb = validator(command)
+    if not allowed:
+        logger.warning("Blocked command '%s' in session %s", blocked_verb, session_id)
+        return _blocked_error(command, blocked_verb or command.split()[0], session_id)
+    return None
+
+
 class QueryShellTool(BaseTool):
     """Tool for executing read-only queries in interactive OpenROAD sessions.
 
@@ -57,11 +73,8 @@ class QueryShellTool(BaseTool):
         timeout_ms: int | None = None,
     ) -> str:
         """Execute a read-only command in an interactive OpenROAD session."""
-        if settings.WHITELIST_ENABLED:
-            allowed, blocked_verb = is_query_command(command)
-            if not allowed:
-                logger.warning("Blocked read-only query '%s' in session %s", blocked_verb, session_id)
-                return _blocked_error(command, blocked_verb or command.split()[0], session_id)
+        if blocked := _apply_whitelist(command, is_query_command, session_id):
+            return blocked
 
         try:
             if session_id is None:
@@ -113,11 +126,8 @@ class ExecShellTool(BaseTool):
         timeout_ms: int | None = None,
     ) -> str:
         """Execute a modifying command in an interactive OpenROAD session."""
-        if settings.WHITELIST_ENABLED:
-            allowed, blocked_verb = is_exec_command(command)
-            if not allowed:
-                logger.warning("Blocked exec command '%s' in session %s", blocked_verb, session_id)
-                return _blocked_error(command, blocked_verb or command.split()[0], session_id)
+        if blocked := _apply_whitelist(command, is_exec_command, session_id):
+            return blocked
 
         try:
             if session_id is None:
