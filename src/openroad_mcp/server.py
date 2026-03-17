@@ -229,11 +229,13 @@ async def run_server(config: CLIConfig) -> None:
             server_task = asyncio.create_task(mcp.run_async(transport="stdio"))
         elif config.transport.mode == "http":
             logger.info(f"Using HTTP transport on {config.transport.host}:{config.transport.port}")
-            # TODO: Streamable-HTTP
-            raise NotImplementedError(
-                "Streamable HTTP transport is not yet implemented. "
-                "This argument structure is prepared for future implementation. "
-                "Please use --transport stdio (default) for now."
+
+            server_task = asyncio.create_task(
+                mcp.run_async(
+                    transport="http",
+                    host=config.transport.host,
+                    port=config.transport.port,
+                )
             )
         else:
             raise ValueError(f"Unsupported transport mode: {config.transport.mode}")
