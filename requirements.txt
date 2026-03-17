@@ -141,7 +141,7 @@ python-dotenv==1.2.1
     #   fastmcp
     #   mcp
     #   pydantic-settings
-python-multipart==0.0.20
+python-multipart==0.0.22
     # via mcp
 pyyaml==6.0.3
     # via jsonschema-path
