@@ -13,7 +13,7 @@ attrs==25.4.0
     #   cyclopts
     #   jsonschema
     #   referencing
-authlib==1.6.5
+authlib==1.6.9
     # via fastmcp
 beartype==0.22.4
     # via
