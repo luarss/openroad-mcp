@@ -41,7 +41,7 @@ def _blocked_error(command: str, blocked_verb: str, session_id: str | None) -> s
         execution_time=0.0,
         error=f"CommandBlocked: '{blocked_verb}'",
     )
-    return json.dumps(result.model_dump(), indent=2, default=str)
+    return json.dumps(result.model_dump(), separators=(",", ":"), default=str)
 
 
 def _apply_whitelist(

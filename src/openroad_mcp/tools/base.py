@@ -55,5 +55,5 @@ class BaseTool(ABC):
     ) -> str:
         """Format result as JSON string."""
         if hasattr(result, "model_dump"):
-            return json.dumps(result.model_dump(), indent=2)
-        return json.dumps(result, indent=2)
+            return json.dumps(result.model_dump(), separators=(",", ":"))
+        return json.dumps(result, separators=(",", ":"))
