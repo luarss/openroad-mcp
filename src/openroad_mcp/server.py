@@ -133,9 +133,7 @@ async def run_server(config: CLIConfig) -> None:
             logger.info("Using stdio transport")
             server_task = asyncio.create_task(mcp.run_async(transport="stdio"))
         elif config.transport.mode == "http":
-            logger.info(
-                f"Using HTTP transport on {config.transport.host}:{config.transport.port}"
-                )
+            logger.info(f"Using HTTP transport on {config.transport.host}:{config.transport.port}")
 
             server_task = asyncio.create_task(
                 mcp.run_async(
@@ -143,7 +141,7 @@ async def run_server(config: CLIConfig) -> None:
                     host=config.transport.host,
                     port=config.transport.port,
                 )
-            )       
+            )
         else:
             raise ValueError(f"Unsupported transport mode: {config.transport.mode}")
 
