@@ -250,7 +250,7 @@ urllib3==2.5.0
     #   types-requests
 uvicorn==0.38.0
     # via mcp
-virtualenv==20.35.4
+virtualenv==20.36.1
     # via pre-commit
 websockets==15.0.1
     # via fastmcp
