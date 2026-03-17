@@ -75,7 +75,7 @@ test-coverage: docker-test-build
 inspect:
 	@MCP_SERVER_REQUEST_TIMEOUT=$(MCP_SERVER_REQUEST_TIMEOUT) \
 		MCP_REQUEST_MAX_TOTAL_TIMEOUT=$(MCP_REQUEST_MAX_TOTAL_TIMEOUT) \
-		npx @modelcontextprotocol/inspector@0.16.0 uv run openroad-mcp
+		npx @modelcontextprotocol/inspector@0.19.0 uv run openroad-mcp
 
 .PHONY: test-all
 test-all:
