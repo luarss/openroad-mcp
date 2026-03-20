@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write  # for creating GitHub Releases
   id-token: write  # for PyPI trusted publishing
+  packages: write
 
 jobs:
   test:
@@ -92,3 +93,11 @@ jobs:
           files: dist/*
           draft: false
           prerelease: ${{ contains(github.ref_name, 'rc') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
+
+  publish-docker:
+    name: Publish Docker image
+    needs: build
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      image_tag: ${{ github.ref_name }}
+    secrets: inherit
