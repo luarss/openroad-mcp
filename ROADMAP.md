@@ -56,7 +56,7 @@ The pre-release phase focuses on:
 ### Quality & Testing
 - [x] Core test suite (80%+ coverage)
 - [x] Type hints on all public APIs
-- [ ] Integration tests with real ORFS flows
+- [x] Integration tests with real ORFS flows
 - [ ] Performance benchmarking suite
 - [ ] Load testing (50+ concurrent sessions)
 - [ ] Memory leak detection
@@ -192,7 +192,7 @@ We welcome community involvement at every stage:
 
 ---
 
-**Last Updated:** 2025-12-08
+**Last Updated:** 2026-02-23
 **Current Phase:** Phase 1 (Pre-Release → v0.5)
 
 *This roadmap is a living document and will evolve based on community feedback and priorities.*

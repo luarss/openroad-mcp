@@ -21,18 +21,18 @@ class OpenROADManager:
         """Safely decode bytes to string with error handling for unicode issues."""
         return data.decode(encoding, errors=errors)
 
-    def __new__(cls) -> "OpenROADManager":
+    def __new__(cls, **_kwargs: object) -> "OpenROADManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self, max_sessions: int | None = None) -> None:
         if not hasattr(self, "initialized"):
             self.initialized = True
             self.logger = get_logger("manager")
 
             self._sessions: dict[str, InteractiveSession | None] = {}
-            self._max_sessions = settings.MAX_SESSIONS
+            self._max_sessions = max_sessions if max_sessions is not None else settings.MAX_SESSIONS
             self._default_timeout_ms = int(settings.COMMAND_TIMEOUT * 1000)
             self._default_buffer_size = settings.DEFAULT_BUFFER_SIZE
             self._cleanup_lock = asyncio.Lock()
@@ -66,10 +66,13 @@ class OpenROADManager:
 
             self._sessions[session_id] = None
 
+            session = None
             try:
                 actual_buffer_size = buffer_size or self._default_buffer_size
                 session = InteractiveSession(session_id, buffer_size=actual_buffer_size)
                 await session.start(command, env, cwd)
+                await asyncio.sleep(settings.COMMAND_COMPLETION_DELAY * 1.5)
+                await session.output_buffer.drain_all()
 
                 self._sessions[session_id] = session
                 self.logger.info(f"Created session {session_id}, total sessions: {len(self._sessions)}")
@@ -77,6 +80,12 @@ class OpenROADManager:
                 return session_id
 
             except Exception as e:
+                # Terminate the subprocess if it was started before the failure
+                if session is not None:
+                    try:
+                        await session.terminate(force=True)
+                    except Exception:
+                        self.logger.warning(f"Failed to terminate orphaned session {session_id} during cleanup")
                 if session_id in self._sessions:
                     del self._sessions[session_id]
                 self.logger.exception(f"Failed to create session {session_id}")

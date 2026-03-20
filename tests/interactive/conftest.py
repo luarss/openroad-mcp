@@ -1,17 +1,25 @@
 """Configuration for interactive tests."""
 
+import gc
+
 import pytest
+import pytest_asyncio
 
 
-@pytest.fixture(autouse=True)
-async def setup_test_isolation():
-    """Ensure proper test isolation for PTY operations."""
-    # This fixture runs before each test to ensure clean state
+@pytest_asyncio.fixture(autouse=True)
+async def reset_manager_singleton():
+    """Reset OpenROADManager singleton before and after each test."""
+    from openroad_mcp.core.manager import OpenROADManager
+
+    OpenROADManager._instance = None
     yield
-    # Cleanup after each test
-    # Force garbage collection to help with file descriptor cleanup
-    import gc
-
+    instance = OpenROADManager._instance
+    if instance is not None:
+        try:
+            await instance.cleanup_all()
+        except Exception:
+            pass  # best-effort cleanup
+    OpenROADManager._instance = None
     gc.collect()
 
 
