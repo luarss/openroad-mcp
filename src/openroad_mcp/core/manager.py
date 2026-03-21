@@ -21,23 +21,27 @@ class OpenROADManager:
         """Safely decode bytes to string with error handling for unicode issues."""
         return data.decode(encoding, errors=errors)
 
-    def __new__(cls) -> "OpenROADManager":
+    def __new__(cls, **kwargs: object) -> "OpenROADManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self, max_sessions: int | None = None) -> None:
         if not hasattr(self, "initialized"):
             self.initialized = True
             self.logger = get_logger("manager")
 
             self._sessions: dict[str, InteractiveSession | None] = {}
-            self._max_sessions = settings.MAX_SESSIONS
+            self._max_sessions = max_sessions if max_sessions is not None else settings.MAX_SESSIONS
             self._default_timeout_ms = int(settings.COMMAND_TIMEOUT * 1000)
             self._default_buffer_size = settings.DEFAULT_BUFFER_SIZE
             self._cleanup_lock = asyncio.Lock()
 
             self.logger.info(f"Initialized OpenROADManager with max_sessions={self._max_sessions}")
+        elif max_sessions is not None:
+            # Singleton already exists but caller supplied an explicit limit — apply it.
+            self._max_sessions = max_sessions
+            self.logger.info(f"Updated OpenROADManager max_sessions={self._max_sessions}")
 
     async def create_session(
         self,
