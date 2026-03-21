@@ -238,8 +238,8 @@ class TestSessionManager:
             session_id = await session_manager.create_session()
             session_ids.append(session_id)
 
-        # Call cleanup directly without patching - the actual cleanup method works
-        await session_manager.cleanup()
+        # Call cleanup_all() — the correct OpenROADManager API (cleanup() doesn't exist)
+        await session_manager.cleanup_all()
         assert session_manager.get_session_count() == 0
 
     @skip_hanging_tests
@@ -418,8 +418,8 @@ class TestSessionManagerAsync:
             assert manager.get_session_count() == 0
 
         finally:
-            # Ensure cleanup
-            await manager.cleanup()
+            # Ensure cleanup via the correct OpenROADManager method
+            await manager.cleanup_all()
 
     @skip_hanging_tests
     @patch("openroad_mcp.interactive.session.PTYHandler")
