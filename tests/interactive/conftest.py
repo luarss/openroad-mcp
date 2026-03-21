@@ -1,6 +1,5 @@
 """Configuration for interactive tests."""
 
-import asyncio
 import gc
 
 import pytest
