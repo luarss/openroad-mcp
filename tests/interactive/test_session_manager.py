@@ -458,4 +458,4 @@ class TestSessionManagerAsync:
             assert manager.get_session_count() == num_sessions - sessions_to_cleanup
 
         finally:
-            await manager.cleanup()
+            await manager.cleanup_all()
