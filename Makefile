@@ -1,6 +1,9 @@
 MCP_SERVER_REQUEST_TIMEOUT:= 99999999999
 MCP_REQUEST_MAX_TOTAL_TIMEOUT:= 99999999999
 DOCKER_TEST_IMAGE:= openroad-mcp-test
+ORFS_VERSION:= 26Q1-534-g510137693
+UV_VERSION:= 0.10.9
+IMAGE_NAME:= ghcr.io/luarss/openroad-mcp
 
 .PHONY: sync
 sync:
@@ -35,6 +38,14 @@ test:
 .PHONY: docker-test-build
 docker-test-build:
 	@docker build -f Dockerfile.test -t $(DOCKER_TEST_IMAGE) .
+
+# Build production Docker image
+.PHONY: build
+build:
+	@docker build \
+		--build-arg ORFS_VERSION=$(ORFS_VERSION) \
+		--build-arg UV_VERSION=$(UV_VERSION) \
+		-t $(IMAGE_NAME):$(ORFS_VERSION) .
 
 .PHONY: test-interactive
 test-interactive: docker-test-build
@@ -84,3 +95,7 @@ test-all:
 	@$(MAKE) test-interactive
 	@$(MAKE) test-tools
 	@$(MAKE) test-integration
+
+# Print any Makefile variable: make print-IMAGE_NAME
+print-%:
+	@echo $($*)

@@ -1,0 +1,38 @@
+name: Publish Docker Image to GHCR
+
+on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: Docker image tag to publish (e.g. v0.1.0)
+        required: true
+        type: string
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: make build
+
+      - name: Push Docker image
+        run: |
+          ORFS_VER=$(make --no-print-directory print-ORFS_VERSION)
+          docker tag ghcr.io/luarss/openroad-mcp:$ORFS_VER ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"
+          docker push ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"
