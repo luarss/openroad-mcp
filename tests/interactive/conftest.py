@@ -1,6 +1,7 @@
 """Configuration for interactive tests."""
 
 import gc
+import warnings
 
 import pytest
 
@@ -29,8 +30,8 @@ async def reset_manager():
     if instance is not None:
         try:
             await instance.cleanup_all()
-        except Exception:
-            pass
+        except Exception as e:
+            warnings.warn(f"reset_manager teardown: cleanup_all() failed: {e}", stacklevel=2)
         OpenROADManager._instance = None
 
     gc.collect()
