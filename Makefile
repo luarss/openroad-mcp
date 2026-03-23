@@ -50,12 +50,12 @@ build:
 .PHONY: test-interactive
 test-interactive: docker-test-build
 	@echo "Running interactive tests..."
-	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/interactive
+	@docker run --rm --init $(DOCKER_TEST_IMAGE) uv run pytest tests/interactive
 
 .PHONY: test-integration
 test-integration: docker-test-build
 	@echo "Running integration tests for timing workflows..."
-	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/integration
+	@docker run --rm --init $(DOCKER_TEST_IMAGE) uv run pytest tests/integration
 
 .PHONY: test-tools
 test-tools:
@@ -65,12 +65,12 @@ test-tools:
 .PHONY: test-performance
 test-performance: docker-test-build
 	@echo "Running performance tests (benchmarks, memory, stability)..."
-	@docker run --rm $(DOCKER_TEST_IMAGE) uv run pytest tests/performance/
+	@docker run --rm --init $(DOCKER_TEST_IMAGE) uv run pytest tests/performance/
 
 .PHONY: test-coverage
 test-coverage: docker-test-build
 	@echo "Running tests with coverage analysis..."
-	@docker run --rm -v $(PWD):/output $(DOCKER_TEST_IMAGE) sh -c "\
+	@docker run --rm --init -v $(PWD):/output $(DOCKER_TEST_IMAGE) sh -c "\
 		uv run pytest --ignore=tests/performance \
 			--cov=src/openroad_mcp \
 			--cov-report=xml \
