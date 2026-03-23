@@ -1,3 +1,6 @@
+#Requires -Version 5.1
+#Requires -RunAsAdministrator
+
 # =============================================================================
 # setup-wsl2.ps1 — Install OpenROAD-MCP dependencies on Windows via WSL2
 # =============================================================================

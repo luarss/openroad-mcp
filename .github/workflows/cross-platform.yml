@@ -1,7 +1,13 @@
 # =============================================================================
-# cross-platform.yml — Validate OpenROAD-MCP across Ubuntu, macOS, Windows/WSL2
+# cross-platform.yml — Validate OpenROAD-MCP across Ubuntu and macOS
 #
 # Runs on: push to main, PRs, and weekly schedule
+#
+# PURPOSE: Validate platform-specific setup, server startup, and Docker builds
+# NOTE:
+#   - Unit tests are run in ci.yaml, not here. Avoid duplicating tests.
+#   - Windows/WSL2 requires Docker Desktop. Not tested in CI.
+#     See setup-wsl2.ps1 for local development setup.
 # =============================================================================
 
 name: Cross-Platform Validation
@@ -36,32 +42,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-dev build-essential
+      - name: Run Ubuntu setup script
+        run: bash scripts/setup-ubuntu.sh
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Install project
-        run: make sync
-
-      - name: Run core tests
-        run: make test
-
-      - name: Run tools tests
-        run: make test-tools
+      - name: Add uv to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify MCP server starts
         run: |
           timeout 10 uv run openroad-mcp --help || true
           echo "✅ MCP server CLI verified on ${{ matrix.os }}"
 
-      - name: Docker build test
+      - name: Test Docker build (test image)
         run: |
-          docker build -f Dockerfile -t openroad-mcp-test --target runtime . || \
-            echo "⚠️ Docker build requires openroad/orfs base image"
+          docker build -f Dockerfile.test -t openroad-mcp-test .
+          docker run --rm openroad-mcp-test uv run python -c "import openroad_mcp; print('✅ MCP module verified in test image')"
 
   # ---------------------------------------------------------------------------
   # macOS (latest)
@@ -74,90 +69,75 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+      - name: Run macOS setup script
+        run: bash scripts/setup-macos.sh
 
-      - name: Install project
-        run: make sync
+      - name: Add uv to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Run core tests
-        run: make test
-
-      - name: Run tools tests
-        run: make test-tools
-
-      - name: Verify MCP server starts
+      - name: Verify MCP server starts (post-setup)
         run: |
-          timeout 10 uv run openroad-mcp --help || true
-          echo "✅ MCP server CLI verified on macOS"
+          source .venv/bin/activate
+          timeout 10 openroad-mcp --help || true
+          echo "✅ MCP server CLI verified post-setup"
 
-      - name: Test PTY behavior on macOS
+      - name: Test MCP PTY behavior on macOS
         run: |
-          python3 -c "
-          import pty, os
-          master, slave = pty.openpty()
-          os.write(master, b'test\n')
-          os.close(master)
-          os.close(slave)
-          print('✅ PTY works on macOS')
-          "
+          uv run python3 << 'EOF'
+          import sys
+          import asyncio
+          from openroad_mcp.interactive.pty_handler import PTYHandler
+          
+          async def test_pty():
+              """Test PTY handler with actual command execution."""
+              try:
+                  handler = PTYHandler()
+                  print("✅ PTY handler initialized successfully on macOS")
+                  
+                  # Create a session with a simple command
+                  await handler.create_session(["sh", "-c", "echo 'MCP PTY test'"])
+                  
+                  # Read output from the PTY
+                  output = await handler.read_output(size=1024)
+                  if output:
+                      print("✅ PTY command execution works on macOS")
+                      print(f"   Output: {output.decode(errors='ignore')[:50]}...")
+                  else:
+                      print("⚠️ PTY output was empty")
+                      sys.exit(1)
+                      
+                  # Cleanup
+                  await handler.cleanup()
+                  print("✅ Platform-specific PTY support validated")
+                  
+              except Exception as e:
+                  print(f"❌ PTY test failed: {e}")
+                  sys.exit(1)
+          
+          asyncio.run(test_pty())
+          EOF
 
   # ---------------------------------------------------------------------------
-  # Windows with WSL2
+  # Windows/WSL2 support — LOCAL TESTING ONLY
   # ---------------------------------------------------------------------------
-  windows-wsl2:
-    runs-on: windows-latest
-    timeout-minutes: 45
-    continue-on-error: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Enable WSL2
-        shell: powershell
-        run: wsl --install -d Ubuntu-24.04 --no-launch
-
-      - name: Setup WSL2 environment
-        shell: powershell
-        run: |
-          wsl -d Ubuntu-24.04 -- bash -lc "sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv curl && curl -LsSf https://astral.sh/uv/install.sh | sh"
-
-      - name: Run tests in WSL2
-        shell: powershell
-        run: |
-          $winPath = ("${{ github.workspace }}" -replace '\\','/')
-          $wslWorkspace = wsl -d Ubuntu-24.04 -- wslpath -a "$winPath"
-          $script = @"
-          #!/bin/bash
-          export HOME=/root
-          source "`$HOME/.local/bin/env" 2>/dev/null || true
-          export PATH="`$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:`$PATH"
-          cd '$wslWorkspace'
-          uv sync --all-extras --inexact
-          uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration -v
-          "@
-          $script | Out-File -Encoding ascii -FilePath "${{ github.workspace }}\run_tests.sh"
-          wsl -d Ubuntu-24.04 -- bash -c "sed -i 's/\r$//' '$wslWorkspace/run_tests.sh' && bash '$wslWorkspace/run_tests.sh'"
-
-      - name: Check Docker availability in WSL2
-        shell: powershell
-        run: |
-          wsl -d Ubuntu-24.04 -- bash -c "command -v docker && docker --version || echo 'Docker not available in WSL2 (requires Docker Desktop)'"
+  # Note: GitHub Actions windows-latest runners only support WSLv1.
+  # WSL2 installation (wsl --install -d Ubuntu-24.04) will fail in CI.
+  # Windows developers should use Docker Desktop or setup-wsl2.ps1 locally.
+  # See CONTRIBUTING.md for Windows development setup.
+  # ---------------------------------------------------------------------------
 
   # ---------------------------------------------------------------------------
   # Summary job — gates merge
   # ---------------------------------------------------------------------------
   cross-platform-summary:
     runs-on: ubuntu-latest
-    needs: [ubuntu, macos, windows-wsl2]
+    needs: [ubuntu, macos]
     if: always()
     steps:
       - name: Check results
         run: |
           echo "Ubuntu: ${{ needs.ubuntu.result }}"
           echo "macOS: ${{ needs.macos.result }}"
-          echo "Windows/WSL2: ${{ needs.windows-wsl2.result }}"
           if [ "${{ needs.ubuntu.result }}" = "failure" ]; then
             echo "❌ Ubuntu tests failed"
             exit 1
@@ -165,9 +145,5 @@ jobs:
           if [ "${{ needs.macos.result }}" = "failure" ]; then
             echo "❌ macOS tests failed"
             exit 1
-          fi
-          # WSL2 is best-effort — don't block on it
-          if [ "${{ needs.windows-wsl2.result }}" = "failure" ]; then
-            echo "⚠️ Windows/WSL2 tests failed (non-blocking)"
           fi
           echo "✅ Cross-platform validation complete"
