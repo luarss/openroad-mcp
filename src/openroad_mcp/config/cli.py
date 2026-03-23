@@ -112,8 +112,7 @@ def parse_cli_args(args: list[str] | None = None) -> CLIConfig:
     if parsed_args.transport != "http":
         # Check if HTTP-specific options were explicitly set
         if parsed_args.host != "localhost" or parsed_args.port != 8000:
-            if not (parsed_args.host == "localhost" and parsed_args.port == 8000):
-                parser.error("--host and --port options are only valid with --transport http")
+            parser.error("--host and --port options are only valid with --transport http")
 
     return CLIConfig.from_args(parsed_args)
 
