@@ -30,6 +30,29 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
 $wslProjectDir = wsl -d Ubuntu-24.04 -- wslpath -a $projectDir
 
+# Pre-flight check: Verify passwordless sudo is configured
+Write-Host "🔍 Checking passwordless sudo configuration..." -ForegroundColor Cyan
+wsl -d Ubuntu-24.04 -- sudo -n true 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "⚠️  WSL2 distro requires passwordless sudo configuration." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Inside WSL2, run:" -ForegroundColor Cyan
+    Write-Host "  sudo visudo" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Add this line at the end:" -ForegroundColor Cyan
+    Write-Host "  %sudo ALL=(ALL) NOPASSWD:ALL" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Save and exit (Ctrl+X, then Y, then Enter)." -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Then re-run this script." -ForegroundColor Yellow
+    Write-Host ""
+    exit 1
+}
+
+Write-Host "✅ Passwordless sudo verified" -ForegroundColor Green
+Write-Host ""
+
 wsl -d Ubuntu-24.04 -- bash -c @"
     cd '$wslProjectDir'
     chmod +x scripts/setup-ubuntu.sh
