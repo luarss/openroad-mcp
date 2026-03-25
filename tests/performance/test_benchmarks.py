@@ -88,12 +88,12 @@ class TestPerformanceBenchmarks:
         assert duration < 5.0, f"Streaming took {duration:.3f}s (>5s timeout)"
 
     async def test_concurrent_session_scalability(self, benchmark_timeout):
-        """Test concurrent session scalability."""
+        """Test concurrent session scalability with 50+ sessions and p99/p95 latency metrics."""
         session_manager = SessionManager()
 
         try:
-            # TICKET-020 requirement: Support 20+ concurrent sessions
-            concurrent_sessions = 25
+            # GSoC Phase 1 target: 50+ concurrent sessions
+            concurrent_sessions = 50
             session_ids = []
 
             start_time = time.perf_counter()
@@ -115,13 +115,13 @@ class TestPerformanceBenchmarks:
 
             # Verify all sessions created successfully
             assert len(session_ids) == concurrent_sessions
-            assert len(set(session_ids)) == concurrent_sessions  # All unique
+            assert len(set(session_ids)) == concurrent_sessions  # All unique IDs, no cross-pollution
 
             # Performance assertions
-            assert creation_time < 5.0, f"Concurrent creation took {creation_time:.3f}s (>5s)"
+            assert creation_time < 10.0, f"Concurrent creation took {creation_time:.3f}s (>10s)"
 
-            # Test concurrent operations
-            start_time = time.perf_counter()
+            # Test concurrent command execution with per-command latency tracking
+            command_latencies = []
 
             with (
                 patch("openroad_mcp.interactive.session.InteractiveSession.send_command"),
@@ -131,23 +131,32 @@ class TestPerformanceBenchmarks:
                 mock_read.return_value.output = "test output"
                 mock_read.return_value.execution_time = 0.01
 
-                # Execute commands concurrently
-                tasks = []
-                for session_id in session_ids:
-                    task = session_manager.execute_command(session_id, "test command")
-                    tasks.append(task)
+                async def execute_with_latency(session_id):
+                    t0 = time.perf_counter()
+                    result = await session_manager.execute_command(session_id, "test command")
+                    latency = time.perf_counter() - t0
+                    command_latencies.append(latency)
+                    return result
 
+                tasks = [execute_with_latency(sid) for sid in session_ids]
                 await asyncio.gather(*tasks)
 
-            execution_time = time.perf_counter() - start_time
+            # Calculate p99, p95, mean latency
+            sorted_latencies = sorted(command_latencies)
+            mean_latency = sum(command_latencies) / len(command_latencies)
+            p95_latency = sorted_latencies[int(0.95 * len(sorted_latencies))]
+            p99_latency = sorted_latencies[int(0.99 * len(sorted_latencies))]
 
-            print("Concurrent Command Execution:")
-            print(f"  Commands: {len(session_ids)}")
-            print(f"  Duration: {execution_time:.3f}s")
-            print(f"  Rate: {len(session_ids) / execution_time:.1f} commands/sec")
+            print("Concurrent Command Execution (50 sessions):")
+            print(f"  Commands: {len(command_latencies)}")
+            print(f"  Mean latency: {mean_latency * 1000:.2f}ms")
+            print(f"  p95 latency:  {p95_latency * 1000:.2f}ms")
+            print(f"  p99 latency:  {p99_latency * 1000:.2f}ms")
 
-            # Performance assertions
-            assert execution_time < 2.0, f"Concurrent execution took {execution_time:.3f}s (>2s)"
+            # Latency assertions under 50-session concurrency
+            assert mean_latency < 0.05, f"Mean latency {mean_latency * 1000:.2f}ms exceeds 50ms"
+            assert p95_latency < 0.10, f"p95 latency {p95_latency * 1000:.2f}ms exceeds 100ms"
+            assert p99_latency < 0.20, f"p99 latency {p99_latency * 1000:.2f}ms exceeds 200ms"
 
         finally:
             await session_manager.cleanup_all()
