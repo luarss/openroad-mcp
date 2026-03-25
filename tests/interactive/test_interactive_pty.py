@@ -1,27 +1,11 @@
 """Tests for PTYHandler implementation."""
 
-import os
-import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from openroad_mcp.interactive.models import PTYError
 from openroad_mcp.interactive.pty_handler import PTYHandler
-
-# Skip marker for tests that cause file descriptor issues in some environments
-# These tests work correctly in isolation but fail when run together due to PTY resource limits
-# in containerized environments. The actual PTY functionality works correctly in real usage.
-
-# Detect if we're running in CI or a container
-IN_CI = os.environ.get("CI", "false").lower() == "true"
-IN_CONTAINER = os.path.exists("/.dockerenv") or os.environ.get("CONTAINER_ENV", "false").lower() == "true"
-
-# Skip PTY tests in environments known to have issues
-skip_fd_issues = pytest.mark.skipif(
-    IN_CI or IN_CONTAINER or sys.platform == "win32",
-    reason="PTY tests disabled in CI/container/Windows environments due to file descriptor limitations",
-)
 
 
 @pytest.mark.asyncio
