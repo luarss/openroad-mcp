@@ -81,41 +81,8 @@ jobs:
           timeout 10 openroad-mcp --help || true
           echo "✅ MCP server CLI verified post-setup"
 
-      - name: Test MCP PTY behavior on macOS
-        run: |
-          uv run python3 << 'EOF'
-          import sys
-          import asyncio
-          from openroad_mcp.interactive.pty_handler import PTYHandler
-          
-          async def test_pty():
-              """Test PTY handler with actual command execution."""
-              try:
-                  handler = PTYHandler()
-                  print("✅ PTY handler initialized successfully on macOS")
-                  
-                  # Create a session with a simple command
-                  await handler.create_session(["sh", "-c", "echo 'MCP PTY test'"])
-                  
-                  # Read output from the PTY
-                  output = await handler.read_output(size=1024)
-                  if output:
-                      print("✅ PTY command execution works on macOS")
-                      print(f"   Output: {output.decode(errors='ignore')[:50]}...")
-                  else:
-                      print("⚠️ PTY output was empty")
-                      sys.exit(1)
-                      
-                  # Cleanup
-                  await handler.cleanup()
-                  print("✅ Platform-specific PTY support validated")
-                  
-              except Exception as e:
-                  print(f"❌ PTY test failed: {e}")
-                  sys.exit(1)
-          
-          asyncio.run(test_pty())
-          EOF
+      - name: Run tests (tools and integration)
+        run: uv run pytest tests/tools tests/integration -v
 
   # ---------------------------------------------------------------------------
   # Summary job — gates merge
