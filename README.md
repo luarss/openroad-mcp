@@ -38,6 +38,8 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 
 **New to OpenROAD MCP?** Check out our [Quick Start guide](QUICKSTART.md).
 
+For platform-specific setup instructions, see the [Cross-Platform Guide](docs/CROSS_PLATFORM.md).
+
 ### Standard Configuration
 
 The basic configuration for all MCP clients:
