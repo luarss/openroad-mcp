@@ -118,15 +118,6 @@ jobs:
           EOF
 
   # ---------------------------------------------------------------------------
-  # Windows/WSL2 support — LOCAL TESTING ONLY
-  # ---------------------------------------------------------------------------
-  # Note: GitHub Actions windows-latest runners only support WSLv1.
-  # WSL2 installation (wsl --install -d Ubuntu-24.04) will fail in CI.
-  # Windows developers should use Docker Desktop or setup-wsl2.ps1 locally.
-  # See CONTRIBUTING.md for Windows development setup.
-  # ---------------------------------------------------------------------------
-
-  # ---------------------------------------------------------------------------
   # Summary job — gates merge
   # ---------------------------------------------------------------------------
   cross-platform-summary:

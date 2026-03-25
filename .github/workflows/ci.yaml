@@ -1,13 +1,4 @@
 name: CI
-# =============================================================================
-# ci.yaml — Run all unit tests, linting, and coverage analysis
-#
-# Runs on: push to main, PRs, and daily schedule
-#
-# PURPOSE: Execute comprehensive test suite (lint, core, interactive,
-#          integration, tools, performance) and upload coverage reports
-# NOTE: Platform-specific validation is in cross-platform.yml
-# =============================================================================
 
 on:
   push:
@@ -34,19 +25,25 @@ jobs:
     - uses: astral-sh/setup-uv@v6
     - run: make sync
 
-    - name: Run linting and tests
-      run: |
-        if [ "${{ matrix.test-type }}" = "lint" ]; then
-          make check
-        elif [ "${{ matrix.test-type }}" = "core" ]; then
-          make test
-        elif [ "${{ matrix.test-type }}" = "interactive" ]; then
-          make test-interactive
-        elif [ "${{ matrix.test-type }}" = "integration" ]; then
-          make test-integration
-        elif [ "${{ matrix.test-type }}" = "tools" ]; then
-          make test-tools
-        fi
+    - name: Run lint
+      if: matrix.test-type == 'lint'
+      run: make check
+
+    - name: Run core tests
+      if: matrix.test-type == 'core'
+      run: make test
+
+    - name: Run interactive tests
+      if: matrix.test-type == 'interactive'
+      run: make test-interactive
+
+    - name: Run integration tests
+      if: matrix.test-type == 'integration'
+      run: make test-integration
+
+    - name: Run tools tests
+      if: matrix.test-type == 'tools'
+      run: make test-tools
 
   nightly:
     runs-on: ubuntu-latest
