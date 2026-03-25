@@ -6,16 +6,19 @@ set -euo pipefail
 
 echo "🔧 Setting up OpenROAD-MCP on macOS..."
 
+# Prompt before installing (skip in CI)
+if [[ -z "${CI:-}" ]]; then
+    read -r -p "This script will install uv and project dependencies. Continue? [y/N] " response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 0
+    fi
+fi
+
 # Check for Homebrew
 if ! command -v brew &>/dev/null; then
     echo "❌ Homebrew is required. Install from: https://brew.sh"
     exit 1
-fi
-
-# Install Python 3.13+ if needed
-if ! python3 --version 2>/dev/null | grep -qE "3\.(1[3-9]|[2-9][0-9])"; then
-    echo "📦 Installing Python 3.13..."
-    brew install python@3.13
 fi
 
 # Install uv

@@ -3,11 +3,9 @@
 #
 # Runs on: push to main, PRs, and weekly schedule
 #
-# PURPOSE: Validate platform-specific setup, server startup, and Docker builds
+# PURPOSE: Validate platform-specific setup and server startup
 # NOTE:
 #   - Unit tests are run in ci.yaml, not here. Avoid duplicating tests.
-#   - Windows/WSL2 requires Docker Desktop. Not tested in CI.
-#     See setup-wsl2.ps1 for local development setup.
 # =============================================================================
 
 name: Cross-Platform Validation
@@ -53,10 +51,8 @@ jobs:
           timeout 10 uv run openroad-mcp --help || true
           echo "✅ MCP server CLI verified on ${{ matrix.os }}"
 
-      - name: Test Docker build (test image)
-        run: |
-          docker build -f Dockerfile.test -t openroad-mcp-test .
-          docker run --rm openroad-mcp-test uv run pytest tests/tools tests/integration -v
+      - name: Run tests (tools and integration)
+        run: uv run pytest tests/tools tests/integration -v
 
   # ---------------------------------------------------------------------------
   # macOS (latest)

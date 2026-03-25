@@ -6,11 +6,20 @@ set -euo pipefail
 
 echo "🔧 Setting up OpenROAD-MCP on Ubuntu..."
 
+# Prompt before installing (skip in CI)
+if [[ -z "${CI:-}" ]]; then
+    read -r -p "This script will install system packages and project dependencies. Continue? [y/N] " response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        echo "Aborted."
+        exit 0
+    fi
+fi
+
 # System dependencies
 sudo apt-get update
 sudo apt-get install -y \
-    python3 python3-dev python3-venv \
-    build-essential curl git
+    python3 python3-dev \
+    build-essential curl
 
 # Install uv (Python package manager)
 if ! command -v uv &>/dev/null; then
