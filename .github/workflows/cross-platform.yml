@@ -56,7 +56,7 @@ jobs:
       - name: Test Docker build (test image)
         run: |
           docker build -f Dockerfile.test -t openroad-mcp-test .
-          docker run --rm openroad-mcp-test uv run python -c "import openroad_mcp; print('✅ MCP module verified in test image')"
+          docker run --rm openroad-mcp-test uv run pytest tests/tools tests/integration -v
 
   # ---------------------------------------------------------------------------
   # macOS (latest)
