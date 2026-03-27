@@ -6,7 +6,7 @@ annotated-doc==0.0.4
     # via typer
 annotated-types==0.7.0
     # via pydantic
-anyio==4.12.1
+anyio==4.13.0
     # via
     #   google-genai
     #   httpx
@@ -15,7 +15,7 @@ anyio==4.12.1
     #   sse-starlette
     #   starlette
     #   watchfiles
-attrs==25.4.0
+attrs==26.1.0
     # via
     #   cyclopts
     #   jsonschema
@@ -47,12 +47,12 @@ click==8.3.1
     #   uvicorn
 coverage==7.13.5
     # via pytest-cov
-cryptography==46.0.5
+cryptography==46.0.6
     # via
     #   authlib
     #   google-auth
     #   pyjwt
-cyclopts==4.10.0
+cyclopts==4.10.1
     # via fastmcp
 distlib==0.4.0
     # via virtualenv
@@ -105,7 +105,7 @@ iniconfig==2.3.0
     # via pytest
 jaraco-classes==3.4.0
     # via keyring
-jaraco-context==6.1.1
+jaraco-context==6.1.2
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
@@ -201,9 +201,9 @@ pytest==9.0.2
     #   pytest-cov
 pytest-asyncio==1.3.0
     # via openroad-mcp (pyproject.toml)
-pytest-cov==7.0.0
+pytest-cov==7.1.0
     # via openroad-mcp (pyproject.toml)
-python-discovery==1.1.3
+python-discovery==1.2.1
     # via virtualenv
 python-dotenv==1.2.2
     # via
@@ -222,7 +222,7 @@ referencing==0.37.0
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-requests==2.32.5
+requests==2.33.0
     # via
     #   openroad-mcp (pyproject.toml)
     #   google-auth
@@ -239,7 +239,7 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
-ruff==0.15.6
+ruff==0.15.8
     # via openroad-mcp (pyproject.toml)
 shellingham==1.5.4
     # via typer
@@ -249,7 +249,7 @@ soupsieve==2.8.3
     # via beautifulsoup4
 sse-starlette==3.3.3
     # via mcp
-starlette==0.52.1
+starlette==1.0.0
     # via
     #   mcp
     #   sse-starlette
@@ -259,7 +259,7 @@ typer==0.24.1
     # via mcp
 types-psutil==7.2.2.20260130
     # via openroad-mcp (pyproject.toml)
-types-requests==2.32.4.20260107
+types-requests==2.32.4.20260324
     # via openroad-mcp (pyproject.toml)
 typing-extensions==4.15.0
     # via

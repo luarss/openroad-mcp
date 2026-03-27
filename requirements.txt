@@ -6,7 +6,7 @@ annotated-doc==0.0.4
     # via typer
 annotated-types==0.7.0
     # via pydantic
-anyio==4.12.1
+anyio==4.13.0
     # via
     #   httpx
     #   mcp
@@ -14,7 +14,7 @@ anyio==4.12.1
     #   sse-starlette
     #   starlette
     #   watchfiles
-attrs==25.4.0
+attrs==26.1.0
     # via
     #   cyclopts
     #   jsonschema
@@ -37,11 +37,11 @@ click==8.3.1
     # via
     #   typer
     #   uvicorn
-cryptography==46.0.5
+cryptography==46.0.6
     # via
     #   authlib
     #   pyjwt
-cyclopts==4.10.0
+cyclopts==4.10.1
     # via fastmcp
 dnspython==2.8.0
     # via email-validator
@@ -76,7 +76,7 @@ importlib-metadata==8.7.1
     # via opentelemetry-api
 jaraco-classes==3.4.0
     # via keyring
-jaraco-context==6.1.1
+jaraco-context==6.1.2
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
@@ -169,7 +169,7 @@ shellingham==1.5.4
     # via typer
 sse-starlette==3.3.3
     # via mcp
-starlette==0.52.1
+starlette==1.0.0
     # via
     #   mcp
     #   sse-starlette
