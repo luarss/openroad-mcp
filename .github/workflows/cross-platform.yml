@@ -4,8 +4,6 @@
 # Runs on: push to main, PRs, and weekly schedule
 #
 # PURPOSE: Validate platform-specific setup and server startup
-# NOTE:
-#   - Unit tests are run in ci.yaml, not here. Avoid duplicating tests.
 # =============================================================================
 
 name: Cross-Platform Validation
