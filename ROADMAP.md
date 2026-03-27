@@ -13,6 +13,8 @@ We are currently in the **pre-release phase**, focusing on gathering community f
 - Command history and metrics tracking
 - Report image visualization from ORFS runs
 - Integration with Claude Code and Gemini CLI
+- Docker deployment via GitHub Container Registry (GHCR)
+- Streamable HTTP transport
 
 ### Pre-Release Goals
 
@@ -29,10 +31,10 @@ The pre-release phase focuses on:
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Foundation → v0.5
 
 **Status:** In Progress
-**Timeline:** Current focus
+**Timeline:** Q2 2026
 
 ### Core Features
 - [x] Interactive OpenROAD session support with PTY
@@ -40,9 +42,10 @@ The pre-release phase focuses on:
 - [x] Command history tracking
 - [x] Performance metrics collection
 - [x] Report image visualization
-- [ ] Pre-built Docker image (bundles OpenROAD + MCP server; zero-install onboarding via `docker run`)
-- [ ] Windows/WSL2 support validation
-- [ ] Session persistence across restarts
+- [x] Pre-built Docker image (GHCR)
+- [x] Streamable HTTP transport
+- [ ] Session persistence across restarts (#57)
+- [ ] Configurable Docker image and CLI variables (#48)
 
 ### Developer Experience
 - [x] Quick Start guide
@@ -51,22 +54,35 @@ The pre-release phase focuses on:
 - [ ] VS Code extension integration testing
 - [ ] Zed integration testing
 - [ ] Comprehensive troubleshooting guide
-- [ ] Video tutorials (installation, basic usage)
+- [ ] Video tutorials - installation, basic usage (#58)
 
 ### Quality & Testing
 - [x] Core test suite (80%+ coverage)
 - [x] Type hints on all public APIs
+- [x] Load testing (50+ concurrent sessions)
+- [ ] Cross-platform validation and setup scripts (#77)
 - [ ] Integration tests with real ORFS flows
+- [ ] Playwright e2e testing via MCP inspector (#60)
 - [ ] Performance benchmarking suite
-- [ ] Load testing (50+ concurrent sessions)
 - [ ] Memory leak detection
 
 ---
 
-## Phase 2: Enhancement
+## Phase 2: Enhancement → v0.8
 
 **Status:** Planned
-**Goal:** Feature completeness and production hardening
+**Goal:** Feature completeness and ecosystem integration
+
+### Security & Permissions
+- [x] Whitelist and ask-permission commands (v0.2.0)
+- [ ] Per-command whitelist granularity (#55)
+- [ ] Progressive disclosure of advanced features (#51)
+
+### Publishing & Distribution
+- [ ] Publish to MCP server registry (official, Smithery, MCPCentral) (#41)
+- [ ] Skills + Anthropic plugins repository (#52)
+- [x] Token efficiency benchmarks (v0.2.0)
+- [ ] MCP best practices compliance (#42)
 
 ### Advanced Features
 - [ ] **Flow orchestration** - Run complete RTL-to-GDS flows through MCP
@@ -77,8 +93,15 @@ The pre-release phase focuses on:
 - [ ] **Resource scheduling** - Queue management for long-running jobs
 
 ### Integration & Compatibility
-- [ ] Additional MCP clients (Cline, Continue, etc.)
+- [ ] Additional MCP clients (#8)
+  - [ ] Cursor
+  - [ ] GitHub Copilot
+  - [ ] Cline
+  - [ ] Roo Code
+  - [ ] Goose
+  - [ ] Open Code
 - [ ] VS Code OpenROAD extension integration
+- [ ] GUI tool integration (#16)
 - [ ] CI/CD pipeline integration (GitHub Actions, GitLab CI)
 - [ ] Jupyter notebook support
 - [ ] Web-based interface option
@@ -96,10 +119,11 @@ The pre-release phase focuses on:
 - [ ] Parallel flow execution
 - [ ] Distributed computing support
 - [ ] Resource usage optimization
+- [ ] Improved image compression algorithm (#24)
 
 ---
 
-## Phase 3: Stabilization
+## Phase 3: Stabilization → v1.0
 
 **Status:** Future
 **Goal:** Production-ready stable release
@@ -118,6 +142,11 @@ The pre-release phase focuses on:
 - [ ] Audit logging
 - [ ] Multi-tenant support
 - [ ] Enterprise deployment guide
+
+### Advanced Capabilities
+- [ ] Code mode support (#38)
+- [ ] Guidance flow based on heat maps (#30)
+- [ ] Paper references and academic documentation (#6)
 
 ### Documentation
 - [ ] Complete API reference
@@ -167,8 +196,14 @@ The pre-release phase focuses on:
 
 ## Version Milestones
 
-### v0.1 (Current)
-Basic interactive session management with report visualization
+| Version | Date | Key Deliverables |
+|---------|------|------------------|
+| v0.1.0 | 2026-02-19 | PTY sessions, session management, report images, CLI, Gemini integration, docs |
+| v0.2.0 | 2026-03-18 | HTTP transport, whitelist/permissions, token efficiency benchmarks |
+| v0.3.0 | 2026-03-25 | Production Dockerfile, GHCR publishing, restored test coverage |
+| v0.5 | Q2 2026 | Session persistence, cross-platform CI, e2e testing |
+| v0.8 | Q2 2026 | MCP registry publish, multi-client support, GUI integration |
+| v1.0 | Q2 2026 | API freeze, security audit, production hardening |
 
 ---
 
@@ -192,7 +227,7 @@ We welcome community involvement at every stage:
 
 ---
 
-**Last Updated:** 2025-12-08
-**Current Phase:** Phase 1 (Pre-Release → v0.5)
+**Last Updated:** 2026-03-27
+**Current Phase:** Phase 1 (v0.3.x → v0.5)
 
 *This roadmap is a living document and will evolve based on community feedback and priorities.*
