@@ -71,8 +71,7 @@ jobs:
 
       - name: Verify MCP server starts (post-setup)
         run: |
-          source .venv/bin/activate
-          timeout 10 openroad-mcp --help || true
+          timeout 10 uv run openroad-mcp --help || true
           echo "✅ MCP server CLI verified post-setup"
 
       - name: Run tests (tools and integration)
