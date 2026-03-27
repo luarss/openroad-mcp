@@ -9,7 +9,6 @@ OpenROAD-MCP supports **Ubuntu** and **macOS**. This guide covers setup and know
 ### Automated Setup
 
 ```bash
-chmod +x scripts/setup-ubuntu.sh
 ./scripts/setup-ubuntu.sh
 ```
 
@@ -39,7 +38,6 @@ make test
 ### Automated Setup
 
 ```bash
-chmod +x scripts/setup-macos.sh
 ./scripts/setup-macos.sh
 ```
 
