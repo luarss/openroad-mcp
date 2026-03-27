@@ -14,11 +14,20 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         test-type: [lint, core, interactive, integration, tools]
+        include:
+          - os: ubuntu-22.04
+            test-type: core
+          - os: ubuntu-24.04
+            test-type: core
+          - os: macos-14
+            test-type: core
 
     steps:
     - uses: actions/checkout@v4
@@ -45,22 +54,13 @@ jobs:
       if: matrix.test-type == 'tools'
       run: make test-tools
 
-  cross-platform:
-    name: cross-platform (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, macos-latest]
+    - name: Run host-PTY integration tests
+      if: runner.os == 'macOS'
+      run: uv run pytest tests/integration
 
-    steps:
-    - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v6
-    - run: make sync
-
-    - name: Run core tests
-      run: make test
+    - name: Verify Docker image builds for linux/amd64
+      if: runner.os == 'macOS'
+      run: docker build --platform linux/amd64 -f Dockerfile.test -t openroad-mcp-platform-check .
 
   nightly:
     runs-on: ubuntu-latest
