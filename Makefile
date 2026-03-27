@@ -37,7 +37,10 @@ test:
 # Build Docker test image
 .PHONY: docker-test-build
 docker-test-build:
-	@docker build -f Dockerfile.test -t $(DOCKER_TEST_IMAGE) .
+	@docker build -f Dockerfile --target test \
+		--build-arg ORFS_VERSION=$(ORFS_VERSION) \
+		--build-arg UV_VERSION=$(UV_VERSION) \
+		-t $(DOCKER_TEST_IMAGE) .
 
 # Build production Docker image
 .PHONY: build

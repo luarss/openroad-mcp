@@ -48,3 +48,12 @@ RUN /app/.venv/bin/python -c "import openroad_mcp; print(openroad_mcp.__file__)"
     test -d "${ORFS_FLOW_PATH}" || (echo "ERROR: ORFS_FLOW_PATH=${ORFS_FLOW_PATH} not found" && exit 1)
 
 ENTRYPOINT ["openroad-mcp"]
+
+# Stage 3: test — pinned ORFS version + uv inherited from builder
+FROM builder AS test
+COPY tests/ ./tests/
+RUN uv sync --frozen --all-extras
+ENV PYTHONPATH=/app/src
+ENV PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH"
+USER root
+CMD ["bash"]
