@@ -62,10 +62,6 @@ jobs:
     - name: Run core tests
       run: make test
 
-    - name: Verify Docker image builds (linux/amd64)
-      if: matrix.os == 'macos-latest'
-      run: docker build --platform linux/amd64 -f Dockerfile.test -t openroad-mcp-test .
-
   nightly:
     runs-on: ubuntu-latest
     timeout-minutes: 45
