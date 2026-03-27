@@ -1,8 +1,4 @@
 # =============================================================================
-# cross-platform.yml — Validate OpenROAD-MCP across Ubuntu and macOS
-#
-# Runs on: push to main, PRs, and weekly schedule
-#
 # PURPOSE: Validate platform-specific setup and server startup
 # =============================================================================
 
@@ -22,9 +18,6 @@ env:
   MCP_REQUEST_MAX_TOTAL_TIMEOUT: 300
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Ubuntu matrix (22.04 and 24.04)
-  # ---------------------------------------------------------------------------
   ubuntu:
     strategy:
       fail-fast: false
@@ -42,15 +35,12 @@ jobs:
 
       - name: Verify MCP server starts
         run: |
-          timeout 10 uv run openroad-mcp --help || true
+          timeout 10 uv run openroad-mcp --help
           echo "✅ MCP server CLI verified on ${{ matrix.os }}"
 
       - name: Run tests (tools and integration)
         run: uv run pytest tests/tools tests/integration -v
 
-  # ---------------------------------------------------------------------------
-  # macOS (latest)
-  # ---------------------------------------------------------------------------
   macos:
     runs-on: macos-latest
     timeout-minutes: 30
@@ -64,7 +54,7 @@ jobs:
 
       - name: Verify MCP server starts (post-setup)
         run: |
-          timeout 10 uv run openroad-mcp --help || true
+          timeout 10 uv run openroad-mcp --help
           echo "✅ MCP server CLI verified post-setup"
 
       - name: Run tests (tools only, skip PTY integration tests)
