@@ -28,6 +28,11 @@ jobs:
             test-type: core
           - os: macos-14
             test-type: core
+          - os: macos-14
+            test-type: host-pty
+            pytest-args: --timeout=60 -x
+          - os: macos-14
+            test-type: docker-build
 
     steps:
     - uses: actions/checkout@v4
@@ -55,11 +60,11 @@ jobs:
       run: make test-tools
 
     - name: Run host-PTY integration tests
-      if: runner.os == 'macOS'
-      run: uv run pytest tests/integration
+      if: matrix.test-type == 'host-pty'
+      run: uv run pytest tests/integration ${{ matrix.pytest-args || '' }}
 
     - name: Verify Docker image builds for linux/amd64
-      if: runner.os == 'macOS'
+      if: matrix.test-type == 'docker-build'
       run: docker build --platform linux/amd64 -f Dockerfile.test -t openroad-mcp-platform-check .
 
   nightly:
