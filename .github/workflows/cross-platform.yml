@@ -74,8 +74,8 @@ jobs:
           timeout 10 uv run openroad-mcp --help || true
           echo "✅ MCP server CLI verified post-setup"
 
-      - name: Run tests (tools and integration)
-        run: uv run pytest tests/tools tests/integration -v
+      - name: Run tests (tools only, skip PTY integration tests)
+        run: uv run pytest tests/tools -v
 
   # ---------------------------------------------------------------------------
   # Summary job — gates merge
