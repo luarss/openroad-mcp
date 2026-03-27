@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-25
+
+### Added
+- Production Dockerfile with multi-stage build, non-root user, and GHCR publishing workflow ([#46](https://github.com/luarss/openroad-mcp/pull/46))
+- `--init` flag to docker run commands in Makefile for proper signal handling ([#80](https://github.com/luarss/openroad-mcp/pull/80))
+
+### Fixed
+- Restored 15 skipped TestSessionManager tests ([#75](https://github.com/luarss/openroad-mcp/pull/75))
+- Replaced `cleanup()` with `cleanup_all()` in test_session_manager ([#73](https://github.com/luarss/openroad-mcp/pull/73))
+
+### Changed
+- Removed dead `skip_fd_issues` marker and unused imports from test_interactive_pty.py ([#82](https://github.com/luarss/openroad-mcp/pull/82))
+
 ## [0.2.0] - 2026-03-18
 
 ### Added
@@ -38,5 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QUICKSTART guide, ARCHITECTURE, and CONTRIBUTING documentation
 - ROADMAP for planned features
 
+[0.3.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.1.0

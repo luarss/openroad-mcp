@@ -284,14 +284,14 @@ class InteractiveSession:
             return False
 
         # If process died but state hasn't been updated, fix it
-        process_alive = self.pty.is_process_alive()
+        process_alive = bool(self.pty.is_process_alive())
         if not process_alive and self.state == SessionState.ACTIVE:
             logger.warning(f"Session {self.session_id} process died but state was ACTIVE, updating to TERMINATED")
             self.state = SessionState.TERMINATED
             self._shutdown_event.set()
             return False
 
-        return self.state == SessionState.ACTIVE and process_alive
+        return self.state == SessionState.ACTIVE and bool(process_alive)
 
     async def get_info(self) -> InteractiveSessionInfo:
         """Get session information."""
@@ -355,6 +355,7 @@ class InteractiveSession:
                     data = await self.pty.read_output(settings.READ_CHUNK_SIZE)
                     if data:
                         await self.output_buffer.append(data)
+                        await asyncio.sleep(0)  # yield to prevent event loop starvation
                     else:
                         # No data, wait briefly
                         await asyncio.sleep(settings.COMMAND_COMPLETION_DELAY)
