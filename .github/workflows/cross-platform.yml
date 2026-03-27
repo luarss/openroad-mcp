@@ -42,9 +42,8 @@ jobs:
 
       - name: Run Ubuntu setup script
         run: bash scripts/setup-ubuntu.sh
-
-      - name: Add uv to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+        env:
+          CI: "true"
 
       - name: Verify MCP server starts
         run: |
@@ -67,9 +66,8 @@ jobs:
 
       - name: Run macOS setup script
         run: bash scripts/setup-macos.sh
-
-      - name: Add uv to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+        env:
+          CI: "true"
 
       - name: Verify MCP server starts (post-setup)
         run: |

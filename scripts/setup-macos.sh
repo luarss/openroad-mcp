@@ -15,12 +15,6 @@ if [[ -z "${CI:-}" ]]; then
     fi
 fi
 
-# Check for Homebrew
-if ! command -v brew &>/dev/null; then
-    echo "❌ Homebrew is required. Install from: https://brew.sh"
-    exit 1
-fi
-
 # Install uv
 if ! command -v uv &>/dev/null; then
     echo "📦 Installing uv..."

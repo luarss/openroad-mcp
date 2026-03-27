@@ -43,10 +43,6 @@ chmod +x scripts/setup-macos.sh
 ./scripts/setup-macos.sh
 ```
 
-### Requirements
-
-- **Homebrew** (https://brew.sh)
-
 ### Known Issues
 
 | Issue | Workaround |
