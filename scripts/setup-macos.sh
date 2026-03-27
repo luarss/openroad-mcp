@@ -6,7 +6,6 @@ set -euo pipefail
 
 echo "🔧 Setting up OpenROAD-MCP on macOS..."
 
-# Prompt before installing (skip in CI)
 if [[ -z "${CI:-}" ]]; then
     read -r -p "This script will install uv and project dependencies. Continue? [y/N] " response
     if [[ ! "$response" =~ ^[Yy]$ ]]; then
@@ -15,14 +14,12 @@ if [[ -z "${CI:-}" ]]; then
     fi
 fi
 
-# Install uv
 if ! command -v uv &>/dev/null; then
     echo "📦 Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Sync project
 echo "📦 Installing project dependencies..."
 uv sync --all-extras --inexact
 

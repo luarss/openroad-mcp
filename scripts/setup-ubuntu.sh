@@ -6,7 +6,6 @@ set -euo pipefail
 
 echo "🔧 Setting up OpenROAD-MCP on Ubuntu..."
 
-# Prompt before installing (skip in CI)
 if [[ -z "${CI:-}" ]]; then
     read -r -p "This script will install system packages and project dependencies. Continue? [y/N] " response
     if [[ ! "$response" =~ ^[Yy]$ ]]; then
@@ -15,20 +14,17 @@ if [[ -z "${CI:-}" ]]; then
     fi
 fi
 
-# System dependencies
 sudo apt-get update
 sudo apt-get install -y \
     python3 python3-dev \
     build-essential curl
 
-# Install uv (Python package manager)
 if ! command -v uv &>/dev/null; then
     echo "📦 Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Sync project
 echo "📦 Installing project dependencies..."
 uv sync --all-extras --inexact
 
