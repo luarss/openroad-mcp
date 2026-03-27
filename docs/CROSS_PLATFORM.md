@@ -51,27 +51,4 @@ make test
 
 ---
 
-## Testing on Your Platform
-
-```bash
-# Core tests (no OpenROAD required)
-make test
-
-# Tools tests (no OpenROAD required)
-make test-tools
-
-# Interactive PTY tests (Docker recommended)
-make test-interactive
-
-# Integration tests (Docker required — uses OpenROAD/ORFS)
-make test-integration
-```
-
-## MCP Client Compatibility
-
-| Client | Status | Notes |
-|--------|--------|-------|
-| Local AI Assistant (e.g., Cursor) | ✅ Supported | Primary target |
-| Gemini CLI | ✅ Supported | Follow Gemini MCP install guide |
-| VS Code (MCP extension) | ✅ Supported | Configure in `.vscode/settings.json` |
-| Zed | ✅ Supported | Configure in Zed settings |
+For testing commands and MCP client compatibility, see the main [README.md](../README.md).
