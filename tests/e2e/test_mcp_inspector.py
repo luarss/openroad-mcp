@@ -59,12 +59,20 @@ def http_mcp_server():
     """Start the MCP server in HTTP transport mode."""
     proc = subprocess.Popen(
         ["uv", "run", "openroad-mcp", "--transport", "http", "--port", str(MCP_HTTP_PORT)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
-    assert _wait_for_port("localhost", MCP_HTTP_PORT), (
-        f"MCP HTTP server did not start on port {MCP_HTTP_PORT}"
-    )
+    try:
+        if not _wait_for_port("localhost", MCP_HTTP_PORT):
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            raise RuntimeError(f"MCP HTTP server did not start on port {MCP_HTTP_PORT}")
+    except Exception:
+        proc.kill()
+        raise
     yield proc
     proc.terminate()
     try:
