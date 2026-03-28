@@ -1,0 +1,61 @@
+# =============================================================================
+# PURPOSE: Validate platform-specific setup and server startup
+# =============================================================================
+
+name: Cross-Platform Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 0"
+
+env:
+  CI: "true"
+  MCP_SERVER_REQUEST_TIMEOUT: 120
+  MCP_REQUEST_MAX_TOTAL_TIMEOUT: 300
+
+jobs:
+  ubuntu:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Ubuntu setup script
+        run: bash scripts/setup-ubuntu.sh
+
+      - name: Verify MCP server starts
+        run: |
+          uv run openroad-mcp --help
+          echo "✅ MCP server CLI verified on ${{ matrix.os }}"
+
+      - name: Run tests (tools and integration)
+        run: uv run pytest tests/tools tests/integration -v
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run macOS setup script
+        run: bash scripts/setup-macos.sh
+
+      - name: Verify MCP server starts (post-setup)
+        run: |
+          uv run openroad-mcp --help
+          echo "✅ MCP server CLI verified post-setup"
+
+      - name: Run tests (tools only, skip PTY integration tests)
+        run: uv run pytest tests/tools -v
