@@ -1,7 +1,6 @@
 """Tests for SessionManager implementation."""
 
 import asyncio
-import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -9,16 +8,6 @@ import pytest
 from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.core.models import SessionState
 from openroad_mcp.interactive.models import SessionNotFoundError, SessionTerminatedError
-
-
-@pytest.fixture(scope="session", autouse=True)
-def configure_allowed_commands():
-    """Configure allowed commands for interactive sessions."""
-    os.environ["OPENROAD_ALLOWED_COMMANDS"] = "openroad,bash"
-    yield
-    # Cleanup after tests
-    if "OPENROAD_ALLOWED_COMMANDS" in os.environ:
-        del os.environ["OPENROAD_ALLOWED_COMMANDS"]
 
 
 @pytest.mark.asyncio
