@@ -2,6 +2,7 @@
 
 import asyncio
 import math
+import os
 import time
 from unittest.mock import AsyncMock, patch
 
@@ -9,6 +10,16 @@ import pytest
 
 from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.interactive.buffer import CircularBuffer
+
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_allowed_commands():
+    """Configure allowed commands for interactive sessions."""
+    os.environ["OPENROAD_ALLOWED_COMMANDS"] = "openroad,bash"
+    yield
+    # Cleanup after tests
+    if "OPENROAD_ALLOWED_COMMANDS" in os.environ:
+        del os.environ["OPENROAD_ALLOWED_COMMANDS"]
 
 
 @pytest.mark.asyncio
