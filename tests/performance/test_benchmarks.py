@@ -169,7 +169,6 @@ class TestPerformanceBenchmarks:
 
     async def test_memory_usage_profiling(self, benchmark_timeout):
         """Test memory usage profiling."""
-        import os
 
         import psutil
 
