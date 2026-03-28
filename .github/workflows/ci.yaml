@@ -30,7 +30,7 @@ jobs:
             test-type: core
           - os: macos-14
             test-type: host-pty
-            pytest-args: --timeout=60 -x
+            pytest-args: -x
           - os: macos-14
             test-type: docker-build
 
@@ -62,6 +62,10 @@ jobs:
     - name: Run host-PTY integration tests
       if: matrix.test-type == 'host-pty'
       run: uv run pytest tests/integration ${{ matrix.pytest-args || '' }}
+
+    - name: Set up Docker (macOS)
+      if: matrix.test-type == 'docker-build' && runner.os == 'macOS'
+      uses: docker/setup-docker-action@v4
 
     - name: Verify Docker image builds for linux/amd64
       if: matrix.test-type == 'docker-build'
