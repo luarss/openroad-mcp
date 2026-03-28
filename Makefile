@@ -67,7 +67,7 @@ test-tools:
 
 .PHONY: test-e2e
 test-e2e:
-	@echo "Running e2e tests (MCP Python SDK, stdio + http)..."
+	@echo "Running e2e tests (MCP Python SDK + Inspector CLI)..."
 	@uv run pytest tests/e2e/ -v -m e2e
 
 .PHONY: test-performance

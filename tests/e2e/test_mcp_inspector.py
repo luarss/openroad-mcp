@@ -1,16 +1,18 @@
 """
-E2E tests for MCP server via MCP Python SDK.
+E2E tests for MCP server.
 
-Tests the full MCP protocol (JSON-RPC, tool dispatch, response schema)
-on both transports (stdio, http) in parallel.
+Two layers of verification:
+1. Primary: MCP Python SDK (ClientSession + stdio_client) — tests JSON-RPC protocol directly.
+2. Secondary: MCP Inspector CLI — verifies tool compatibility as a second check.
 
-No browser, npm, or Inspector proxy needed — uses the MCP Python SDK directly.
+No browser or Playwright needed.
 
 Run:
   uv run pytest tests/e2e/ -v -m e2e
 """
 
 import asyncio
+import json
 import subprocess
 import time
 
@@ -135,3 +137,47 @@ async def test_both_transports_in_parallel(
     assert stdio_names == http_names, (
         f"Tool mismatch between transports: stdio={stdio_names}, http={http_names}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Secondary: MCP Inspector CLI verification
+# ---------------------------------------------------------------------------
+
+def _run_inspector_cli(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
+    """Run MCP Inspector CLI and return the completed process."""
+    return subprocess.run(
+        ["npx", "--yes", "@modelcontextprotocol/inspector", "--cli", *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
+@pytest.mark.e2e
+def test_inspector_cli_tools_list() -> None:
+    """Use Inspector CLI to verify tool list is returned (tool compatibility check)."""
+    result = _run_inspector_cli(
+        "--method", "tools/list",
+        "uv", "run", "openroad-mcp",
+    )
+    assert result.returncode == 0, f"Inspector CLI failed:\n{result.stderr}"
+    data = json.loads(result.stdout)
+    assert "tools" in data, "Inspector CLI response missing 'tools' key"
+    tool_names = [t["name"] for t in data["tools"]]
+    assert len(tool_names) > 0, "Inspector CLI returned no tools"
+    assert "list_interactive_sessions" in tool_names
+
+
+@pytest.mark.e2e
+def test_inspector_cli_tool_call() -> None:
+    """Use Inspector CLI to call list_interactive_sessions and verify response."""
+    result = _run_inspector_cli(
+        "--method", "tools/call",
+        "--tool-name", "list_interactive_sessions",
+        "uv", "run", "openroad-mcp",
+    )
+    assert result.returncode == 0, f"Inspector CLI tool call failed:\n{result.stderr}"
+    data = json.loads(result.stdout)
+    assert data.get("isError") is False, f"Tool call returned error: {data}"
+    assert "content" in data, "Inspector CLI response missing 'content' key"
+    assert len(data["content"]) > 0, "Inspector CLI returned empty content"
