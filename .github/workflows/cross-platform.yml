@@ -20,7 +20,7 @@ env:
 jobs:
   ubuntu:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
@@ -35,7 +35,7 @@ jobs:
 
       - name: Verify MCP server starts
         run: |
-          uv run openroad-mcp --help || true
+          uv run openroad-mcp --help
           echo "✅ MCP server CLI verified on ${{ matrix.os }}"
 
       - name: Run tests (tools and integration)
@@ -54,7 +54,7 @@ jobs:
 
       - name: Verify MCP server starts (post-setup)
         run: |
-          uv run openroad-mcp --help || true
+          uv run openroad-mcp --help
           echo "✅ MCP server CLI verified post-setup"
 
       - name: Run tests (tools only, skip PTY integration tests)
