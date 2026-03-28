@@ -124,15 +124,21 @@ class TestPerformanceBenchmarks:
             # Test concurrent command execution via real PTY with per-command latency tracking
             command_latencies = []
 
-            async def execute_with_latency(session_id):
+            async def execute_with_latency(sid):
                 t0 = time.perf_counter()
-                result = await session_manager.execute_command(session_id, "echo hello")
+                result = await session_manager.execute_command(sid, "echo hello")
                 latency = time.perf_counter() - t0
                 command_latencies.append(latency)
-                return result
+                return sid, result
 
             tasks = [execute_with_latency(sid) for sid in session_ids]
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks)
+
+            # Verify output content and session binding (no cross-pollution)
+            for sid, result in results:
+                assert result is not None, f"Session {sid} returned no result"
+                output = result.output if hasattr(result, "output") else str(result)
+                assert "hello" in output, f"Session {sid} output missing 'hello': {output!r}"
 
             # Calculate p99, p95, mean latency
             if not command_latencies:
