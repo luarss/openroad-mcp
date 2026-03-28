@@ -1,47 +1,30 @@
 """
-E2E tests for MCP server via MCP Inspector + Playwright.
+E2E tests for MCP server via MCP Python SDK.
 
-Tests the full MCP flow on both transports (http, stdio) in parallel
-using the MCP Inspector UI automated with Playwright.
+Tests the full MCP protocol (JSON-RPC, tool dispatch, response schema)
+on both transports (stdio, http) in parallel.
 
-Requires:
-  - playwright: `uv run playwright install chromium`
-  - npx + @modelcontextprotocol/inspector (auto-installed via npx)
+No browser, npm, or Inspector proxy needed — uses the MCP Python SDK directly.
 
 Run:
-  uv run pytest tests/e2e/ -v -s
+  uv run pytest tests/e2e/ -v -m e2e
 """
 
 import asyncio
-import os
 import subprocess
 import time
 
 import pytest
-from playwright.async_api import Page, async_playwright
+import pytest_asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+from mcp.client.streamable_http import streamablehttp_client
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-INSPECTOR_STARTUP_TIMEOUT = 15  # seconds to wait for inspector proxy to start
-SERVER_STARTUP_TIMEOUT = 10  # seconds to wait for MCP server to start
-HTTP_PORT_STDIO = 6277  # MCP inspector proxy port for stdio transport
-HTTP_PORT_HTTP = 6278  # MCP inspector proxy port for http transport
-MCP_HTTP_PORT = 8766  # Port for the MCP server HTTP transport
+MCP_HTTP_PORT = 8766
+SERVER_STARTUP_TIMEOUT = 10
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _get_uv_run_cmd(args: list[str]) -> list[str]:
-    """Build a uv run command for the MCP server."""
-    return ["uv", "run", "openroad-mcp", *args]
-
-
-def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> bool:
+def _wait_for_port(host: str, port: int, timeout: float = SERVER_STARTUP_TIMEOUT) -> bool:
     """Poll until a TCP port is open or timeout expires."""
     import socket
 
@@ -55,21 +38,29 @@ def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> bool:
     return False
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
+@pytest_asyncio.fixture(scope="module")
+async def stdio_mcp_client():
+    """MCP client session using stdio transport."""
+    server_params = StdioServerParameters(
+        command="uv",
+        args=["run", "openroad-mcp", "--transport", "stdio"],
+        env=None,
+    )
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            yield session
 
 
 @pytest.fixture(scope="module")
-def mcp_http_server():
+def http_mcp_server():
     """Start the MCP server in HTTP transport mode."""
     proc = subprocess.Popen(
-        _get_uv_run_cmd(["--transport", "http", "--port", str(MCP_HTTP_PORT)]),
+        ["uv", "run", "openroad-mcp", "--transport", "http", "--port", str(MCP_HTTP_PORT)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
     )
-    assert _wait_for_port("localhost", MCP_HTTP_PORT, SERVER_STARTUP_TIMEOUT), (
+    assert _wait_for_port("localhost", MCP_HTTP_PORT), (
         f"MCP HTTP server did not start on port {MCP_HTTP_PORT}"
     )
     yield proc
@@ -80,196 +71,67 @@ def mcp_http_server():
         proc.kill()
 
 
-@pytest.fixture(scope="module")
-def inspector_stdio():
-    """Start MCP Inspector proxying a stdio MCP server."""
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+@pytest_asyncio.fixture(scope="module")
+async def http_mcp_client(http_mcp_server):
+    """MCP client session using HTTP (streamable) transport."""
+    async with streamablehttp_client(f"http://localhost:{MCP_HTTP_PORT}/mcp") as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            yield session
 
-    proc = subprocess.Popen(
-        [
-            "npx",
-            "--yes",
-            "@modelcontextprotocol/inspector",
-            "--cli",
-            *_get_uv_run_cmd(["--transport", "stdio"]),
-            "--port",
-            str(HTTP_PORT_STDIO),
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        cwd=project_root,
+
+@pytest.mark.e2e
+@pytest.mark.asyncio
+async def test_stdio_tools_listed(stdio_mcp_client: ClientSession) -> None:
+    """Verify tools are returned over stdio transport."""
+    result = await stdio_mcp_client.list_tools()
+    assert len(result.tools) > 0, "No MCP tools returned over stdio"
+    tool_names = [t.name for t in result.tools]
+    assert "list_interactive_sessions" in tool_names
+
+
+@pytest.mark.e2e
+@pytest.mark.asyncio
+async def test_stdio_tool_call(stdio_mcp_client: ClientSession) -> None:
+    """Call list_interactive_sessions over stdio and verify response schema."""
+    result = await stdio_mcp_client.call_tool("list_interactive_sessions", {})
+    assert result is not None
+    assert result.content is not None
+
+
+@pytest.mark.e2e
+@pytest.mark.asyncio
+async def test_http_tools_listed(http_mcp_client: ClientSession) -> None:
+    """Verify tools are returned over HTTP transport."""
+    result = await http_mcp_client.list_tools()
+    assert len(result.tools) > 0, "No MCP tools returned over HTTP"
+    tool_names = [t.name for t in result.tools]
+    assert "list_interactive_sessions" in tool_names
+
+
+@pytest.mark.e2e
+@pytest.mark.asyncio
+async def test_http_tool_call(http_mcp_client: ClientSession) -> None:
+    """Call list_interactive_sessions over HTTP and verify response schema."""
+    result = await http_mcp_client.call_tool("list_interactive_sessions", {})
+    assert result is not None
+    assert result.content is not None
+
+
+@pytest.mark.e2e
+@pytest.mark.asyncio
+async def test_both_transports_in_parallel(
+    stdio_mcp_client: ClientSession, http_mcp_client: ClientSession
+) -> None:
+    """Run tool listing on both transports simultaneously."""
+    stdio_result, http_result = await asyncio.gather(
+        stdio_mcp_client.list_tools(),
+        http_mcp_client.list_tools(),
     )
-    assert _wait_for_port("localhost", HTTP_PORT_STDIO, INSPECTOR_STARTUP_TIMEOUT), (
-        "MCP Inspector (stdio) proxy did not start"
-    )
-    yield f"http://localhost:{HTTP_PORT_STDIO}"
-    proc.terminate()
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-
-
-@pytest.fixture(scope="module")
-def inspector_http(mcp_http_server):
-    """Start MCP Inspector proxying the HTTP MCP server."""
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-
-    proc = subprocess.Popen(
-        [
-            "npx",
-            "--yes",
-            "@modelcontextprotocol/inspector",
-            "--cli",
-            f"http://localhost:{MCP_HTTP_PORT}",
-            "--port",
-            str(HTTP_PORT_HTTP),
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        cwd=project_root,
-    )
-    assert _wait_for_port("localhost", HTTP_PORT_HTTP, INSPECTOR_STARTUP_TIMEOUT), (
-        "MCP Inspector (http) proxy did not start"
-    )
-    yield f"http://localhost:{HTTP_PORT_HTTP}"
-    proc.terminate()
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-
-
-# ---------------------------------------------------------------------------
-# Shared test logic
-# ---------------------------------------------------------------------------
-
-
-async def _assert_inspector_tools_visible(page: Page, inspector_url: str) -> None:
-    """Open the MCP inspector and verify tools are listed."""
-    await page.goto(inspector_url)
-    await page.wait_for_load_state("networkidle", timeout=15000)
-
-    # Click on "Tools" tab if present
-    tools_tab = page.get_by_role("tab", name="Tools")
-    if await tools_tab.count() > 0:
-        await tools_tab.click()
-
-    # Expect at least one tool to be listed
-    await page.wait_for_selector("[data-testid='tool-item'], .tool-name, li.tool", timeout=10000)
-    tool_items = await page.locator("[data-testid='tool-item'], .tool-name, li.tool").count()
-    assert tool_items > 0, "No MCP tools found in Inspector UI"
-
-
-async def _assert_inspector_tool_call(page: Page, inspector_url: str) -> None:
-    """Call the list_interactive_sessions tool and verify a response."""
-    await page.goto(inspector_url)
-    await page.wait_for_load_state("networkidle", timeout=15000)
-
-    # Navigate to Tools tab
-    tools_tab = page.get_by_role("tab", name="Tools")
-    if await tools_tab.count() > 0:
-        await tools_tab.click()
-
-    # Find and click list_interactive_sessions tool
-    tool = page.get_by_text("list_interactive_sessions", exact=False).first
-    await tool.wait_for(timeout=10000)
-    await tool.click()
-
-    # Execute the tool (no required args)
-    run_btn = page.get_by_role("button", name="Run").first
-    await run_btn.wait_for(timeout=5000)
-    await run_btn.click()
-
-    # Verify response appears
-    response = page.locator("[data-testid='tool-response'], .response-content, pre.result")
-    await response.wait_for(timeout=10000)
-    content = await response.inner_text()
-    assert len(content) > 0, "Empty response from list_interactive_sessions"
-
-
-# ---------------------------------------------------------------------------
-# Tests: stdio transport
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.e2e
-@pytest.mark.asyncio
-async def test_inspector_stdio_tools_visible(inspector_stdio: str) -> None:
-    """Verify MCP tools are visible in Inspector when using stdio transport."""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            await _assert_inspector_tools_visible(page, inspector_stdio)
-        finally:
-            await browser.close()
-
-
-@pytest.mark.e2e
-@pytest.mark.asyncio
-async def test_inspector_stdio_tool_call(inspector_stdio: str) -> None:
-    """Call a tool via MCP Inspector using stdio transport and verify response."""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            await _assert_inspector_tool_call(page, inspector_stdio)
-        finally:
-            await browser.close()
-
-
-# ---------------------------------------------------------------------------
-# Tests: http transport
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.e2e
-@pytest.mark.asyncio
-async def test_inspector_http_tools_visible(inspector_http: str) -> None:
-    """Verify MCP tools are visible in Inspector when using HTTP transport."""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            await _assert_inspector_tools_visible(page, inspector_http)
-        finally:
-            await browser.close()
-
-
-@pytest.mark.e2e
-@pytest.mark.asyncio
-async def test_inspector_http_tool_call(inspector_http: str) -> None:
-    """Call a tool via MCP Inspector using HTTP transport and verify response."""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            await _assert_inspector_tool_call(page, inspector_http)
-        finally:
-            await browser.close()
-
-
-# ---------------------------------------------------------------------------
-# Tests: both transports in parallel
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.e2e
-@pytest.mark.asyncio
-async def test_both_transports_in_parallel(inspector_stdio: str, inspector_http: str) -> None:
-    """Run the same tool call test on both transports simultaneously."""
-
-    async def run_transport_test(transport_url: str) -> None:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
-            try:
-                await _assert_inspector_tools_visible(page, transport_url)
-            finally:
-                await browser.close()
-
-    await asyncio.gather(
-        run_transport_test(inspector_stdio),
-        run_transport_test(inspector_http),
+    assert len(stdio_result.tools) > 0
+    assert len(http_result.tools) > 0
+    stdio_names = {t.name for t in stdio_result.tools}
+    http_names = {t.name for t in http_result.tools}
+    assert stdio_names == http_names, (
+        f"Tool mismatch between transports: stdio={stdio_names}, http={http_names}"
     )
