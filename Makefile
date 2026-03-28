@@ -65,6 +65,12 @@ test-tools:
 	@echo "Running MCP tools tests..."
 	@uv run pytest tests/tools/
 
+.PHONY: test-e2e
+test-e2e:
+	@echo "Running e2e tests (Playwright + MCP Inspector)..."
+	@uv run playwright install chromium --with-deps
+	@uv run pytest tests/e2e/ -v -m e2e
+
 .PHONY: test-performance
 test-performance: docker-test-build
 	@echo "Running performance tests (benchmarks, memory, stability)..."
