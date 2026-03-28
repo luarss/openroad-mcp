@@ -129,7 +129,7 @@ class TestPerformanceBenchmarks:
 
             async def execute_with_latency(sid):
                 t0 = time.perf_counter()
-                result = await session_manager.execute_command(sid, "echo hello")
+                result = await session_manager.execute_command(sid, "puts hello")
                 latency = time.perf_counter() - t0
                 command_latencies.append(latency)
                 return sid, result
