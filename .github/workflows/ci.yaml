@@ -45,6 +45,12 @@ jobs:
       if: matrix.test-type == 'tools'
       run: make test-tools
 
+    - name: Set up Node.js (for npx/Inspector CLI)
+      if: matrix.test-type == 'e2e'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
     - name: Run e2e tests
       if: matrix.test-type == 'e2e'
       run: make test-e2e
