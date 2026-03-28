@@ -2,7 +2,6 @@
 
 import asyncio
 import math
-import os
 import time
 from unittest.mock import AsyncMock, patch
 
@@ -10,16 +9,6 @@ import pytest
 
 from openroad_mcp.core.manager import OpenROADManager as SessionManager
 from openroad_mcp.interactive.buffer import CircularBuffer
-
-
-@pytest.fixture(scope="session", autouse=True)
-def configure_allowed_commands():
-    """Configure allowed commands for interactive sessions."""
-    os.environ["OPENROAD_ALLOWED_COMMANDS"] = "openroad,bash"
-    yield
-    # Cleanup after tests
-    if "OPENROAD_ALLOWED_COMMANDS" in os.environ:
-        del os.environ["OPENROAD_ALLOWED_COMMANDS"]
 
 
 @pytest.mark.asyncio
@@ -110,10 +99,10 @@ class TestPerformanceBenchmarks:
 
             start_time = time.perf_counter()
 
-            # Create sessions concurrently using real PTY (bash as substitute for openroad in CI)
+            # Create sessions concurrently using real openroad PTY calls
             async def create_session_with_delay():
                 await asyncio.sleep(0.001)  # Small delay to simulate real usage
-                return await session_manager.create_session(command=["bash", "--norc", "--noprofile"])
+                return await session_manager.create_session()
 
             tasks = [create_session_with_delay() for _ in range(concurrent_sessions)]
             session_ids = await asyncio.gather(*tasks)
