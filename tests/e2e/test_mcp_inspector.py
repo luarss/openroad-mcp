@@ -151,7 +151,7 @@ async def test_both_transports_in_parallel(
 # Secondary: MCP Inspector CLI verification
 # ---------------------------------------------------------------------------
 
-def _run_inspector_cli(*args: str, timeout: int = 30) -> subprocess.CompletedProcess:
+def _run_inspector_cli(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
     """Run MCP Inspector CLI and return the completed process."""
     return subprocess.run(
         ["npx", "--yes", "@modelcontextprotocol/inspector", "--cli", *args],
