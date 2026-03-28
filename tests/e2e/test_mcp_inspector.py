@@ -30,8 +30,6 @@ HTTP_PORT_STDIO = 6277  # MCP inspector proxy port for stdio transport
 HTTP_PORT_HTTP = 6278  # MCP inspector proxy port for http transport
 MCP_HTTP_PORT = 8766  # Port for the MCP server HTTP transport
 
-INSPECTOR_UI_URL = "http://localhost:5173"  # MCP Inspector frontend (dev) or built UI
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,7 +38,7 @@ INSPECTOR_UI_URL = "http://localhost:5173"  # MCP Inspector frontend (dev) or bu
 
 def _get_uv_run_cmd(args: list[str]) -> list[str]:
     """Build a uv run command for the MCP server."""
-    return ["uv", "run", "openroad-mcp"] + args
+    return ["uv", "run", "openroad-mcp", *args]
 
 
 def _wait_for_port(host: str, port: int, timeout: float = 10.0) -> bool:
@@ -86,7 +84,6 @@ def mcp_http_server():
 def inspector_stdio():
     """Start MCP Inspector proxying a stdio MCP server."""
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    server_cmd = " ".join(_get_uv_run_cmd(["--transport", "stdio"]))
 
     proc = subprocess.Popen(
         [
@@ -94,7 +91,7 @@ def inspector_stdio():
             "--yes",
             "@modelcontextprotocol/inspector",
             "--cli",
-            server_cmd,
+            *_get_uv_run_cmd(["--transport", "stdio"]),
             "--port",
             str(HTTP_PORT_STDIO),
         ],
@@ -263,7 +260,7 @@ async def test_inspector_http_tool_call(inspector_http: str) -> None:
 async def test_both_transports_in_parallel(inspector_stdio: str, inspector_http: str) -> None:
     """Run the same tool call test on both transports simultaneously."""
 
-    async def run_transport_test(transport_url: str, transport_name: str) -> None:
+    async def run_transport_test(transport_url: str) -> None:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
@@ -273,6 +270,6 @@ async def test_both_transports_in_parallel(inspector_stdio: str, inspector_http:
                 await browser.close()
 
     await asyncio.gather(
-        run_transport_test(inspector_stdio, "stdio"),
-        run_transport_test(inspector_http, "http"),
+        run_transport_test(inspector_stdio),
+        run_transport_test(inspector_http),
     )

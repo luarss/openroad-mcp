@@ -32,7 +32,7 @@ check:
 .PHONY: test
 test:
 	@echo "Running core tests..."
-	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration
+	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration --ignore=tests/e2e
 
 # Build Docker test image
 .PHONY: docker-test-build
