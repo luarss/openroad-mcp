@@ -40,7 +40,7 @@ def _wait_for_port(host: str, port: int, timeout: float = SERVER_STARTUP_TIMEOUT
     return False
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture(scope="function")
 async def stdio_mcp_client():
     """MCP client session using stdio transport."""
     server_params = StdioServerParameters(
@@ -54,7 +54,7 @@ async def stdio_mcp_client():
             yield session
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def http_mcp_server():
     """Start the MCP server in HTTP transport mode."""
     proc = subprocess.Popen(
@@ -73,7 +73,7 @@ def http_mcp_server():
         proc.kill()
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture(scope="function")
 async def http_mcp_client(http_mcp_server):
     """MCP client session using HTTP (streamable) transport."""
     async with streamablehttp_client(f"http://localhost:{MCP_HTTP_PORT}/mcp") as (read, write, _):
