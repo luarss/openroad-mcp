@@ -45,7 +45,7 @@ docker-test-build:
 # Build production Docker image
 .PHONY: build
 build:
-	@docker build \
+	@docker build --target runtime \
 		--build-arg ORFS_VERSION=$(ORFS_VERSION) \
 		--build-arg UV_VERSION=$(UV_VERSION) \
 		-t $(IMAGE_NAME):$(ORFS_VERSION) .
