@@ -122,14 +122,17 @@ class TestPerformanceBenchmarks:
             # Performance assertions
             assert creation_time < 10.0, f"Concurrent creation took {creation_time:.3f}s (>10s)"
 
-            # Consume the startup banner from each session by sending a sentinel command
-            # and waiting for its output. This is deterministic: once execute_command
-            # returns with the sentinel in the output, all prior banner text has been
-            # consumed, so the subsequent "puts hello" reads only its own output.
+            # Consume the startup banner from each session by repeatedly sending a
+            # sentinel command until its output is confirmed. The first call may return
+            # only the banner (already buffered before the command runs); retrying
+            # guarantees the banner is fully drained before the real test commands run.
             async def wait_for_ready(sid):
-                result = await session_manager.execute_command(sid, "puts __ready__")
-                output = result.output if hasattr(result, "output") else str(result)
-                assert "__ready__" in output, f"Session {sid} did not reach ready state"
+                for _ in range(10):
+                    result = await session_manager.execute_command(sid, "puts __ready__")
+                    output = result.output if hasattr(result, "output") else str(result)
+                    if "__ready__" in output:
+                        return
+                raise AssertionError(f"Session {sid} did not reach ready state after retries")
 
             await asyncio.gather(*[wait_for_ready(sid) for sid in session_ids])
 
