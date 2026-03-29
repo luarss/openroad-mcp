@@ -172,7 +172,6 @@ class TestPerformanceBenchmarks:
             assert p99_latency < 3.0, f"p99 latency {p99_latency * 1000:.2f}ms exceeds 3000ms"
 
         finally:
-            session_manager._max_sessions = original_max
             await session_manager.cleanup_all()
 
     async def test_memory_usage_profiling(self, benchmark_timeout):
