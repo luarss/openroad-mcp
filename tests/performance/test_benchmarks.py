@@ -92,8 +92,6 @@ class TestPerformanceBenchmarks:
     async def test_concurrent_session_scalability(self, benchmark_timeout):
         """Test concurrent session scalability with 50+ sessions using real PTY calls."""
         session_manager = SessionManager()
-        original_max = session_manager._max_sessions
-        session_manager._max_sessions = 50
 
         try:
             # GSoC Phase 1 target: 50+ concurrent sessions
