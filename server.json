@@ -6,18 +6,18 @@
     "url": "https://github.com/luarss/openroad-mcp",
     "source": "github"
   },
-  "version": "0.3.0",
+  "version": "0.4.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "openroad-mcp",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "transport": { "type": "stdio" },
       "runtimeHint": "uvx"
     },
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/luarss/openroad-mcp:0.3.0",
+      "identifier": "ghcr.io/luarss/openroad-mcp:0.4.0",
       "transport": { "type": "stdio" },
       "runtimeHint": "docker"
     }

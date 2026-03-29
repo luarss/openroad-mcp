@@ -201,7 +201,8 @@ The pre-release phase focuses on:
 | v0.1.0 | 2026-02-19 | PTY sessions, session management, report images, CLI, Gemini integration, docs |
 | v0.2.0 | 2026-03-18 | HTTP transport, whitelist/permissions, token efficiency benchmarks |
 | v0.3.0 | 2026-03-25 | Production Dockerfile, GHCR publishing, restored test coverage |
-| v0.5 | Q2 2026 | Session persistence, cross-platform CI, e2e testing |
+| v0.4.0 | 2026-03-29 | MCP registry publishing, cross-platform CI, performance benchmarks |
+| v0.5 | Q2 2026 | Session persistence, e2e testing |
 | v0.8 | Q2 2026 | MCP registry publish, multi-client support, GUI integration |
 | v1.0 | Q2 2026 | API freeze, security audit, production hardening |
 
