@@ -7,7 +7,6 @@ on:
         description: Docker image tag to publish (e.g. v0.1.0)
         required: true
         type: string
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -31,8 +30,12 @@ jobs:
       - name: Build Docker image
         run: make build
 
-      - name: Push Docker image
+      - name: Tag and push Docker image
         run: |
           ORFS_VER=$(make --no-print-directory print-ORFS_VERSION)
-          docker tag ghcr.io/luarss/openroad-mcp:$ORFS_VER ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"
-          docker push ghcr.io/luarss/openroad-mcp:"$IMAGE_TAG"
+          IMAGE=ghcr.io/luarss/openroad-mcp
+          docker tag $IMAGE:$ORFS_VER $IMAGE:"$IMAGE_TAG"
+          docker tag $IMAGE:$ORFS_VER $IMAGE:latest
+          docker push $IMAGE:$ORFS_VER
+          docker push $IMAGE:"$IMAGE_TAG"
+          docker push $IMAGE:latest
