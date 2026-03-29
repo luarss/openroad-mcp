@@ -70,6 +70,11 @@ test-performance: docker-test-build
 	@echo "Running performance tests (benchmarks, memory, stability)..."
 	@docker run --rm --init $(DOCKER_TEST_IMAGE) uv run pytest tests/performance/
 
+.PHONY: test-scalability
+test-scalability: docker-test-build
+	@echo "Running scalability tests (graduated load, ramp-up/down, lock contention)..."
+	@docker run --rm --init $(DOCKER_TEST_IMAGE) uv run pytest tests/performance/test_scalability.py -v -s
+
 .PHONY: test-coverage
 test-coverage: docker-test-build
 	@echo "Running tests with coverage analysis..."
