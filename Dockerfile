@@ -35,6 +35,8 @@ WORKDIR /app
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appuser /opt/python /opt/python
 
+LABEL io.modelcontextprotocol.server.name="io.github.luarss/openroad-mcp"
+
 USER appuser
 
 ENV PATH="/app/.venv/bin:/OpenROAD-flow-scripts/tools/install/OpenROAD/bin:/OpenROAD-flow-scripts/tools/install/yosys/bin:$PATH" \

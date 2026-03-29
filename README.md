@@ -1,5 +1,7 @@
 # OpenROAD MCP Server
 
+<!-- mcp-name: io.github.luarss/openroad-mcp -->
+
 A Model Context Protocol (MCP) server that provides tools for interacting with OpenROAD and ORFS (OpenROAD Flow Scripts).
 
 ## Demo
@@ -101,6 +103,17 @@ Follow the [Gemini MCP install guide](https://ai.google.dev/gemini-api/docs/mode
 <summary><b>Docker</b></summary>
 
 🚧 **Work in Progress**: Docker deployment via GitHub Container Registry (GHCR) is coming soon.
+
+</details>
+
+<details>
+<summary><b>MCP Registry</b></summary>
+
+Once published to the [MCP Registry](https://registry.modelcontextprotocol.io), clients can discover and install directly:
+
+```bash
+uvx openroad-mcp
+```
 
 </details>
 
