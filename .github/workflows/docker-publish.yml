@@ -34,8 +34,11 @@ jobs:
         run: |
           ORFS_VER=$(make --no-print-directory print-ORFS_VERSION)
           IMAGE=ghcr.io/luarss/openroad-mcp
+          SEMVER="${IMAGE_TAG#v}"
           docker tag $IMAGE:$ORFS_VER $IMAGE:"$IMAGE_TAG"
+          docker tag $IMAGE:$ORFS_VER $IMAGE:"$SEMVER"
           docker tag $IMAGE:$ORFS_VER $IMAGE:latest
           docker push $IMAGE:$ORFS_VER
           docker push $IMAGE:"$IMAGE_TAG"
+          docker push $IMAGE:"$SEMVER"
           docker push $IMAGE:latest
