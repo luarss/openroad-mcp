@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +10,69 @@ import pytest
 from openroad_mcp.config.settings import settings
 from openroad_mcp.interactive.models import PTYError
 from openroad_mcp.interactive.pty_handler import PTYHandler
+
+
+class _MacOSPTYHandler(PTYHandler):
+    """PTYHandler subclass for macOS.
+
+    On macOS the PTY kernel buffer is discarded when all slave fd holders exit,
+    so output cannot be read after wait_for_exit returns.  This subclass opens
+    an extra reference to the slave device (a "keepalive" fd) immediately after
+    the session is created.  Because the keepalive fd remains open even after
+    the child process closes its own copy, the kernel buffer survives the child's
+    exit.  wait_for_exit drains that buffer into _cached_output, and read_output
+    serves it back to callers.  The keepalive is released in cleanup().
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._cached_output = b""
+        self._slave_keepalive_fd: int | None = None
+
+    async def create_session(self, *args, **kwargs) -> None:
+        self._cached_output = b""
+        # Close any leftover keepalive from a previous session.
+        if self._slave_keepalive_fd is not None:
+            try:
+                os.close(self._slave_keepalive_fd)
+            except OSError:
+                pass
+            self._slave_keepalive_fd = None
+        await super().create_session(*args, **kwargs)
+        # Hold the slave device open so macOS doesn't discard the PTY buffer
+        # when the child closes its copy of the slave fd on exit.
+        if self.master_fd is not None:
+            try:
+                slave_path = os.ptsname(self.master_fd)
+                self._slave_keepalive_fd = os.open(slave_path, os.O_RDWR | os.O_NOCTTY)
+            except OSError:
+                pass
+
+    async def wait_for_exit(self, timeout: float | None = None) -> int | None:
+        result = await super().wait_for_exit(timeout=timeout)
+        # Only drain when the process actually exited (result is None on timeout).
+        if result is not None and self.master_fd is not None:
+            # The keepalive fd keeps the buffer alive; drain it fully now.
+            chunk = await super().read_output()
+            while chunk:
+                self._cached_output += chunk
+                chunk = await super().read_output()
+        return result
+
+    async def read_output(self, size: int | None = None) -> bytes | None:
+        if self._cached_output:
+            data, self._cached_output = self._cached_output, b""
+            return data
+        return await super().read_output(size)
+
+    async def cleanup(self) -> None:
+        if self._slave_keepalive_fd is not None:
+            try:
+                os.close(self._slave_keepalive_fd)
+            except OSError:
+                pass
+            self._slave_keepalive_fd = None
+        await super().cleanup()
 
 
 def can_create_pty() -> bool:
@@ -40,7 +104,7 @@ class TestPTYIntegration:
     @pytest.fixture
     async def pty_handler(self):
         """Create and cleanup PTY handler."""
-        handler = PTYHandler()
+        handler = _MacOSPTYHandler() if sys.platform == "darwin" else PTYHandler()
         try:
             yield handler
         finally:
