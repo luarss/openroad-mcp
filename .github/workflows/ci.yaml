@@ -14,11 +14,23 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         test-type: [lint, core, interactive, integration, tools]
+        include:
+          - os: ubuntu-22.04
+            test-type: core
+          - os: ubuntu-24.04
+            test-type: core
+          - os: macos-14
+            test-type: core
+          - os: macos-14
+            test-type: host-pty
+            pytest-args: -x
 
     steps:
     - uses: actions/checkout@v4
@@ -44,6 +56,10 @@ jobs:
     - name: Run tools tests
       if: matrix.test-type == 'tools'
       run: make test-tools
+
+    - name: Run host-PTY integration tests
+      if: matrix.test-type == 'host-pty'
+      run: uv run pytest tests/integration ${{ matrix.pytest-args || '' }}
 
   nightly:
     runs-on: ubuntu-latest
