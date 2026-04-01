@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OpenROAD MCP - FSiC 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #333; }
+    .slide {
+      width: 960px;
+      height: 540px;
+      background: #fff;
+      color: #333;
+      padding: 40px 50px;
+      margin: 0 auto;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+    }
+    .slide.dark { background: #1a5f7a; color: #fff; }
+    .slide h1 { font-size: 42px; color: #1a5f7a; margin-bottom: 15px; }
+    .slide.dark h1 { color: #fff; }
+    .slide h2 { font-size: 28px; color: #2d8bba; margin-bottom: 20px; }
+    .slide.dark h2 { color: #e0f0ff; }
+    .slide h3 { font-size: 22px; color: #2d8bba; margin-bottom: 15px; }
+    .slide ul { font-size: 20px; line-height: 1.8; margin-left: 30px; }
+    .slide li { margin-bottom: 8px; }
+    .slide ol { font-size: 20px; line-height: 1.8; margin-left: 30px; }
+    .slide blockquote { font-size: 22px; font-style: italic; color: #666; border-left: 4px solid #2d8bba; padding-left: 20px; margin: 20px 0; }
+    .slide.dark blockquote { color: #ccc; }
+    .slide code { background: #f4f4f4; padding: 2px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 18px; }
+    .slide.dark code { background: rgba(255,255,255,0.2); }
+    .slide pre { background: #2d2d2d; color: #f8f8f2; padding: 15px 20px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 14px; line-height: 1.5; overflow-x: auto; margin: 15px 0; }
+    .slide table { width: 100%; border-collapse: collapse; font-size: 18px; margin: 15px 0; }
+    .slide th, .slide td { border: 1px solid #ddd; padding: 10px 15px; text-align: left; }
+    .slide th { background: #f5f5f5; font-weight: 600; }
+    .slide.dark th { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+    .slide.dark td { border-color: rgba(255,255,255,0.2); }
+    .logo-footer { position: absolute; bottom: 0; left: 0; right: 0; background: #1a5f7a; padding: 15px 50px; display: flex; align-items: center; gap: 25px; }
+    .logo-footer img { height: 28px; }
+    .logo-footer .openroad-logo { background: #fff; padding: 4px 8px; border-radius: 4px; height: 24px; }
+    .page-number { position: absolute; bottom: 20px; right: 50px; color: rgba(255,255,255,0.7); font-size: 14px; }
+    .center-content { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
+    .title-slide .presenter { font-size: 24px; margin-top: 30px; }
+    .title-slide .conference { font-size: 20px; margin-top: 10px; opacity: 0.9; }
+    .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .arch-diagram { font-family: monospace; font-size: 14px; line-height: 1.4; background: #f8f8f8; padding: 15px; border-radius: 8px; white-space: pre; }
+    .slide.dark .arch-diagram { background: rgba(0,0,0,0.3); }
+    @media print {
+      body { background: none; }
+      .slide {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+        page-break-inside: avoid;
+        break-after: page;
+        break-inside: avoid;
+      }
+    }
+    @page {
+      size: 960px 540px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Slide 1: Title -->
+  <div class="slide dark title-slide">
+    <div class="center-content">
+      <h1>OpenROAD MCP</h1>
+      <h2>Bridging AI Assistants with Open-Source Chip Design</h2>
+      <p class="presenter"><strong>Jack Luar</strong></p>
+      <p class="conference">Free Silicon Conference 2026</p>
+    </div>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">1 / 14</div>
+  </div>
+
+  <!-- Slide 2: Problem -->
+  <div class="slide">
+    <h1>The Problem: Chip Design is Hard</h1>
+    <ul>
+      <li><strong>Steep learning curve</strong> for EDA tools</li>
+      <li><strong>Complex multi-stage flows:</strong> Synthesis → Placement → Routing → Timing Closure</li>
+      <li><strong>Tcl scripting expertise</strong> required</li>
+      <li><strong>Debugging is time-consuming</strong></li>
+      <li><strong>No natural language interface</strong> exists</li>
+    </ul>
+    <blockquote>"Why is my chip failing timing?" — A question every designer asks</blockquote>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">2 / 14</div>
+  </div>
+
+  <!-- Slide 3: Solution -->
+  <div class="slide">
+    <h1>The Solution: OpenROAD MCP</h1>
+    <h2>An AI-Friendly Bridge to OpenROAD</h2>
+    <ul>
+      <li><strong>Model Context Protocol (MCP) server</strong> for OpenROAD</li>
+      <li>Enables <strong>natural language interaction</strong> with chip design tools</li>
+      <li>Works with <strong>Claude Code</strong>, <strong>Gemini CLI</strong>, and any MCP-compatible client</li>
+      <li><strong>Open source</strong> and community-driven</li>
+    </ul>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">3 / 14</div>
+  </div>
+
+  <!-- Slide 4: What is MCP -->
+  <div class="slide">
+    <h1>What is MCP?</h1>
+    <h2>Model Context Protocol</h2>
+    <ul>
+      <li><strong>Standardized protocol</strong> for AI assistants to interact with external tools</li>
+      <li>Developed by Anthropic, gaining industry adoption</li>
+      <li><strong>JSON-RPC based</strong> communication</li>
+      <li>Makes AI agents <strong>tool-aware</strong> and <strong>context-aware</strong></li>
+    </ul>
+    <pre>AI Assistant ←→ MCP Server ←→ Your Tools</pre>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">4 / 14</div>
+  </div>
+
+  <!-- Slide 5: Architecture -->
+  <div class="slide">
+    <h1>Architecture Overview</h1>
+    <div class="arch-diagram">┌─────────────────┐     MCP Protocol     ┌───────────────┐
+│  Claude/Gemini  │ ←─────────────────→ │  FastMCP Server│
+└─────────────────┘      (STDIO)        └───────┬───────┘
+                                               │
+                                               ▼
+                                       ┌───────────────┐
+                                       │ OpenROAD      │
+                                       │ (via PTY)     │
+                                       └───────────────┘</div>
+    <h3>Key Technologies:</h3>
+    <ul>
+      <li>Linux PTY (Pseudo-Terminal) for true terminal emulation</li>
+      <li>Async I/O for concurrent sessions</li>
+      <li>Pydantic models for type safety</li>
+    </ul>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">5 / 14</div>
+  </div>
+
+  <!-- Slide 6: Core Features -->
+  <div class="slide">
+    <h1>Core Features</h1>
+    <table>
+      <tr><th>Feature</th><th>Description</th></tr>
+      <tr><td><strong>Interactive Sessions</strong></td><td>Create persistent OpenROAD sessions</td></tr>
+      <tr><td><strong>Command Execution</strong></td><td>Run Tcl commands with timeout support</td></tr>
+      <tr><td><strong>Report Visualization</strong></td><td>View placement, routing, CTS images</td></tr>
+      <tr><td><strong>Session Management</strong></td><td>Multiple concurrent sessions</td></tr>
+      <tr><td><strong>Command History</strong></td><td>Search and review past commands</td></tr>
+    </table>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">6 / 14</div>
+  </div>
+
+  <!-- Slide 7: Example Workflow -->
+  <div class="slide">
+    <h1>Example Workflow</h1>
+    <pre># 1. Create a session
+create_interactive_session()
+
+# 2. Load a design
+interactive_openroad("read_verilog my_design.v")
+
+# 3. Run synthesis
+interactive_openroad("synth_design")
+
+# 4. Check timing
+interactive_openroad("report_timing")
+
+# 5. View results
+list_report_images(platform="sky130", design="my_design")</pre>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">7 / 14</div>
+  </div>
+
+  <!-- Slide 8: Security Model -->
+  <div class="slide">
+    <h1>Security Model: Permission-Ask Approach</h1>
+    <h2>Deny-by-Default Whitelist</h2>
+    <table>
+      <tr><th>Category</th><th>Examples</th><th>Behavior</th></tr>
+      <tr><td><strong>Allowed</strong></td><td><code>report_*</code>, <code>get_*</code>, <code>set_*</code></td><td>Execute immediately</td></tr>
+      <tr><td><strong>Blocked</strong></td><td><code>exec</code>, <code>source</code>, <code>exit</code></td><td>Ask for confirmation</td></tr>
+      <tr><td><strong>Dangerous</strong></td><td><code>file</code>, <code>socket</code></td><td>Always blocked</td></tr>
+    </table>
+    <p style="margin-top: 15px;"><strong>Why this matters:</strong> AI agents can be <strong>helpful but cautious</strong></p>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">8 / 14</div>
+  </div>
+
+  <!-- Slide 9: Unique Innovations -->
+  <div class="slide">
+    <h1>Unique Innovations</h1>
+    <h2>What Makes OpenROAD MCP Special?</h2>
+    <ol>
+      <li><strong>MCP server for OpenROAD</strong> with natural language interface</li>
+      <li><strong>True PTY terminal emulation</strong> (not just pipe-based)</li>
+      <li><strong>Permission-ask security model</strong> for AI agents</li>
+      <li><strong>ORFS integration</strong> with automatic design discovery</li>
+      <li><strong>Production-ready:</strong> 80%+ test coverage, async architecture</li>
+    </ol>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">9 / 14</div>
+  </div>
+
+  <!-- Slide 10: Use Cases -->
+  <div class="slide">
+    <h1>Use Cases</h1>
+    <h2>Demo: GCD Timing Closure</h2>
+    <table>
+      <tr><th>Metric</th><th>Before</th><th>After</th></tr>
+      <tr><td><strong>WNS</strong></td><td>-0.05 ns</td><td>~0.00 ns</td></tr>
+      <tr><td><strong>Setup Violations</strong></td><td>23</td><td>4 (negligible)</td></tr>
+      <tr><td><strong>Status</strong></td><td>FAILED</td><td>PASSED</td></tr>
+    </table>
+    <p style="margin-top: 15px;"><strong>Workflow:</strong></p>
+    <ul>
+      <li>AI loads nangate45/gcd design from ORFS</li>
+      <li>Runs <code>report_clock_min_period</code> → achieves 0.51 ns</li>
+      <li>Relaxes constraint from 0.46 ns to 0.52 ns</li>
+      <li>Full demo: <code>demo/orfs-gcd-timing/</code></li>
+    </ul>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">10 / 14</div>
+  </div>
+
+  <!-- Slide 11: Roadmap -->
+  <div class="slide">
+    <h1>Roadmap</h1>
+    <h2>What's Next?</h2>
+    <div class="two-column">
+      <div>
+        <h3>v0.2 Goals:</h3>
+        <ul>
+          <li>Complete RTL-to-GDS flow orchestration</li>
+          <li>Design space exploration</li>
+          <li>Real-time monitoring during long runs</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Future Vision:</h3>
+        <ul>
+          <li>Machine learning integration</li>
+          <li>Multi-objective optimization</li>
+          <li>Cloud deployment support</li>
+        </ul>
+      </div>
+    </div>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">11 / 14</div>
+  </div>
+
+  <!-- Slide 12: Get Involved -->
+  <div class="slide">
+    <h1>Get Involved</h1>
+    <h2>Try It Today!</h2>
+    <pre># Add to Claude Code
+claude mcp add --transport stdio openroad-mcp -- \
+  uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
+
+# GitHub
+github.com/luarss/openroad-mcp</pre>
+    <p style="margin-top: 15px;"><strong>Community:</strong></p>
+    <ul>
+      <li>Open source under Apache 2.0 license</li>
+      <li>Contributions welcome</li>
+    </ul>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">12 / 14</div>
+  </div>
+
+  <!-- Slide 13: Summary -->
+  <div class="slide">
+    <h1>Summary</h1>
+    <h2>Key Takeaways</h2>
+    <ol>
+      <li><strong>OpenROAD MCP</strong> bridges AI assistants with chip design</li>
+      <li><strong>Natural language</strong> interface to OpenROAD</li>
+      <li><strong>Security-first</strong> design with permission-ask model</li>
+      <li><strong>Production-ready</strong> and open source</li>
+      <li><strong>Community-driven</strong> development</li>
+    </ol>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">13 / 14</div>
+  </div>
+
+  <!-- Slide 14: Questions -->
+  <div class="slide dark title-slide">
+    <div class="center-content">
+      <h1>Questions?</h1>
+      <h2>Thank You!</h2>
+      <p style="font-size: 20px; margin-top: 30px;">
+        <strong>Contact:</strong> Jack Luar<br><br>
+        <strong>GitHub:</strong> github.com/luarss/openroad-mcp
+      </p>
+    </div>
+    <div class="logo-footer">
+      <img src="precision_logo.png" alt="Precision Innovations">
+      <img src="openroad_logo.png" alt="OpenROAD" class="openroad-logo">
+    </div>
+    <div class="page-number">14 / 14</div>
+  </div>
+
+</body>
+</html>
