@@ -131,7 +131,7 @@ pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.13.1
     # via mcp
-pygments==2.19.2
+pygments==2.20.0
     # via rich
 pyjwt==2.12.1
     # via mcp
@@ -167,7 +167,7 @@ rpds-py==0.30.0
     #   referencing
 shellingham==1.5.4
     # via typer
-sse-starlette==3.3.3
+sse-starlette==3.3.4
     # via mcp
 starlette==1.0.0
     # via
