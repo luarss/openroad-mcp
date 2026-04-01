@@ -32,7 +32,7 @@ check:
 .PHONY: test
 test:
 	@echo "Running core tests..."
-	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration
+	@uv run pytest --ignore=tests/interactive --ignore=tests/performance --ignore=tests/integration --ignore=tests/e2e
 
 # Build Docker test image
 .PHONY: docker-test-build
@@ -64,6 +64,11 @@ test-integration: docker-test-build
 test-tools:
 	@echo "Running MCP tools tests..."
 	@uv run pytest tests/tools/
+
+.PHONY: test-e2e
+test-e2e:
+	@echo "Running e2e tests (MCP Python SDK + Inspector CLI)..."
+	@uv run pytest tests/e2e/ -v -m e2e
 
 .PHONY: test-performance
 test-performance: docker-test-build
