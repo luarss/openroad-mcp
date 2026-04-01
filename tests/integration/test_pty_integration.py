@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import select
 import sys
 from unittest.mock import patch
 
@@ -15,13 +16,17 @@ from openroad_mcp.interactive.pty_handler import PTYHandler
 class _MacOSPTYHandler(PTYHandler):
     """PTYHandler subclass for macOS.
 
-    On macOS the PTY kernel buffer is discarded when all slave fd holders exit,
-    so output cannot be read after wait_for_exit returns.  This subclass opens
-    an extra reference to the slave device (a "keepalive" fd) immediately after
-    the session is created.  Because the keepalive fd remains open even after
-    the child process closes its own copy, the kernel buffer survives the child's
-    exit.  wait_for_exit drains that buffer into _cached_output, and read_output
-    serves it back to callers.  The keepalive is released in cleanup().
+    Two macOS-specific problems combine to lose output from fast-exiting processes:
+
+    1. When all slave-fd holders close, the kernel discards the PTY master's read
+       buffer.  Fix: re-open the slave device as a "keepalive" fd immediately after
+       create_session so the buffer survives the child's exit.
+
+    2. process.wait() returns the instant the kernel notes the child's exit.  The
+       PTY line discipline may not have committed the child's final write to the
+       master's read buffer at that exact moment, so a bare non-blocking os.read()
+       races past the data.  Fix: drain via select() in a thread executor, which
+       blocks until the master fd is actually readable.
     """
 
     def __init__(self) -> None:
@@ -31,7 +36,6 @@ class _MacOSPTYHandler(PTYHandler):
 
     async def create_session(self, *args, **kwargs) -> None:
         self._cached_output = b""
-        # Close any leftover keepalive from a previous session.
         if self._slave_keepalive_fd is not None:
             try:
                 os.close(self._slave_keepalive_fd)
@@ -39,12 +43,13 @@ class _MacOSPTYHandler(PTYHandler):
                 pass
             self._slave_keepalive_fd = None
         await super().create_session(*args, **kwargs)
-        # Hold the slave device open so macOS doesn't discard the PTY buffer
-        # when the child closes its copy of the slave fd on exit.
+        # Hold the slave device open so macOS doesn't discard the PTY master
+        # read buffer when the child closes its copy of the slave fd on exit.
         if self.master_fd is not None:
             try:
-                slave_path = os.ptsname(self.master_fd)
-                self._slave_keepalive_fd = os.open(slave_path, os.O_RDWR | os.O_NOCTTY)
+                self._slave_keepalive_fd = os.open(
+                    os.ptsname(self.master_fd), os.O_RDWR | os.O_NOCTTY
+                )
             except OSError:
                 pass
 
@@ -52,11 +57,11 @@ class _MacOSPTYHandler(PTYHandler):
         result = await super().wait_for_exit(timeout=timeout)
         # Only drain when the process actually exited (result is None on timeout).
         if result is not None and self.master_fd is not None:
-            # The keepalive fd keeps the buffer alive; drain it fully now.
-            chunk = await super().read_output()
-            while chunk:
-                self._cached_output += chunk
-                chunk = await super().read_output()
+            loop = asyncio.get_running_loop()
+            master_fd = self.master_fd
+            data = await loop.run_in_executor(None, _select_drain, master_fd)
+            if data:
+                self._cached_output += data
         return result
 
     async def read_output(self, size: int | None = None) -> bytes | None:
@@ -73,6 +78,31 @@ class _MacOSPTYHandler(PTYHandler):
                 pass
             self._slave_keepalive_fd = None
         await super().cleanup()
+
+
+def _select_drain(master_fd: int) -> bytes:
+    """Block via select() until *master_fd* is readable, then drain all data.
+
+    Runs in a thread executor so it does not stall the asyncio event loop.
+    The keepalive fd held by _MacOSPTYHandler prevents a HANGUP from firing
+    prematurely, so select() will only return once actual data is available
+    (or the 0.5 s safety timeout expires).
+    """
+    collected = b""
+    try:
+        r, _, _ = select.select([master_fd], [], [], 0.5)
+        while r:
+            try:
+                chunk = os.read(master_fd, 65536)
+            except (BlockingIOError, OSError):
+                break
+            if not chunk:
+                break
+            collected += chunk
+            r, _, _ = select.select([master_fd], [], [], 0.05)
+    except (OSError, ValueError):
+        pass
+    return collected
 
 
 def can_create_pty() -> bool:
