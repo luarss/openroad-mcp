@@ -92,6 +92,8 @@ class TestPerformanceBenchmarks:
     async def test_concurrent_session_scalability(self, benchmark_timeout):
         """Test concurrent session scalability with 50+ sessions using real PTY calls."""
         session_manager = SessionManager()
+        original_max = session_manager._max_sessions
+        session_manager._max_sessions = 50
 
         try:
             # GSoC Phase 1 target: 50+ concurrent sessions
@@ -117,7 +119,7 @@ class TestPerformanceBenchmarks:
 
             # Verify all sessions created successfully with unique IDs (no cross-pollution)
             assert len(session_ids) == concurrent_sessions
-            assert len(set(session_ids)) == concurrent_sessions
+            assert len(set(session_ids)) == concurrent_sessions  # All unique IDs, no cross-pollution
 
             # Performance assertions
             assert creation_time < 10.0, f"Concurrent creation took {creation_time:.3f}s (>10s)"
@@ -168,6 +170,7 @@ class TestPerformanceBenchmarks:
             assert p99_latency < 3.0, f"p99 latency {p99_latency * 1000:.2f}ms exceeds 3000ms"
 
         finally:
+            session_manager._max_sessions = original_max
             await session_manager.cleanup_all()
 
     async def test_memory_usage_profiling(self, benchmark_timeout):
