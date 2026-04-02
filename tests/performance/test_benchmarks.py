@@ -122,29 +122,21 @@ class TestPerformanceBenchmarks:
             # Performance assertions
             assert creation_time < 10.0, f"Concurrent creation took {creation_time:.3f}s (>10s)"
 
-            # Consume the startup banner from each session by repeatedly sending a
-            # sentinel command until its output is confirmed. The first call may return
-            # only the banner (already buffered before the command runs); retrying
-            # guarantees the banner is fully drained before the real test commands run.
-            async def wait_for_ready(sid):
-                for _ in range(10):
-                    result = await session_manager.execute_command(sid, "puts __ready__")
-                    output = result.output if hasattr(result, "output") else str(result)
-                    if "__ready__" in output:
-                        return
-                raise AssertionError(f"Session {sid} did not reach ready state after retries")
-
-            await asyncio.gather(*[wait_for_ready(sid) for sid in session_ids])
-
-            # Test concurrent command execution via real PTY with per-command latency tracking
+            # Test concurrent command execution via real PTY with per-command latency tracking.
+            # Retry "puts hello" until "hello" appears in the output — this drains any
+            # stale banner or buffered output without needing a separate sentinel phase.
             command_latencies = []
 
             async def execute_with_latency(sid):
-                t0 = time.perf_counter()
-                result = await session_manager.execute_command(sid, "puts hello")
-                latency = time.perf_counter() - t0
-                command_latencies.append(latency)
-                return sid, result
+                for _attempt in range(15):
+                    t0 = time.perf_counter()
+                    result = await session_manager.execute_command(sid, "puts hello")
+                    latency = time.perf_counter() - t0
+                    output = result.output if hasattr(result, "output") else str(result)
+                    if "hello" in output:
+                        command_latencies.append(latency)
+                        return sid, result
+                raise AssertionError(f"Session {sid} did not produce 'hello' after retries")
 
             tasks = [execute_with_latency(sid) for sid in session_ids]
             results = await asyncio.gather(*tasks)
