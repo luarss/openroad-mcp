@@ -94,6 +94,9 @@ class OpenROADManager:
         actual_timeout = timeout_ms or self._default_timeout_ms
 
         try:
+            # Discard any output buffered before this command (e.g. startup banner)
+            # so that read_output only captures the response to this specific command.
+            await session.output_buffer.drain_all()
             await session.send_command(command)
             result = await session.read_output(actual_timeout)
 
