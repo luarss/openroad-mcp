@@ -194,7 +194,7 @@ pyjwt==2.12.1
     # via mcp
 pyperclip==1.11.0
     # via fastmcp
-pytest==9.0.2
+pytest==9.0.3
     # via
     #   openroad-mcp (pyproject.toml)
     #   pytest-asyncio
