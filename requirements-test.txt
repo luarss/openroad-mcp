@@ -210,7 +210,7 @@ python-dotenv==1.2.2
     #   fastmcp
     #   mcp
     #   pydantic-settings
-python-multipart==0.0.22
+python-multipart==0.0.26
     # via mcp
 pyyaml==6.0.3
     # via
