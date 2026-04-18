@@ -19,7 +19,7 @@ attrs==26.1.0
     #   cyclopts
     #   jsonschema
     #   referencing
-authlib==1.6.9
+authlib==1.6.11
     # via fastmcp
 beartype==0.22.9
     # via py-key-value-aio
@@ -41,6 +41,7 @@ cryptography==46.0.7
     # via
     #   authlib
     #   pyjwt
+    #   secretstorage
 cyclopts==4.10.1
     # via fastmcp
 dnspython==2.8.0
@@ -80,6 +81,10 @@ jaraco-context==6.1.2
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
 jsonref==1.1.0
     # via fastmcp
 jsonschema==4.26.0
@@ -165,6 +170,8 @@ rpds-py==0.30.0
     # via
     #   jsonschema
     #   referencing
+secretstorage==3.5.0
+    # via keyring
 shellingham==1.5.4
     # via typer
 sse-starlette==3.3.4
