@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/luarss-openroad-mcp-badge.png)](https://mseep.ai/app/luarss-openroad-mcp)
+
 # OpenROAD MCP Server
 
 <!-- mcp-name: io.github.luarss/openroad-mcp -->
