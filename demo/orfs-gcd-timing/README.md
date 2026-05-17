@@ -6,8 +6,8 @@ This demo shows how to fix timing violations in the nangate45/gcd design by rela
 ## Problem Statement
 The default nangate45/gcd configuration has timing violations:
 - **WNS (Worst Negative Slack)**: -0.05 ns
-- **TNS (Total Negative Slack)**: -0.53 ns
-- **Setup violations**: 23 paths
+- **TNS (Total Negative Slack)**: -0.57 ns
+- **Setup violations**: 33 paths
 - **Target clock period**: 0.46 ns (too aggressive)
 - **Achievable clock period**: ~0.51 ns
 
@@ -106,7 +106,7 @@ set_output_delay [expr $clk_period * $clk_io_pct] -clock $clk_name [all_outputs]
 
 2. **Copy improved constraint to ORFS**:
    ```bash
-   cp /home/luars/openroad-mcp/demo/orfs-gcd-timing/configs/improved_timing.sdc \
+   cp /home/luars/fsf-conference/demo/orfs-gcd-timing/configs/improved_timing.sdc \
       /home/luars/OpenROAD-flow-scripts/flow/designs/nangate45/gcd/constraint_relaxed.sdc
    ```
 
@@ -133,7 +133,7 @@ set_output_delay [expr $clk_period * $clk_io_pct] -clock $clk_name [all_outputs]
 Use the provided `run_demo.sh` script:
 
 ```bash
-cd /home/luars/openroad-mcp/demo/orfs-gcd-timing
+cd /home/luars/fsf-conference/demo/orfs-gcd-timing
 ./run_demo.sh
 ```
 
@@ -274,8 +274,8 @@ When helping users with timing closure in OpenROAD:
 Clock Period:        0.46 ns
 Target Frequency:    2174 MHz
 WNS:                 -0.05 ns ❌
-TNS:                 -0.53 ns ❌
-Setup Violations:    23 ❌
+TNS:                 -0.57 ns ❌
+Setup Violations:    33 ❌
 Status:              FAILED
 ```
 
