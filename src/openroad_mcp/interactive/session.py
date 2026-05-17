@@ -4,7 +4,6 @@ import asyncio
 import re
 import time
 from datetime import datetime
-from pathlib import Path
 
 import psutil
 
@@ -31,39 +30,27 @@ from .pty_handler import PTYHandler
 logger = get_logger("interactive_session")
 
 
-def _load_error_patterns() -> list[tuple[re.Pattern[str], str]]:
-    """Load and compile error patterns from config file."""
-    config_dir = Path(__file__).parent.parent / "config"
-    pattern_file = config_dir / "openroad_error_patterns.txt"
-
-    patterns: list[tuple[re.Pattern[str], str]] = []
-    flags = re.IGNORECASE | re.MULTILINE
-
-    if not pattern_file.exists():
-        logger.warning(f"Error pattern file not found: {pattern_file}")
-        return patterns
-
-    with open(pattern_file, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            if "|||" not in line:
-                continue
-
-            regex_str, message_template = line.split("|||", 1)
-            try:
-                pattern = re.compile(regex_str, flags)
-                patterns.append((pattern, message_template))
-            except re.error as e:
-                logger.warning(f"Invalid regex pattern: {regex_str} - {e}")
-
-    return patterns
-
-
-_ERROR_PATTERNS = _load_error_patterns()
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*[mGKH]")
+
+_ERROR_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r'invalid command name "([^"]+)"', re.IGNORECASE), "Invalid command: {0}"),
+    (re.compile(r'wrong # args: should be "([^"]+)"', re.IGNORECASE), "Wrong arguments for command: {0}"),
+    (re.compile(r'can\'t read file "?([^".\s]+)"?\.?\s*$', re.IGNORECASE | re.MULTILINE), "Cannot read file: {0}"),
+    (re.compile(r"cannot read file ([^\s.]+)\.?\s*$", re.IGNORECASE | re.MULTILINE), "Cannot read file: {0}"),
+    (re.compile(r"No such file or directory: ([^\s]+)", re.IGNORECASE), "File not found: {0}"),
+    (re.compile(r"Permission denied: ([^\s]+)", re.IGNORECASE), "Permission denied: {0}"),
+    (re.compile(r"Error: ([^.]+\.lib[^.]*)\s+not found", re.IGNORECASE), "Liberty file not found: {0}"),
+    (re.compile(r"Error: ([^.]+\.lef[^.]*)\s+not found", re.IGNORECASE), "LEF file not found: {0}"),
+    (re.compile(r"Error: design ([^\s]+) not found", re.IGNORECASE), "Design not found: {0}"),
+    (re.compile(r"Error: instance ([^\s]+) not found", re.IGNORECASE), "Instance not found: {0}"),
+    (re.compile(r"Error: net ([^\s]+) not found", re.IGNORECASE), "Net not found: {0}"),
+    (re.compile(r"Error: clock ([^\s]+) not found", re.IGNORECASE), "Clock not found: {0}"),
+    (re.compile(r"Error: no clocks defined", re.IGNORECASE), "No clocks defined"),
+    (re.compile(r"Error: (.+?)(?:\r?\n|$)", re.IGNORECASE | re.MULTILINE), "Error: {0}"),
+    (re.compile(r"ERROR: (.+?)(?:\r?\n|$)", re.MULTILINE), "Error: {0}"),
+    (re.compile(r"FATAL: (.+?)(?:\r?\n|$)", re.MULTILINE), "Fatal error: {0}"),
+    (re.compile(r"while evaluating (.+?)(?:\r?\n|$)", re.IGNORECASE | re.MULTILINE), "Command evaluation failed: {0}"),
+]
 
 
 class InteractiveSession:
@@ -431,10 +418,8 @@ class InteractiveSession:
             match = pattern.search(clean_output)
             if match:
                 if match.groups():
-                    error_detail = match.group(1).strip()
-                    return message_template.format(error_detail)
-                else:
-                    return message_template
+                    return message_template.format(match.group(1).strip())
+                return message_template
 
         return None
 
