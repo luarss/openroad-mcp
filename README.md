@@ -37,6 +37,20 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 | Cursor | ✅ | STDIO | `.cursor/mcp.json` |
 | GitHub Copilot (VS Code) | ✅ | STDIO | `.vscode/mcp.json` |
 | Gemini CLI | ✅ | STDIO | `~/.gemini/settings.json` |
+| Windsurf | ✅ | STDIO | `~/.codeium/windsurf/mcp_config.json` |
+| Cline | ✅ | STDIO | VS Code globalStorage (see below) |
+| Roo Code | ✅ | STDIO | `.roo/mcp.json` |
+| Continue | ✅ | STDIO | `~/.continue/config.json` |
+| Zed | ✅ | STDIO | `~/.config/zed/settings.json` |
+| JetBrains AI Assistant | ✅ | STDIO | Settings UI |
+| Amazon Q Developer CLI | ✅ | STDIO | `~/.aws/amazonq/mcp.json` |
+| Augment Code | ✅ | STDIO | VS Code `settings.json` |
+| Warp | ✅ | STDIO | Settings UI |
+| Amp | ✅ | STDIO | CLI-managed |
+| Trae | ✅ | STDIO | User config |
+| Opencode | ✅ | STDIO | `opencode.json` |
+| Kiro | ✅ | STDIO | Settings UI |
+| Kilo Code | ✅ | STDIO | `.kilocode/mcp.json` |
 | Other MCP clients | ⚠️ | STDIO | Should work with standard STDIO transport |
 
 ## Getting Started
@@ -138,6 +152,236 @@ Add to `.vscode/mcp.json` (VS Code 1.99+). Note the different schema — `server
 <summary><b>Gemini CLI</b></summary>
 
 Follow the [Gemini MCP install guide](https://ai.google.dev/gemini-api/docs/model-context-protocol), using the [standard configuration](#standard-configuration) above.
+
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+Add the [standard configuration](#standard-configuration) to `~/.codeium/windsurf/mcp_config.json`.
+
+</details>
+
+<details>
+<summary><b>Cline</b></summary>
+
+Add to the Cline MCP settings file:
+- **macOS**: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Windows**: `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+- **Linux**: `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp",
+        "openroad-mcp"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Roo Code</b></summary>
+
+Add to `.roo/mcp.json` in your project root (or the equivalent user-level settings file via the Roo Code UI):
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp",
+        "openroad-mcp"
+      ],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Continue</b></summary>
+
+Add to `~/.continue/config.json`:
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/luarss/openroad-mcp",
+            "openroad-mcp"
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Zed</b></summary>
+
+Add to `~/.config/zed/settings.json`:
+
+```json
+{
+  "context_servers": {
+    "openroad-mcp": {
+      "command": {
+        "path": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/luarss/openroad-mcp",
+          "openroad-mcp"
+        ]
+      },
+      "settings": {}
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>JetBrains AI Assistant</b></summary>
+
+Open **Settings → Tools → AI Assistant → Model Context Protocol (MCP)** and add a new server entry using the [standard configuration](#standard-configuration).
+
+</details>
+
+<details>
+<summary><b>Amazon Q Developer CLI</b></summary>
+
+Add the [standard configuration](#standard-configuration) to `~/.aws/amazonq/mcp.json`.
+
+</details>
+
+<details>
+<summary><b>Augment Code</b></summary>
+
+Add to your VS Code `settings.json` (User or Workspace scope):
+
+```json
+{
+  "augment.advanced": {
+    "mcpServers": [
+      {
+        "name": "openroad-mcp",
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/luarss/openroad-mcp",
+          "openroad-mcp"
+        ]
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Warp</b></summary>
+
+Open **Settings → AI → MCP Servers → Add New MCP Server** and enter:
+- **Name**: `openroad-mcp`
+- **Command**: `uvx`
+- **Args**: `--from git+https://github.com/luarss/openroad-mcp openroad-mcp`
+
+</details>
+
+<details>
+<summary><b>Amp</b></summary>
+
+```bash
+amp mcp add openroad-mcp uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
+```
+
+</details>
+
+<details>
+<summary><b>Trae</b></summary>
+
+Add the [standard configuration](#standard-configuration) to the MCP section of Trae's user settings (accessible via **Settings → MCP**).
+
+</details>
+
+<details>
+<summary><b>Opencode</b></summary>
+
+Add to `opencode.json` in your project root:
+
+```json
+{
+  "mcp": {
+    "openroad-mcp": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp",
+        "openroad-mcp"
+      ],
+      "enabled": true
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Kiro</b></summary>
+
+Open the MCP configuration panel in Kiro and add a new server entry using the [standard configuration](#standard-configuration).
+
+</details>
+
+<details>
+<summary><b>Kilo Code</b></summary>
+
+Add to `.kilocode/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp",
+        "openroad-mcp"
+      ],
+      "alwaysAllow": [],
+      "disabled": false
+    }
+  }
+}
+```
 
 </details>
 
