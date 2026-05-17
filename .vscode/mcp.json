@@ -1,6 +1,7 @@
 {
-  "mcpServers": {
+  "servers": {
     "openroad-mcp": {
+      "type": "stdio",
       "command": "uvx",
       "args": [
         "--from",
