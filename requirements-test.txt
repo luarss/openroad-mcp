@@ -20,7 +20,7 @@ attrs==26.1.0
     #   cyclopts
     #   jsonschema
     #   referencing
-authlib==1.6.11
+authlib==1.6.12
     # via fastmcp
 beartype==0.22.9
     # via py-key-value-aio
@@ -286,7 +286,7 @@ typing-inspection==0.4.2
     #   pydantic-settings
 uncalled-for==0.2.0
     # via fastmcp
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   requests
     #   types-requests
