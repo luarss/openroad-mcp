@@ -12,11 +12,11 @@ description = "The OpenROAD MCP server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastmcp>=2.10.6",
-    "mcp[cli]>=1.12.1",
-    "pillow>=12.0.0",
-    "psutil>=7.1.0",
-    "pydantic>=2.11.7",
+    "fastmcp==3.2.0",
+    "mcp[cli]==1.26.0",
+    "pillow==12.2.0",
+    "psutil==7.2.2",
+    "pydantic==2.12.5",
 ]
 
 [project.scripts]
@@ -24,14 +24,14 @@ openroad-mcp = "openroad_mcp.main:main"
 
 [project.optional-dependencies]
 dev = [
-    "google-genai>=1.53.0",
-    "mypy>=1.17.0",
-    "pre-commit>=4.2.0",
-    "pytest>=8.4.1",
-    "pytest-asyncio>=1.1.0",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.12.5",
-    "types-psutil>=7.0.0.20250822",
+    "google-genai==1.69.0",
+    "mypy==1.20.0",
+    "pre-commit==4.5.1",
+    "pytest==9.0.3",
+    "pytest-asyncio==1.3.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.15.8",
+    "types-psutil==7.2.2.20260130",
 ]
 
 [tool.mypy]
