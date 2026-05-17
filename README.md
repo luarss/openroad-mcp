@@ -30,10 +30,13 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 
 ## Support Matrix
 
-| MCP Client | Supported | Transport Mode(s) | Notes |
-|------------|--------|------------------|-------|
-| Claude Code | ✅ | STDIO | Full support for all features |
-| Gemini CLI | ✅ | STDIO | Full support for all features |
+| MCP Client | Supported | Transport Mode(s) | Config file |
+|------------|--------|------------------|-------------|
+| Claude Code | ✅ | STDIO | `.claude/settings.json` |
+| Claude Desktop | ✅ | STDIO | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) |
+| Cursor | ✅ | STDIO | `.cursor/mcp.json` |
+| GitHub Copilot (VS Code) | ✅ | STDIO | `.vscode/mcp.json` |
+| Gemini CLI | ✅ | STDIO | `~/.gemini/settings.json` |
 | Other MCP clients | ⚠️ | STDIO | Should work with standard STDIO transport |
 
 ## Getting Started
@@ -84,10 +87,49 @@ For local development, use:
 <details>
 <summary><b>Claude Code</b></summary>
 
-Use the Claude Code CLI to add the OpenROAD MCP server:
-
 ```bash
 claude mcp add --transport stdio openroad-mcp -- uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
+```
+
+Or add the [standard configuration](#standard-configuration) to `.claude/settings.json`.
+
+</details>
+
+<details>
+<summary><b>Claude Desktop</b></summary>
+
+Add the [standard configuration](#standard-configuration) to:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+Add the [standard configuration](#standard-configuration) to `.cursor/mcp.json`.
+
+</details>
+
+<details>
+<summary><b>GitHub Copilot (VS Code)</b></summary>
+
+Add to `.vscode/mcp.json` (VS Code 1.99+). Note the different schema — `servers` key and `"type": "stdio"` required:
+
+```json
+{
+  "servers": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
 ```
 
 </details>

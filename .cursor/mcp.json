@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
