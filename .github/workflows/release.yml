@@ -112,6 +112,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Update server.json version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/g" server.json
+          sed -i "s|ghcr.io/luarss/openroad-mcp:[^\"]*|ghcr.io/luarss/openroad-mcp:$VERSION|g" server.json
+
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
@@ -121,8 +127,10 @@ jobs:
 
       - name: Publish to MCP Registry
         run: |
+          set +e
           output=$(./mcp-publisher publish 2>&1)
           exit_code=$?
+          set -e
           echo "$output"
           if [ $exit_code -ne 0 ] && echo "$output" | grep -q "cannot publish duplicate version"; then
             echo "Version already published to MCP Registry — skipping (idempotent re-run)"
