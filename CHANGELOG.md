@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-05-17
+
+### Added
+- MCP integrations for Claude Desktop, Cursor, and GitHub Copilot ([#44](https://github.com/luarss/openroad-mcp/pull/44))
+- Documentation for MCP support across 14 major coding agents and IDEs
+
+### Fixed
+- Security: bumped authlib, python-multipart, and cryptography for CVEs
+- Restored inline error patterns, dropped auto-update machinery
+
+### Changed
+- Pinned all direct dependencies to exact versions ([#113](https://github.com/luarss/openroad-mcp/pull/113))
+- Bumped fastmcp ([#101](https://github.com/luarss/openroad-mcp/pull/101)), pillow ([#104](https://github.com/luarss/openroad-mcp/pull/104)), cryptography ([#103](https://github.com/luarss/openroad-mcp/pull/103)), pygments, and python-multipart ([#106](https://github.com/luarss/openroad-mcp/pull/106), [#110](https://github.com/luarss/openroad-mcp/pull/110))
+
 ## [0.4.2] - 2026-03-29
 
 ### Fixed
@@ -70,6 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QUICKSTART guide, ARCHITECTURE, and CONTRIBUTING documentation
 - ROADMAP for planned features
 
+[0.5.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.5.0
+[0.4.2]: https://github.com/luarss/openroad-mcp/releases/tag/v0.4.2
+[0.4.1]: https://github.com/luarss/openroad-mcp/releases/tag/v0.4.1
 [0.4.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.4.0
 [0.3.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.2.0
