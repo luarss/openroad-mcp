@@ -1,0 +1,23 @@
+{
+  "skill_name": "release",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "let's prepare for 0.5.0 release",
+      "expected_output": "Should bump version from 0.4.0 to 0.5.0 in pyproject.toml, server.json (3 places), regenerate uv.lock, update CHANGELOG.md with new section and link, update ROADMAP.md milestones table, and create a chore: release commit",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "we need to ship a patch release, there's a hotfix that just landed",
+      "expected_output": "Should identify current version (0.4.0), suggest patch bump to 0.4.1, collect commits since v0.4.0 tag, categorize them, update all version files, run tests, and create release commit",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "time for a new release, we added the session persistence feature and fixed a few bugs",
+      "expected_output": "Should identify current version, suggest minor bump (0.5.0), collect commits since last release, categorize feat: commits as Added and fix: commits as Fixed, update all files including CHANGELOG with proper categorization, run tests, commit",
+      "files": []
+    }
+  ]
+}

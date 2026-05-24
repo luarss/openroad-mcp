@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+#Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
@@ -203,7 +203,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Claude
-.claude
+.claude/settings.local.json
 
 # Project specfics
 gcd_final
