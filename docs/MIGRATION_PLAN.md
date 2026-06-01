@@ -137,7 +137,7 @@ All 10 tool names and their input/output JSON schemas remain identical. Users' `
 | `asyncio.Queue` | Node.js `EventEmitter` or `async-queue` | Event-driven, similar semantics |
 | `asyncio.Lock` | `async-mutex` npm package | Same purpose |
 | `asyncio.Event` | Node.js `EventEmitter` event | Signal pattern |
-| `asyncio.create_task` | `Promise` + `setImmediate` | Different model, same intent |
+| `asyncio.create_task` | fire-and-forget async IIFE: `(async () => { while (!shutdown) { ... } })()` | `setImmediate` is **wrong** — it defers one tick, not a loop; this would break all three background loops |
 | `asyncio.gather` | `Promise.all` / `Promise.allSettled` | Direct equivalent |
 | `collections.deque` | Custom circular array or `denque` npm | Buffer backing store |
 | `threading.RLock` | Not needed (Node.js single-threaded) | Simplification |
@@ -241,7 +241,7 @@ It is intentionally **stage-gated**: do not commit to Weeks 2-3 until the Week 1
 **Day 5: OpenROAD manager and session lifecycle**
 - `OpenROADManager` singleton: `create_session`, `execute_command`, `terminate_session`, `cleanup_idle_sessions`
 - ANSI decoder port: `strip-ansi` + `ansi-regex` packages handle the heavy lifting; port `clean_openroad_output()` as a 10-line function
-- Error pattern loader: reads the same `openroad_error_patterns.txt` file with Node.js `fs.readFileSync`, compiles regexes
+- Error patterns: hardcode 17 patterns as a TypeScript `const` array — patterns are defined inline in `session.py` lines 35–53 and must be ported as inline TypeScript constants, not loaded from a file
 
 
 **End-of-Week 1 Gate (mandatory):**
@@ -377,7 +377,7 @@ COPY dist/ /app/dist/
  "name": "openroad-mcp",
  "version": "0.5.0",
  "bin": { "openroad-mcp": "./dist/main.js" },
- "files": ["dist/", "src/openroad_mcp/config/openroad_error_patterns.txt"],
+ "files": ["dist/"],
  "engines": { "node": ">=22" }
 }
 ```
@@ -714,7 +714,7 @@ The project is at v0.4.2, pre-release, with an unstabilized API. This is the low
 
 | Python | Node.js |
 |---|---|
-| `asyncio.create_task(coro())` | `Promise` in background (`void asyncFn().catch(...)`) |
+| `asyncio.create_task(coro())` | fire-and-forget async IIFE: `(async () => { while (!shutdown) { ... } })()` |
 | `asyncio.gather(*coros)` | `Promise.all([...promises])` |
 | `asyncio.wait_for(coro, timeout)` | `Promise.race([coro, timeoutPromise])` |
 | `asyncio.Queue(maxsize=N)` | `EventEmitter` or custom bounded queue |
