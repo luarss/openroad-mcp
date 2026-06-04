@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-import select
 import sys
 from unittest.mock import patch
 
@@ -18,24 +17,26 @@ class _MacOSPTYHandler(PTYHandler):
 
     Two macOS-specific problems combine to lose output from fast-exiting processes:
 
-    1. When all slave-fd holders close, the kernel discards the PTY master's read
-       buffer.  Fix: re-open the slave device as a "keepalive" fd immediately after
-       create_session so the buffer survives the child's exit.
+    1. Buffer discard: when all slave-fd holders close, macOS discards the PTY
+       master's read buffer. Fix: dup the slave fd as a keepalive before the parent
+       closes it (via _before_slave_close) so the buffer survives child exit.
 
-    2. process.wait() returns the instant the kernel notes the child's exit.  The
-       PTY line discipline may not have committed the child's final write to the
-       master's read buffer at that exact moment, so a bare non-blocking os.read()
-       races past the data.  Fix: drain via select() in a thread executor, which
-       blocks until the master fd is actually readable.
+    2. tcdrain deadlock: bash -c flushes stdout via tcdrain() before exiting.
+       tcdrain() blocks until the master fd is drained by the parent, but
+       wait_for_exit() only calls process.wait() without reading — deadlocking.
+       Fix: _drain_loop task continuously reads from master_fd so tcdrain()
+       always completes and bash exits normally.
     """
 
     def __init__(self) -> None:
         super().__init__()
-        self._cached_output = b""
+        self._output_buffer: bytearray = bytearray()
         self._slave_keepalive_fd: int | None = None
+        self._reader_task: asyncio.Task | None = None
 
     async def create_session(self, *args, **kwargs) -> None:
-        self._cached_output = b""
+        self._output_buffer.clear()
+        await self._stop_reader()
         if self._slave_keepalive_fd is not None:
             try:
                 os.close(self._slave_keepalive_fd)
@@ -43,34 +44,55 @@ class _MacOSPTYHandler(PTYHandler):
                 pass
             self._slave_keepalive_fd = None
         await super().create_session(*args, **kwargs)
+        self._reader_task = asyncio.create_task(self._drain_loop())
 
     def _before_slave_close(self, slave_fd: int) -> None:
-        # Dup the slave fd before the parent closes it so macOS never sees
-        # "no slave holders" while the child is exiting, preventing premature
-        # master buffer discard.
+        # Dup before the parent closes so macOS never sees "no slave holders",
+        # preventing premature master buffer discard on child exit.
         try:
             self._slave_keepalive_fd = os.dup(slave_fd)
         except OSError:
             pass
 
+    async def _drain_loop(self) -> None:
+        while self.master_fd is not None:
+            try:
+                data = os.read(self.master_fd, 65536)
+                if data:
+                    self._output_buffer.extend(data)
+                else:
+                    break
+            except BlockingIOError:
+                await asyncio.sleep(0.001)
+            except OSError:
+                break
+
+    async def _stop_reader(self) -> None:
+        if self._reader_task is not None:
+            self._reader_task.cancel()
+            try:
+                await self._reader_task
+            except asyncio.CancelledError:
+                pass
+            self._reader_task = None
+
     async def wait_for_exit(self, timeout: float | None = None) -> int | None:
         result = await super().wait_for_exit(timeout=timeout)
-        # Only drain when the process actually exited (result is None on timeout).
-        if result is not None and self.master_fd is not None:
-            loop = asyncio.get_running_loop()
-            master_fd = self.master_fd
-            data = await loop.run_in_executor(None, _select_drain, master_fd)
-            if data:
-                self._cached_output += data
+        if result is not None:
+            # Yield to _drain_loop so it can collect any output committed to the
+            # master buffer in the final moments before the process exited.
+            await asyncio.sleep(0.05)
         return result
 
-    async def read_output(self, size: int | None = None) -> bytes | None:
-        if self._cached_output:
-            data, self._cached_output = self._cached_output, b""
+    async def read_output(self, size: int | None = None) -> bytes | None:  # noqa: ARG002
+        if self._output_buffer:
+            data = bytes(self._output_buffer)
+            self._output_buffer.clear()
             return data
-        return await super().read_output(size)
+        return None
 
     async def cleanup(self) -> None:
+        await self._stop_reader()
         if self._slave_keepalive_fd is not None:
             try:
                 os.close(self._slave_keepalive_fd)
@@ -78,31 +100,6 @@ class _MacOSPTYHandler(PTYHandler):
                 pass
             self._slave_keepalive_fd = None
         await super().cleanup()
-
-
-def _select_drain(master_fd: int) -> bytes:
-    """Block via select() until *master_fd* is readable, then drain all data.
-
-    Runs in a thread executor so it does not stall the asyncio event loop.
-    The keepalive fd held by _MacOSPTYHandler prevents a HANGUP from firing
-    prematurely, so select() will only return once actual data is available
-    (or the 0.5 s safety timeout expires).
-    """
-    collected = b""
-    try:
-        r, _, _ = select.select([master_fd], [], [], 0.5)
-        while r:
-            try:
-                chunk = os.read(master_fd, 65536)
-            except (BlockingIOError, OSError):
-                break
-            if not chunk:
-                break
-            collected += chunk
-            r, _, _ = select.select([master_fd], [], [], 0.05)
-    except (OSError, ValueError):
-        pass
-    return collected
 
 
 def can_create_pty() -> bool:
