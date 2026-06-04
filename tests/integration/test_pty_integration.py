@@ -43,15 +43,15 @@ class _MacOSPTYHandler(PTYHandler):
                 pass
             self._slave_keepalive_fd = None
         await super().create_session(*args, **kwargs)
-        # Hold the slave device open so macOS doesn't discard the PTY master
-        # read buffer when the child closes its copy of the slave fd on exit.
-        if self.master_fd is not None:
-            try:
-                self._slave_keepalive_fd = os.open(
-                    os.ptsname(self.master_fd), os.O_RDWR | os.O_NOCTTY
-                )
-            except OSError:
-                pass
+
+    def _before_slave_close(self, slave_fd: int) -> None:
+        # Dup the slave fd before the parent closes it so macOS never sees
+        # "no slave holders" while the child is exiting, preventing premature
+        # master buffer discard.
+        try:
+            self._slave_keepalive_fd = os.dup(slave_fd)
+        except OSError:
+            pass
 
     async def wait_for_exit(self, timeout: float | None = None) -> int | None:
         result = await super().wait_for_exit(timeout=timeout)
