@@ -114,18 +114,28 @@ To:
 "git+https://github.com/luarss/openroad-mcp@vX.Y.Z"
 ```
 
-The safest way to do this in bulk is a single perl pass per file, e.g.:
+Use a single perl pass that handles all three URL patterns in the README:
+- JSON/TOML quoted: `"git+https://...openroad-mcp@v0.5.2"`
+- YAML unquoted list item: `- git+https://...openroad-mcp@v0.5.2` (end of line)
+- Bare (first-time pin): `"git+https://...openroad-mcp"`
+
 ```bash
-perl -i -pe 's|git\+https://github\.com/luarss/openroad-mcp"|git+https://github.com/luarss/openroad-mcp\@vX.Y.Z"|g' README.md
+perl -i -pe 's!git\+https://github\.com/luarss/openroad-mcp(?:\@v[\d.]+)?(?="|$)!git+https://github.com/luarss/openroad-mcp\@vX.Y.Z!g' README.md
 ```
 
-Apply this to `README.md` (many occurrences — use perl or replace_all).
+The `!` delimiter avoids clashing with the `|` inside the lookahead `(?="|$)`.
+The lookahead matches either a closing quote (JSON/TOML) or end of line (YAML),
+so all config formats are covered.
 
-After updating, verify no bare URL remains:
+After updating, verify all pinned URLs show the new tag:
 ```bash
-grep "luarss/openroad-mcp\"" README.md
+grep "luarss/openroad-mcp@" README.md
 ```
-That grep should return no output.
+Every line should show `@vX.Y.Z`. Also confirm no bare URLs remain:
+```bash
+grep 'luarss/openroad-mcp"' README.md
+```
+That should return no output.
 
 > **Side note for users:** If you always want the latest version and prefer not
 > to pin, omit the `@vX.Y.Z` suffix and use the bare URL:
