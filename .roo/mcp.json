@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ],
       "disabled": false,

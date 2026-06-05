@@ -116,7 +116,7 @@ To:
 
 The safest way to do this in bulk is a single perl pass per file, e.g.:
 ```bash
-perl -i -pe 's|git\+https://github\.com/luarss/openroad-mcp"|git+https://github.com/luarss/openroad-mcp@vX.Y.Z"|g' README.md
+perl -i -pe 's|git\+https://github\.com/luarss/openroad-mcp"|git+https://github.com/luarss/openroad-mcp\@vX.Y.Z"|g' README.md
 ```
 
 Apply this to all files containing the bare URL:
