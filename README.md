@@ -51,6 +51,12 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 | Opencode | ✅ | STDIO | `opencode.json` |
 | Kiro | ✅ | STDIO | Settings UI |
 | Kilo Code | ✅ | STDIO | `.kilocode/mcp.json` |
+| Goose | ✅ | STDIO | `~/.config/goose/config.yaml` |
+| Sourcegraph Cody | ✅ | STDIO | VS Code `settings.json` |
+| OpenAI Codex CLI | ✅ | STDIO | `~/.codex/config.toml` |
+| PearAI | ✅ | STDIO | `~/pearai/config.json` |
+| CodeBuddy | ✅ | STDIO | `~/.codebuddy/config.jsonc` |
+| Hermes Agent | ✅ | STDIO | `~/.hermes/config.yaml` |
 | Other MCP clients | ⚠️ | STDIO | Should work with standard STDIO transport |
 
 ## Getting Started
@@ -385,6 +391,134 @@ Add to `.kilocode/mcp.json` in your project root:
     }
   }
 }
+```
+
+</details>
+
+<details>
+<summary><b>Goose</b></summary>
+
+Add to `~/.config/goose/config.yaml`:
+
+```yaml
+extensions:
+  openroad-mcp:
+    name: openroad-mcp
+    type: stdio
+    cmd: uvx
+    args:
+      - --from
+      - git+https://github.com/luarss/openroad-mcp@v0.5.2
+      - openroad-mcp
+    enabled: true
+```
+
+</details>
+
+<details>
+<summary><b>Sourcegraph Cody</b></summary>
+
+Add to your VS Code `settings.json`:
+
+```json
+{
+  "openctx.providers": {
+    "https://openctx.org/npm/@openctx/provider-mcp": {
+      "transports": [
+        {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+            "openroad-mcp"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>OpenAI Codex CLI</b></summary>
+
+Add to `~/.codex/config.toml` (global) or `.codex/config.toml` (project-scoped):
+
+```toml
+[[mcp_servers]]
+name = "openroad-mcp"
+command = "uvx"
+args = ["--from", "git+https://github.com/luarss/openroad-mcp@v0.5.2", "openroad-mcp"]
+```
+
+</details>
+
+<details>
+<summary><b>PearAI</b></summary>
+
+PearAI uses the same config format as Continue. Add to `~/pearai/config.json`:
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+            "openroad-mcp"
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>CodeBuddy</b></summary>
+
+Add to `~/.codebuddy/config.jsonc` (global) or `.codebuddy/mcp.jsonc` (project-scoped):
+
+```jsonc
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Hermes Agent</b></summary>
+
+Add to `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  - name: openroad-mcp
+    transport: stdio
+    command: uvx
+    args:
+      - --from
+      - git+https://github.com/luarss/openroad-mcp@v0.5.2
+      - openroad-mcp
 ```
 
 </details>
