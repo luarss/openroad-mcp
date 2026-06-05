@@ -101,6 +101,41 @@ one breaks the release consistency.
 - PyPI package `"version": "X.Y.Z"`
 - OCI identifier `"identifier": "ghcr.io/luarss/openroad-mcp:X.Y.Z"`
 
+**MCP manifest files and README** — These files use `git+https://github.com/luarss/openroad-mcp`
+without a version pin. Update every occurrence to pin to the release tag, which
+prevents supply chain attacks by ensuring users install a known, reviewed commit:
+
+Change:
+```
+"git+https://github.com/luarss/openroad-mcp"
+```
+To:
+```
+"git+https://github.com/luarss/openroad-mcp@vX.Y.Z"
+```
+
+The safest way to do this in bulk is a single perl pass per file, e.g.:
+```bash
+perl -i -pe 's|git\+https://github\.com/luarss/openroad-mcp"|git+https://github.com/luarss/openroad-mcp@vX.Y.Z"|g' README.md
+```
+
+Apply this to all files containing the bare URL:
+- `README.md` (many occurrences — use sed or replace_all)
+- `.cursor/mcp.json`
+- `.vscode/mcp.json`
+- `.roo/mcp.json`
+- `.kilocode/mcp.json`
+- `opencode.json`
+
+After updating, verify no bare URL remains:
+```bash
+grep -r "luarss/openroad-mcp\"" README.md .cursor/ .vscode/ .roo/ .kilocode/ opencode.json
+```
+That grep should return no output.
+
+Note: `.mcp.json` and `.gemini/settings.json` use `uv run openroad-mcp` (local dev
+mode) and have no version to pin — skip them.
+
 **uv.lock** — Regenerate by running `uv lock`. Do NOT hand-edit this file.
 
 **CHANGELOG.md** — Add new section before the previous version's section.
@@ -130,7 +165,8 @@ a broken release.
 Stage only the release-related files:
 
 ```bash
-git add CHANGELOG.md ROADMAP.md pyproject.toml server.json uv.lock
+git add CHANGELOG.md ROADMAP.md pyproject.toml server.json uv.lock \
+  README.md .cursor/mcp.json .vscode/mcp.json .roo/mcp.json .kilocode/mcp.json opencode.json
 ```
 
 Commit with the message:
@@ -148,8 +184,14 @@ Do NOT push unless the user explicitly asks. The commit stays local for review.
 - Version tags use a `v` prefix: `v0.4.0` (but the version in files has no prefix)
 - Check for ALL files referencing the old version by running:
   ```
-  grep -r "0\.3\.0" --include="*.toml" --include="*.json" --include="*.lock" --include="*.md"
+  grep -r "OLD_VERSION" --include="*.toml" --include="*.json" --include="*.lock" --include="*.md"
   ```
+  (replace `OLD_VERSION` with the actual previous version, e.g. `0\.5\.2`)
   before committing, to catch any missed references
+- Also verify the git URL manifests were updated:
+  ```
+  grep -r "openroad-mcp@" .cursor/ .vscode/ .roo/ .kilocode/ opencode.json
+  ```
+  All five should show the new `@vX.Y.Z` tag
 - If `server.json` doesn't exist, skip it (some repos may not have it)
 - If `ROADMAP.md` doesn't exist or has no version table, skip it

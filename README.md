@@ -70,7 +70,7 @@ The basic configuration for all MCP clients:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ]
     }
@@ -138,7 +138,7 @@ Add to `.vscode/mcp.json` (VS Code 1.99+). Note the different schema — `server
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ]
     }
@@ -177,7 +177,7 @@ Add to the Cline MCP settings file:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ],
       "disabled": false,
@@ -201,7 +201,7 @@ Add to `.roo/mcp.json` in your project root (or the equivalent user-level settin
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ],
       "disabled": false,
@@ -228,7 +228,7 @@ Add to `~/.continue/config.json`:
           "command": "uvx",
           "args": [
             "--from",
-            "git+https://github.com/luarss/openroad-mcp",
+            "git+https://github.com/luarss/openroad-mcp@v0.5.2",
             "openroad-mcp"
           ]
         }
@@ -253,7 +253,7 @@ Add to `~/.config/zed/settings.json`:
         "path": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/luarss/openroad-mcp",
+          "git+https://github.com/luarss/openroad-mcp@v0.5.2",
           "openroad-mcp"
         ]
       },
@@ -293,7 +293,7 @@ Add to your VS Code `settings.json` (User or Workspace scope):
         "command": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/luarss/openroad-mcp",
+          "git+https://github.com/luarss/openroad-mcp@v0.5.2",
           "openroad-mcp"
         ]
       }
@@ -343,7 +343,7 @@ Add to `opencode.json` in your project root:
       "command": [
         "uvx",
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ],
       "enabled": true
@@ -373,7 +373,7 @@ Add to `.kilocode/mcp.json` in your project root:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
         "openroad-mcp"
       ],
       "alwaysAllow": [],
