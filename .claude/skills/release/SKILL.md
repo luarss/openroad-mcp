@@ -115,8 +115,8 @@ To:
 ```
 
 Use a single perl pass that handles all three URL patterns in the README:
-- JSON/TOML quoted: `"git+https://...openroad-mcp@v0.5.2"`
-- YAML unquoted list item: `- git+https://...openroad-mcp@v0.5.2` (end of line)
+- JSON/TOML quoted: `"git+https://...openroad-mcp@v0.5.3"`
+- YAML unquoted list item: `- git+https://...openroad-mcp@v0.5.3` (end of line)
 - Bare (first-time pin): `"git+https://...openroad-mcp"`
 
 ```bash

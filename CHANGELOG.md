@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-06-06
+
+### Changed
+- Expanded coding agent documentation: added Goose, Cody, Codex CLI, PearAI, CodeBuddy, Hermes Agent, GitHub Copilot CLI, Oh My Pi, OpenClaw, AstrBot, DeepCode, nanobot, Crush, and Reasonix to README
+- Added cross-platform CI validation ([#89](https://github.com/luarss/openroad-mcp/pull/89))
+- Pinned GitHub Actions to full commit SHAs for supply chain safety
+- Removed editor MCP manifest files from repository
+- Bumped starlette ([#117](https://github.com/luarss/openroad-mcp/pull/117)) and idna ([#115](https://github.com/luarss/openroad-mcp/pull/115)) dependencies
+
 ## [0.5.2] - 2026-05-17
 
 ### Fixed
@@ -94,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QUICKSTART guide, ARCHITECTURE, and CONTRIBUTING documentation
 - ROADMAP for planned features
 
+[0.5.3]: https://github.com/luarss/openroad-mcp/releases/tag/v0.5.3
 [0.5.0]: https://github.com/luarss/openroad-mcp/releases/tag/v0.5.0
 [0.4.2]: https://github.com/luarss/openroad-mcp/releases/tag/v0.4.2
 [0.4.1]: https://github.com/luarss/openroad-mcp/releases/tag/v0.4.1
