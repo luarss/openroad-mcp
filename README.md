@@ -78,6 +78,10 @@ The basic configuration for all MCP clients:
 }
 ```
 
+> **Note:** The URL above is pinned to a specific release for supply chain safety.
+> To always track the latest version instead, drop the `@v0.5.2` suffix:
+> `"git+https://github.com/luarss/openroad-mcp"`.
+
 For local development, use:
 
 ```json
