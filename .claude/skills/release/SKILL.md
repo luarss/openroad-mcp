@@ -119,22 +119,13 @@ The safest way to do this in bulk is a single perl pass per file, e.g.:
 perl -i -pe 's|git\+https://github\.com/luarss/openroad-mcp"|git+https://github.com/luarss/openroad-mcp\@vX.Y.Z"|g' README.md
 ```
 
-Apply this to all files containing the bare URL:
-- `README.md` (many occurrences — use sed or replace_all)
-- `.cursor/mcp.json`
-- `.vscode/mcp.json`
-- `.roo/mcp.json`
-- `.kilocode/mcp.json`
-- `opencode.json`
+Apply this to `README.md` (many occurrences — use perl or replace_all).
 
 After updating, verify no bare URL remains:
 ```bash
-grep -r "luarss/openroad-mcp\"" README.md .cursor/ .vscode/ .roo/ .kilocode/ opencode.json
+grep "luarss/openroad-mcp\"" README.md
 ```
 That grep should return no output.
-
-Note: `.mcp.json` and `.gemini/settings.json` use `uv run openroad-mcp` (local dev
-mode) and have no version to pin — skip them.
 
 > **Side note for users:** If you always want the latest version and prefer not
 > to pin, omit the `@vX.Y.Z` suffix and use the bare URL:
@@ -171,8 +162,7 @@ a broken release.
 Stage only the release-related files:
 
 ```bash
-git add CHANGELOG.md ROADMAP.md pyproject.toml server.json uv.lock \
-  README.md .cursor/mcp.json .vscode/mcp.json .roo/mcp.json .kilocode/mcp.json opencode.json
+git add CHANGELOG.md ROADMAP.md pyproject.toml server.json uv.lock README.md
 ```
 
 Commit with the message:
@@ -194,10 +184,10 @@ Do NOT push unless the user explicitly asks. The commit stays local for review.
   ```
   (replace `OLD_VERSION` with the actual previous version, e.g. `0\.5\.2`)
   before committing, to catch any missed references
-- Also verify the git URL manifests and README were updated:
+- Also verify the README git URLs were updated:
   ```
-  grep -r "openroad-mcp@" README.md .cursor/ .vscode/ .roo/ .kilocode/ opencode.json
+  grep "openroad-mcp@" README.md
   ```
-  All six should show the new `@vX.Y.Z` tag
+  All occurrences should show the new `@vX.Y.Z` tag
 - If `server.json` doesn't exist, skip it (some repos may not have it)
 - If `ROADMAP.md` doesn't exist or has no version table, skip it
