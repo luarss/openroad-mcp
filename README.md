@@ -57,6 +57,14 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 | PearAI | ✅ | STDIO | `~/pearai/config.json` |
 | CodeBuddy | ✅ | STDIO | `~/.codebuddy/config.jsonc` |
 | Hermes Agent | ✅ | STDIO | `~/.hermes/config.yaml` |
+| GitHub Copilot CLI | ✅ | STDIO | `~/.copilot/mcp-config.json` |
+| Oh My Pi | ✅ | STDIO | `.omp/mcp.json` |
+| OpenClaw | ✅ | STDIO | `~/.openclaw/openclaw.json` |
+| AstrBot | ✅ | STDIO | WebUI |
+| DeepCode | ✅ | STDIO | `deepcode_config.json` |
+| nanobot | ✅ | STDIO | `nanobot.yaml` |
+| Crush | ✅ | STDIO | `.crush.json` |
+| Reasonix | ✅ | STDIO | `reasonix.toml` |
 | Other MCP clients | ⚠️ | STDIO | Should work with standard STDIO transport |
 
 ## Getting Started
@@ -520,6 +528,178 @@ mcp_servers:
       - git+https://github.com/luarss/openroad-mcp@v0.5.2
       - openroad-mcp
 ```
+
+</details>
+
+<details>
+<summary><b>GitHub Copilot CLI</b></summary>
+
+Add to `~/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+Or run `/mcp add` inside a Copilot CLI session for guided setup.
+
+</details>
+
+<details>
+<summary><b>Oh My Pi</b></summary>
+
+Add to `.omp/mcp.json` (project-level) or `~/.omp/agent/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>OpenClaw</b></summary>
+
+Add to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "openroad-mcp": {
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+          "openroad-mcp"
+        ],
+        "enabled": true
+      }
+    }
+  }
+}
+```
+
+Or run `openclaw mcp add` for guided setup.
+
+</details>
+
+<details>
+<summary><b>AstrBot</b></summary>
+
+Navigate to the AstrBot WebUI → **MCP** section → **Add Server**, and enter:
+
+```json
+{
+  "command": "uvx",
+  "args": ["--from", "git+https://github.com/luarss/openroad-mcp@v0.5.2", "openroad-mcp"]
+}
+```
+
+Requires `uv` installed on the host running AstrBot.
+
+</details>
+
+<details>
+<summary><b>DeepCode</b></summary>
+
+Add to `deepcode_config.json` in your project root:
+
+```json
+{
+  "tools": {
+    "mcpServers": {
+      "openroad-mcp": {
+        "type": "stdio",
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+          "openroad-mcp"
+        ]
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>nanobot</b></summary>
+
+Add to `nanobot.yaml` in your project root:
+
+```yaml
+mcpServers:
+  openroad-mcp:
+    command: uvx
+    args:
+      - --from
+      - git+https://github.com/luarss/openroad-mcp@v0.5.2
+      - openroad-mcp
+```
+
+</details>
+
+<details>
+<summary><b>Crush</b></summary>
+
+Add to `.crush.json` (project-local) or `~/.config/crush/crush.json` (global):
+
+```json
+{
+  "mcp": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/luarss/openroad-mcp@v0.5.2",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Reasonix</b></summary>
+
+Add to `reasonix.toml` (project root) or `~/.config/reasonix/config.toml` (global):
+
+```toml
+[[plugins]]
+name    = "openroad-mcp"
+command = "uvx"
+args    = ["--from", "git+https://github.com/luarss/openroad-mcp@v0.5.2", "openroad-mcp"]
+```
+
+Alternatively, use the standard `.mcp.json` format — Reasonix auto-discovers it.
 
 </details>
 
