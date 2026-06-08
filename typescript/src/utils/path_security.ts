@@ -21,13 +21,33 @@ export function validateSafePathContainment(targetPath: string, basePath: string
   }
 
   try {
-    // For non-existing paths (ENOENT), fall back to path.resolve.
     resolvedTarget = fs.realpathSync(targetPath);
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") {
-      resolvedTarget = path.resolve(targetPath);
-    } else {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
       throw new ValidationError(`Failed to resolve ${context} path: ${e}`);
+    }
+    // Walk up to find the longest existing prefix, resolve its symlinks, then
+    // re-append the non-existent suffix. A plain path.resolve() is unsafe here
+    // because it won't resolve symlinks in existing parent directories, allowing
+    // e.g. base/evil_link/nonexistent to escape containment at runtime.
+    const suffix: string[] = [];
+    let current = path.resolve(targetPath);
+    for (;;) {
+      const parent = path.dirname(current);
+      if (parent === current) {
+        resolvedTarget = path.resolve(targetPath);
+        break;
+      }
+      suffix.unshift(path.basename(current));
+      current = parent;
+      try {
+        resolvedTarget = path.join(fs.realpathSync(current), ...suffix);
+        break;
+      } catch (innerErr) {
+        if ((innerErr as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw new ValidationError(`Failed to resolve ${context} path: ${innerErr}`);
+        }
+      }
     }
   }
 

@@ -2,10 +2,10 @@ name: TypeScript CI
 
 on:
   push:
-    branches: [feat/ts-migration]
+    branches: [main, "feat/ts-migration**"]
     paths: ["typescript/**"]
   pull_request:
-    branches: [feat/ts-migration]
+    branches: [main, "feat/ts-migration**"]
     paths: ["typescript/**"]
 
 jobs:
