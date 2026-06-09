@@ -1,7 +1,7 @@
 """
 Token efficiency and response quality benchmarks for OpenROAD-MCP.
 
-Addresses issue #42: https://github.com/luarss/openroad-mcp/issues/42
+Addresses issue #42: https://github.com/The-OpenROAD-Project/openroad-mcp/issues/42
 Questions answered:
   1. Are we following best practices for compact JSON representation?
   2. Are there any benchmarks for latency? (not yet, but planned in follow-up PR)
