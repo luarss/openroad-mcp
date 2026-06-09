@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.luarss/openroad-mcp",
+  "name": "io.github.the-openroad-project/openroad-mcp",
   "description": "The OpenROAD MCP server - interactive EDA sessions via Model Context Protocol",
   "repository": {
-    "url": "https://github.com/luarss/openroad-mcp",
+    "url": "https://github.com/The-OpenROAD-Project/openroad-mcp",
     "source": "github"
   },
   "version": "0.5.3",
@@ -17,7 +17,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/luarss/openroad-mcp:0.5.3",
+      "identifier": "ghcr.io/the-openroad-project/openroad-mcp:0.5.3",
       "transport": { "type": "stdio" },
       "runtimeHint": "docker"
     }

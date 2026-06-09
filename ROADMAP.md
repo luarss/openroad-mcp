@@ -26,8 +26,8 @@ The pre-release phase focuses on:
 4. **Documentation Quality** - Building comprehensive guides based on real user questions
 
 **Feedback Channels:**
-- [GitHub Issues](https://github.com/luarss/openroad-mcp/issues) - Bug reports and feature requests
-- [GitHub Discussions](https://github.com/luarss/openroad-mcp/discussions) - Questions and community discussion
+- [GitHub Issues](https://github.com/The-OpenROAD-Project/openroad-mcp/issues) - Bug reports and feature requests
+- [GitHub Discussions](https://github.com/The-OpenROAD-Project/openroad-mcp/discussions) - Questions and community discussion
 
 ---
 
@@ -224,8 +224,8 @@ We welcome community involvement at every stage:
 
 ## Feedback & Questions
 
-- **GitHub Issues:** [Report bugs and request features](https://github.com/luarss/openroad-mcp/issues)
-- **GitHub Discussions:** [Ask questions and share ideas](https://github.com/luarss/openroad-mcp/discussions)
+- **GitHub Issues:** [Report bugs and request features](https://github.com/The-OpenROAD-Project/openroad-mcp/issues)
+- **GitHub Discussions:** [Ask questions and share ideas](https://github.com/The-OpenROAD-Project/openroad-mcp/discussions)
 
 ---
 
