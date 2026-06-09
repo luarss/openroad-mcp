@@ -116,7 +116,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/g" server.json
-          sed -i "s|ghcr.io/luarss/openroad-mcp:[^\"]*|ghcr.io/luarss/openroad-mcp:$VERSION|g" server.json
+          sed -i "s|ghcr.io/the-openroad-project/openroad-mcp:[^\"]*|ghcr.io/the-openroad-project/openroad-mcp:$VERSION|g" server.json
 
       - name: Install mcp-publisher
         run: |

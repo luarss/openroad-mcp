@@ -3,7 +3,7 @@ MCP_REQUEST_MAX_TOTAL_TIMEOUT:= 99999999999
 DOCKER_TEST_IMAGE:= openroad-mcp-test
 ORFS_VERSION:= 26Q1-534-g510137693
 UV_VERSION:= 0.10.9
-IMAGE_NAME:= ghcr.io/luarss/openroad-mcp
+IMAGE_NAME:= ghcr.io/the-openroad-project/openroad-mcp
 
 .PHONY: sync
 sync:
