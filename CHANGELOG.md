@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-06-09
+
+### Changed
+- Migrated all repository references from luarss to The-OpenROAD-Project org ([#120](https://github.com/The-OpenROAD-Project/openroad-mcp/pull/120))
+
+### Fixed
+- Upgraded urllib3 2.6.3 → 2.7.0 (CVE: sensitive header forwarding)
+
 ## [0.5.3] - 2026-06-06
 
 ### Changed
@@ -103,6 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QUICKSTART guide, ARCHITECTURE, and CONTRIBUTING documentation
 - ROADMAP for planned features
 
+[0.5.4]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/v0.5.4
 [0.5.3]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/v0.5.3
 [0.5.0]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/v0.5.0
 [0.4.2]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/v0.4.2

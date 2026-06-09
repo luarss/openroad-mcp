@@ -203,6 +203,7 @@ The pre-release phase focuses on:
 | v0.3.0 | 2026-03-25 | Production Dockerfile, GHCR publishing, restored test coverage |
 | v0.4.0 | 2026-03-29 | MCP registry publishing, cross-platform CI, performance benchmarks |
 | v0.5.3 | 2026-06-06 | Expanded agent docs (14+ clients), cross-platform CI, dependency bumps |
+| v0.5.4 | 2026-06-09 | Org migration to The-OpenROAD-Project, urllib3 CVE fix |
 | v0.5 | Q2 2026 | Session persistence, e2e testing |
 | v0.8 | Q2 2026 | MCP registry publish, multi-client support, GUI integration |
 | v1.0 | Q2 2026 | API freeze, security audit, production hardening |

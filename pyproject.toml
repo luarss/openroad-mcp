@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "openroad-mcp"
-version = "0.5.3"
+version = "0.5.4"
 authors = [
     {name = "Precision Innovations", email="it-support@precisioninno.com"},
 ]
