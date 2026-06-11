@@ -108,10 +108,8 @@ jobs:
           git config user.name "openroad-ci"
           git config user.email "54529053+openroad-ci@users.noreply.github.com"
           git checkout -b "${BRANCH}"
-          git add pyproject.toml server.json uv.lock README.md CHANGELOG.md
-          if [ -f ROADMAP.md ] && ! git diff --cached --quiet ROADMAP.md 2>/dev/null; then
-            git add ROADMAP.md
-          fi
+          git add pyproject.toml uv.lock README.md CHANGELOG.md
+          if [ -f server.json ]; then git add server.json; fi
           git commit -m "chore: release ${TAG}"
           git push -u origin "${BRANCH}"
 

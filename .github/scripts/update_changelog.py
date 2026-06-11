@@ -8,7 +8,7 @@ Usage: update_changelog.py <new_version> <new_tag> [section_file]
   new_tag       Git tag with prefix, e.g. v0.6.0
   section_file  Path to the section body (default: /tmp/changelog_section.txt)
 """
-import subprocess
+
 import sys
 from datetime import date
 
@@ -36,12 +36,7 @@ if idx == -1:
 else:
     content = content[:idx] + f"\n\n{new_entry}" + content[idx:]
 
-tags = subprocess.check_output(["git", "tag", "--sort=-v:refname"]).decode().strip()
-last_tag = tags.splitlines()[0] if tags else ""
-if last_tag:
-    link = f"[{new_version}]: https://github.com/The-OpenROAD-Project/openroad-mcp/compare/{last_tag}...{new_tag}"
-else:
-    link = f"[{new_version}]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/{new_tag}"
+link = f"[{new_version}]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/{new_tag}"
 
 content = content.rstrip("\n") + f"\n{link}\n"
 
