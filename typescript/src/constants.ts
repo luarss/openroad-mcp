@@ -24,5 +24,3 @@ export const CHUNK_JOIN_THRESHOLD = 100;
 export const LARGE_IO_THRESHOLD = 10_000;
 export const SLOW_OPERATION_THRESHOLD = 1.0;
 
-// Upper bound for safe integer arithmetic
-export const JS_SAFE_INTEGER_MAX = Number.MAX_SAFE_INTEGER;
