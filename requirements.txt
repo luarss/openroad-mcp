@@ -176,7 +176,7 @@ shellingham==1.5.4
     # via typer
 sse-starlette==3.3.4
     # via mcp
-starlette==1.0.0
+starlette==1.0.1
     # via
     #   mcp
     #   sse-starlette

@@ -29,7 +29,8 @@ project. It ensures every file that references the version gets updated consiste
 - **Version source**: `pyproject.toml` `[project] version`
 - **Changelog format**: Keep a Changelog
 - **Commit style**: Conventional Commits (`feat:`, `fix:`, `chore:`, etc.)
-- **GitHub repo**: `luarss/openroad-mcp`
+- **GitHub repo**: `The-OpenROAD-Project/openroad-mcp`
+- **Release gatekeeper**: @vvbandeira (org member) — must approve and merge all releases
 
 ## Workflow
 
@@ -83,7 +84,7 @@ Read each commit message and sort into Keep a Changelog categories:
 
 For each commit, format the changelog entry as:
 ```
-- Description ([#PR](https://github.com/luarss/openroad-mcp/pull/PR))
+- Description ([#PR](https://github.com/The-OpenROAD-Project/openroad-mcp/pull/PR))
 ```
 
 Use the PR number from the commit message if present. For commits without a PR
@@ -99,7 +100,49 @@ one breaks the release consistency.
 **server.json** — Update all three version references:
 - Top-level `"version": "X.Y.Z"`
 - PyPI package `"version": "X.Y.Z"`
-- OCI identifier `"identifier": "ghcr.io/luarss/openroad-mcp:X.Y.Z"`
+- OCI identifier `"identifier": "ghcr.io/The-OpenROAD-Project/openroad-mcp:X.Y.Z"`
+
+**MCP manifest files and README** — These files use `git+https://github.com/The-OpenROAD-Project/openroad-mcp`
+without a version pin. Update every occurrence to pin to the release tag, which
+prevents supply chain attacks by ensuring users install a known, reviewed commit:
+
+Change:
+```
+"git+https://github.com/The-OpenROAD-Project/openroad-mcp"
+```
+To:
+```
+"git+https://github.com/The-OpenROAD-Project/openroad-mcp@vX.Y.Z"
+```
+
+Use a single perl pass that handles all three URL patterns in the README:
+- JSON/TOML quoted: `"git+https://...openroad-mcp@v0.5.3"`
+- YAML unquoted list item: `- git+https://...openroad-mcp@v0.5.3` (end of line)
+- Bare (first-time pin): `"git+https://...openroad-mcp"`
+
+```bash
+perl -i -pe 's!git\+https://github\.com/The-OpenROAD-Project/openroad-mcp(?:\@v[\d.]+)?(?="|$)!git+https://github.com/The-OpenROAD-Project/openroad-mcp\@vX.Y.Z!g' README.md
+```
+
+The `!` delimiter avoids clashing with the `|` inside the lookahead `(?="|$)`.
+The lookahead matches either a closing quote (JSON/TOML) or end of line (YAML),
+so all config formats are covered.
+
+After updating, verify all pinned URLs show the new tag:
+```bash
+grep "The-OpenROAD-Project/openroad-mcp@" README.md
+```
+Every line should show `@vX.Y.Z`. Also confirm no bare URLs remain:
+```bash
+grep 'The-OpenROAD-Project/openroad-mcp"' README.md
+```
+That should return no output.
+
+> **Side note for users:** If you always want the latest version and prefer not
+> to pin, omit the `@vX.Y.Z` suffix and use the bare URL:
+> `git+https://github.com/The-OpenROAD-Project/openroad-mcp`. This trades supply chain
+> safety for convenience — acceptable for local/dev setups, not recommended
+> for shared or production environments.
 
 **uv.lock** — Regenerate by running `uv lock`. Do NOT hand-edit this file.
 
@@ -107,7 +150,7 @@ one breaks the release consistency.
 Today's date goes in the header. Add the link at the bottom:
 
 ```
-[X.Y.Z]: https://github.com/luarss/openroad-mcp/releases/tag/vX.Y.Z
+[X.Y.Z]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/vX.Y.Z
 ```
 
 **ROADMAP.md** — Find the "Version Milestones" table and add a new row for
@@ -125,12 +168,12 @@ python -m pytest --tb=short -q
 If tests fail, report the failures to the user before proceeding. Do not commit
 a broken release.
 
-### Step 6: Create the release commit
+### Step 6: Create the release commit and open a PR
 
 Stage only the release-related files:
 
 ```bash
-git add CHANGELOG.md ROADMAP.md pyproject.toml server.json uv.lock
+git add CHANGELOG.md ROADMAP.md pyproject.toml server.json uv.lock README.md
 ```
 
 Commit with the message:
@@ -139,17 +182,45 @@ Commit with the message:
 chore: release vX.Y.Z
 ```
 
-Do NOT push unless the user explicitly asks. The commit stays local for review.
+Then push to a dedicated release branch and open a PR:
+
+```bash
+git checkout -b release/vX.Y.Z
+git push -u origin release/vX.Y.Z
+gh pr create \
+  --title "chore: release vX.Y.Z" \
+  --body "$(cat <<'EOF'
+## Release vX.Y.Z
+
+See [CHANGELOG.md](CHANGELOG.md) for full details.
+
+/cc @vvbandeira — please review and merge when ready.
+EOF
+)" \
+  --reviewer vvbandeira
+```
+
+**NEVER push directly to `main`.** The decision to merge and tag belongs exclusively
+to @vvbandeira. Once the PR is open, report the PR URL to the user and stop — do not
+merge, squash, or tag.
 
 ## Important details
 
+- **Never push to `main` directly.** Always use a `release/vX.Y.Z` branch and open a PR.
+- **@vvbandeira must review and merge** — request them as a reviewer on every release PR.
 - Always use `uv lock` to regenerate the lockfile rather than editing it manually
 - The CHANGELOG date format is ISO: `YYYY-MM-DD`
 - Version tags use a `v` prefix: `v0.4.0` (but the version in files has no prefix)
 - Check for ALL files referencing the old version by running:
   ```
-  grep -r "0\.3\.0" --include="*.toml" --include="*.json" --include="*.lock" --include="*.md"
+  grep -r "OLD_VERSION" --include="*.toml" --include="*.json" --include="*.lock" --include="*.md"
   ```
+  (replace `OLD_VERSION` with the actual previous version, e.g. `0\.5\.2`)
   before committing, to catch any missed references
+- Also verify the README git URLs were updated:
+  ```
+  grep "openroad-mcp@" README.md
+  ```
+  All occurrences should show the new `@vX.Y.Z` tag
 - If `server.json` doesn't exist, skip it (some repos may not have it)
 - If `ROADMAP.md` doesn't exist or has no version table, skip it

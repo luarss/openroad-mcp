@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -33,7 +33,7 @@ jobs:
       - name: Tag and push Docker image
         run: |
           ORFS_VER=$(make --no-print-directory print-ORFS_VERSION)
-          IMAGE=ghcr.io/luarss/openroad-mcp
+          IMAGE=ghcr.io/the-openroad-project/openroad-mcp
           SEMVER="${IMAGE_TAG#v}"
           docker tag $IMAGE:$ORFS_VER $IMAGE:"$IMAGE_TAG"
           docker tag $IMAGE:$ORFS_VER $IMAGE:"$SEMVER"

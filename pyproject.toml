@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "openroad-mcp"
-version = "0.5.2"
+version = "0.5.5"
 authors = [
-    {name = "Precision Innovations", email="jluar@precisioninno.com"},
+    {name = "Precision Innovations", email="it-support@precisioninno.com"},
 ]
 description = "The OpenROAD MCP server"
 readme = "README.md"
