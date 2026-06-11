@@ -12,7 +12,6 @@ import {
   CHUNK_JOIN_THRESHOLD,
   LARGE_IO_THRESHOLD,
   SLOW_OPERATION_THRESHOLD,
-  JS_SAFE_INTEGER_MAX,
 } from "../src/constants.js";
 
 describe("constants", () => {
@@ -64,11 +63,4 @@ describe("constants", () => {
     expect(SLOW_OPERATION_THRESHOLD).toBe(1.0);
   });
 
-  it("JS_SAFE_INTEGER_MAX matches Number.MAX_SAFE_INTEGER", () => {
-    expect(JS_SAFE_INTEGER_MAX).toBe(Number.MAX_SAFE_INTEGER);
-  });
-
-  it("JS_SAFE_INTEGER_MAX equals 2**53 - 1", () => {
-    expect(JS_SAFE_INTEGER_MAX).toBe(2 ** 53 - 1);
-  });
 });
