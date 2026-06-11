@@ -6,8 +6,9 @@ Usage: generate_changelog_section.py [output_file]
 
 Writes the section text to output_file (default: /tmp/changelog_section.txt).
 """
-import subprocess
+
 import re
+import subprocess
 import sys
 
 REPO = "The-OpenROAD-Project/openroad-mcp"
