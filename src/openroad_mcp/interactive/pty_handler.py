@@ -109,6 +109,7 @@ class PTYHandler:
 
             # Close slave FD in parent - child has its own copy
             if self.slave_fd is not None:
+                self._before_slave_close(self.slave_fd)
                 os.close(self.slave_fd)
                 logger.debug(f"Closed slave FD {self.slave_fd} in parent process")
                 self.slave_fd = None
@@ -118,6 +119,10 @@ class PTYHandler:
         except Exception as e:
             await self.cleanup()
             raise PTYError(f"Unexpected error creating PTY session: {e}") from e
+
+    def _before_slave_close(self, slave_fd: int) -> None:
+        """Called just before the parent closes the slave fd. Override to dup if needed."""
+        pass
 
     def _configure_terminal(self) -> None:
         """Configure terminal attributes for optimal OpenROAD interaction."""

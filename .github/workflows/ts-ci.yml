@@ -1,0 +1,27 @@
+name: TypeScript CI
+
+on:
+  push:
+    branches: [main, "feat/ts-migration**"]
+    paths: ["typescript/**"]
+  pull_request:
+    branches: [main, "feat/ts-migration**"]
+    paths: ["typescript/**"]
+
+jobs:
+  ts-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: typescript
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.4.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: typescript/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test

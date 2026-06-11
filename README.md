@@ -1,6 +1,6 @@
 # OpenROAD MCP Server
 
-<!-- mcp-name: io.github.luarss/openroad-mcp -->
+<!-- mcp-name: io.github.the-openroad-project/openroad-mcp -->
 
 A Model Context Protocol (MCP) server that provides tools for interacting with OpenROAD and ORFS (OpenROAD Flow Scripts).
 
@@ -51,6 +51,20 @@ A Model Context Protocol (MCP) server that provides tools for interacting with O
 | Opencode | ✅ | STDIO | `opencode.json` |
 | Kiro | ✅ | STDIO | Settings UI |
 | Kilo Code | ✅ | STDIO | `.kilocode/mcp.json` |
+| Goose | ✅ | STDIO | `~/.config/goose/config.yaml` |
+| Sourcegraph Cody | ✅ | STDIO | VS Code `settings.json` |
+| OpenAI Codex CLI | ✅ | STDIO | `~/.codex/config.toml` |
+| PearAI | ✅ | STDIO | `~/pearai/config.json` |
+| CodeBuddy | ✅ | STDIO | `~/.codebuddy/config.jsonc` |
+| Hermes Agent | ✅ | STDIO | `~/.hermes/config.yaml` |
+| GitHub Copilot CLI | ✅ | STDIO | `~/.copilot/mcp-config.json` |
+| Oh My Pi | ✅ | STDIO | `.omp/mcp.json` |
+| OpenClaw | ✅ | STDIO | `~/.openclaw/openclaw.json` |
+| AstrBot | ✅ | STDIO | WebUI |
+| DeepCode | ✅ | STDIO | `deepcode_config.json` |
+| nanobot | ✅ | STDIO | `nanobot.yaml` |
+| Crush | ✅ | STDIO | `.crush.json` |
+| Reasonix | ✅ | STDIO | `reasonix.toml` |
 | Other MCP clients | ⚠️ | STDIO | Should work with standard STDIO transport |
 
 ## Getting Started
@@ -70,13 +84,17 @@ The basic configuration for all MCP clients:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
         "openroad-mcp"
       ]
     }
   }
 }
 ```
+
+> **Note:** The URL above is pinned to a specific release for supply chain safety.
+> To always track the latest version instead, drop the `@v0.5.5` suffix:
+> `"git+https://github.com/The-OpenROAD-Project/openroad-mcp"`.
 
 For local development, use:
 
@@ -102,7 +120,7 @@ For local development, use:
 <summary><b>Claude Code</b></summary>
 
 ```bash
-claude mcp add --transport stdio openroad-mcp -- uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
+claude mcp add --transport stdio openroad-mcp -- uvx --from git+https://github.com/The-OpenROAD-Project/openroad-mcp openroad-mcp
 ```
 
 Or add the [standard configuration](#standard-configuration) to `.claude/settings.json`.
@@ -138,7 +156,7 @@ Add to `.vscode/mcp.json` (VS Code 1.99+). Note the different schema — `server
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
         "openroad-mcp"
       ]
     }
@@ -177,7 +195,7 @@ Add to the Cline MCP settings file:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
         "openroad-mcp"
       ],
       "disabled": false,
@@ -201,7 +219,7 @@ Add to `.roo/mcp.json` in your project root (or the equivalent user-level settin
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
         "openroad-mcp"
       ],
       "disabled": false,
@@ -228,7 +246,7 @@ Add to `~/.continue/config.json`:
           "command": "uvx",
           "args": [
             "--from",
-            "git+https://github.com/luarss/openroad-mcp",
+            "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
             "openroad-mcp"
           ]
         }
@@ -253,7 +271,7 @@ Add to `~/.config/zed/settings.json`:
         "path": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/luarss/openroad-mcp",
+          "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
           "openroad-mcp"
         ]
       },
@@ -293,7 +311,7 @@ Add to your VS Code `settings.json` (User or Workspace scope):
         "command": "uvx",
         "args": [
           "--from",
-          "git+https://github.com/luarss/openroad-mcp",
+          "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
           "openroad-mcp"
         ]
       }
@@ -310,7 +328,7 @@ Add to your VS Code `settings.json` (User or Workspace scope):
 Open **Settings → AI → MCP Servers → Add New MCP Server** and enter:
 - **Name**: `openroad-mcp`
 - **Command**: `uvx`
-- **Args**: `--from git+https://github.com/luarss/openroad-mcp openroad-mcp`
+- **Args**: `--from git+https://github.com/The-OpenROAD-Project/openroad-mcp openroad-mcp`
 
 </details>
 
@@ -318,7 +336,7 @@ Open **Settings → AI → MCP Servers → Add New MCP Server** and enter:
 <summary><b>Amp</b></summary>
 
 ```bash
-amp mcp add openroad-mcp uvx --from git+https://github.com/luarss/openroad-mcp openroad-mcp
+amp mcp add openroad-mcp uvx --from git+https://github.com/The-OpenROAD-Project/openroad-mcp openroad-mcp
 ```
 
 </details>
@@ -343,7 +361,7 @@ Add to `opencode.json` in your project root:
       "command": [
         "uvx",
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
         "openroad-mcp"
       ],
       "enabled": true
@@ -373,7 +391,7 @@ Add to `.kilocode/mcp.json` in your project root:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/luarss/openroad-mcp",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
         "openroad-mcp"
       ],
       "alwaysAllow": [],
@@ -382,6 +400,306 @@ Add to `.kilocode/mcp.json` in your project root:
   }
 }
 ```
+
+</details>
+
+<details>
+<summary><b>Goose</b></summary>
+
+Add to `~/.config/goose/config.yaml`:
+
+```yaml
+extensions:
+  openroad-mcp:
+    name: openroad-mcp
+    type: stdio
+    cmd: uvx
+    args:
+      - --from
+      - git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5
+      - openroad-mcp
+    enabled: true
+```
+
+</details>
+
+<details>
+<summary><b>Sourcegraph Cody</b></summary>
+
+Add to your VS Code `settings.json`:
+
+```json
+{
+  "openctx.providers": {
+    "https://openctx.org/npm/@openctx/provider-mcp": {
+      "transports": [
+        {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+            "openroad-mcp"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>OpenAI Codex CLI</b></summary>
+
+Add to `~/.codex/config.toml` (global) or `.codex/config.toml` (project-scoped):
+
+```toml
+[[mcp_servers]]
+name = "openroad-mcp"
+command = "uvx"
+args = ["--from", "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5", "openroad-mcp"]
+```
+
+</details>
+
+<details>
+<summary><b>PearAI</b></summary>
+
+PearAI uses the same config format as Continue. Add to `~/pearai/config.json`:
+
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+            "openroad-mcp"
+          ]
+        }
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>CodeBuddy</b></summary>
+
+Add to `~/.codebuddy/config.jsonc` (global) or `.codebuddy/mcp.jsonc` (project-scoped):
+
+```jsonc
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Hermes Agent</b></summary>
+
+Add to `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  - name: openroad-mcp
+    transport: stdio
+    command: uvx
+    args:
+      - --from
+      - git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5
+      - openroad-mcp
+```
+
+</details>
+
+<details>
+<summary><b>GitHub Copilot CLI</b></summary>
+
+Add to `~/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+Or run `/mcp add` inside a Copilot CLI session for guided setup.
+
+</details>
+
+<details>
+<summary><b>Oh My Pi</b></summary>
+
+Add to `.omp/mcp.json` (project-level) or `~/.omp/agent/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>OpenClaw</b></summary>
+
+Add to `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "openroad-mcp": {
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+          "openroad-mcp"
+        ],
+        "enabled": true
+      }
+    }
+  }
+}
+```
+
+Or run `openclaw mcp add` for guided setup.
+
+</details>
+
+<details>
+<summary><b>AstrBot</b></summary>
+
+Navigate to the AstrBot WebUI → **MCP** section → **Add Server**, and enter:
+
+```json
+{
+  "command": "uvx",
+  "args": ["--from", "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5", "openroad-mcp"]
+}
+```
+
+Requires `uv` installed on the host running AstrBot.
+
+</details>
+
+<details>
+<summary><b>DeepCode</b></summary>
+
+Add to `deepcode_config.json` in your project root:
+
+```json
+{
+  "tools": {
+    "mcpServers": {
+      "openroad-mcp": {
+        "type": "stdio",
+        "command": "uvx",
+        "args": [
+          "--from",
+          "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+          "openroad-mcp"
+        ]
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>nanobot</b></summary>
+
+Add to `nanobot.yaml` in your project root:
+
+```yaml
+mcpServers:
+  openroad-mcp:
+    command: uvx
+    args:
+      - --from
+      - git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5
+      - openroad-mcp
+```
+
+</details>
+
+<details>
+<summary><b>Crush</b></summary>
+
+Add to `.crush.json` (project-local) or `~/.config/crush/crush.json` (global):
+
+```json
+{
+  "mcp": {
+    "openroad-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5",
+        "openroad-mcp"
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Reasonix</b></summary>
+
+Add to `reasonix.toml` (project root) or `~/.config/reasonix/config.toml` (global):
+
+```toml
+[[plugins]]
+name    = "openroad-mcp"
+command = "uvx"
+args    = ["--from", "git+https://github.com/The-OpenROAD-Project/openroad-mcp@v0.5.5", "openroad-mcp"]
+```
+
+Alternatively, use the standard `.mcp.json` format — Reasonix auto-discovers it.
 
 </details>
 
@@ -474,7 +792,7 @@ We welcome contributions to OpenROAD MCP! Please see [CONTRIBUTING.md](CONTRIBUT
 
 ## Support
 
-If you encounter any issues or have questions, please open an issue on our [GitHub issue tracker](https://github.com/luarss/openroad-mcp/issues).
+If you encounter any issues or have questions, please open an issue on our [GitHub issue tracker](https://github.com/The-OpenROAD-Project/openroad-mcp/issues).
 
 ## License
 
