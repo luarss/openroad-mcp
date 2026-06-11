@@ -52,7 +52,8 @@ export function validateSafePathContainment(targetPath: string, basePath: string
   }
 
   const rel = path.relative(resolvedBase, resolvedTarget);
-  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+  const firstComponent = rel.split(path.sep)[0];
+  if (firstComponent === ".." || path.isAbsolute(rel)) {
     throw new ValidationError(`${context} path ${targetPath} is not contained within ${basePath}`);
   }
 }
