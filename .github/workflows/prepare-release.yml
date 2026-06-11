@@ -56,64 +56,7 @@ jobs:
           echo "Bumping ${CURRENT} → ${NEW} (${{ inputs.bump_type }})"
 
       - name: Generate changelog entries
-        env:
-          NEW_VERSION: ${{ steps.version.outputs.new }}
-          NEW_TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          python3 - <<'PYEOF'
-          import subprocess, re, os
-
-          tags = subprocess.check_output(['git', 'tag', '--sort=-v:refname']).decode().strip()
-          last_tag = tags.splitlines()[0] if tags else ''
-
-          if last_tag:
-              log = subprocess.check_output(['git', 'log', f'{last_tag}..HEAD', '--oneline']).decode().strip()
-          else:
-              log = subprocess.check_output(['git', 'log', '--oneline']).decode().strip()
-
-          added, changed, fixed = [], [], []
-
-          for line in log.splitlines():
-              parts = line.split(' ', 1)
-              if len(parts) < 2:
-                  continue
-              msg = parts[1]
-
-              pr_match = re.search(r'\(#(\d+)\)', msg)
-              pr_num = pr_match.group(1) if pr_match else None
-
-              clean = re.sub(r'^[a-z]+\([^)]+\):\s*', '', msg)
-              clean = re.sub(r'^[a-z]+:\s*', '', clean)
-              clean = re.sub(r'\s*\(#\d+\)\s*$', '', clean).strip()
-
-              if pr_num:
-                  entry = f'- {clean} ([#{pr_num}](https://github.com/The-OpenROAD-Project/openroad-mcp/pull/{pr_num}))'
-              else:
-                  entry = f'- {clean}'
-
-              if re.match(r'feat(\(|:)', msg):
-                  added.append(entry)
-              elif re.match(r'fix(\(|:)', msg):
-                  fixed.append(entry)
-              elif re.match(r'(chore|build|ci|perf|refactor|docs|style|test)(\(|:)', msg):
-                  changed.append(entry)
-
-          sections = []
-          if added:
-              sections.append('### Added\n' + '\n'.join(added))
-          if changed:
-              sections.append('### Changed\n' + '\n'.join(changed))
-          if fixed:
-              sections.append('### Fixed\n' + '\n'.join(fixed))
-
-          body = '\n\n'.join(sections) if sections else '### Changed\n- Minor updates and maintenance'
-
-          with open('/tmp/changelog_section.txt', 'w') as f:
-              f.write(body)
-
-          print('Generated changelog section:')
-          print(body)
-          PYEOF
+        run: python3 .github/scripts/generate_changelog_section.py
 
       - name: Update pyproject.toml
         run: |
@@ -138,48 +81,10 @@ jobs:
             README.md
 
       - name: Update CHANGELOG.md
-        env:
-          NEW_VERSION: ${{ steps.version.outputs.new }}
-          NEW_TAG: ${{ steps.version.outputs.tag }}
         run: |
-          python3 - <<'PYEOF'
-          import os, subprocess
-          from datetime import date
-
-          new_version = os.environ['NEW_VERSION']
-          new_tag = os.environ['NEW_TAG']
-          today = date.today().isoformat()
-
-          with open('/tmp/changelog_section.txt') as f:
-              section = f.read().strip()
-
-          with open('CHANGELOG.md') as f:
-              content = f.read()
-
-          # Insert new version section before the first existing ## [...] version heading
-          new_entry = f'## [{new_version}] - {today}\n\n{section}'
-          insert_marker = '\n## ['
-          idx = content.find(insert_marker)
-          if idx == -1:
-              content += f'\n{new_entry}\n'
-          else:
-              content = content[:idx] + f'\n\n{new_entry}' + content[idx:]
-
-          # Append reference link at the bottom
-          tags = subprocess.check_output(['git', 'tag', '--sort=-v:refname']).decode().strip()
-          last_tag = tags.splitlines()[0] if tags else ''
-          if last_tag:
-              link = f'[{new_version}]: https://github.com/The-OpenROAD-Project/openroad-mcp/compare/{last_tag}...{new_tag}'
-          else:
-              link = f'[{new_version}]: https://github.com/The-OpenROAD-Project/openroad-mcp/releases/tag/{new_tag}'
-
-          content = content.rstrip('\n') + f'\n{link}\n'
-
-          with open('CHANGELOG.md', 'w') as f:
-              f.write(content)
-
-          print(f'Inserted {new_version} section into CHANGELOG.md')
-          PYEOF
+          python3 .github/scripts/update_changelog.py \
+            "${{ steps.version.outputs.new }}" \
+            "${{ steps.version.outputs.tag }}"
 
       - name: Regenerate uv.lock
         run: uv lock
