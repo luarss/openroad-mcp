@@ -94,7 +94,7 @@ export class InteractiveSession {
           // node-pty delivers data in push-based bursts with no size limit.
           // Slicing large deliveries keeps individual buffer chunks small so the
           // circular buffer's eviction logic bounds memory correctly.
-          const chunkSize = this._settings.READ_CHUNK_SIZE;
+          const chunkSize = Math.max(1, this._settings.READ_CHUNK_SIZE);
           if (data.length <= chunkSize) {
             void this.outputBuffer.append(data);
           } else {
