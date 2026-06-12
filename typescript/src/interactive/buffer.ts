@@ -67,27 +67,35 @@ export class CircularBuffer {
   }
 
   async waitForData(timeoutMs: number): Promise<boolean> {
-    if (this._dataAvailable) return true;
-
     return new Promise<boolean>((resolve) => {
       let settled = false;
-
-      const timer = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        const idx = this._resolvers.indexOf(wakeUp);
-        if (idx !== -1) this._resolvers.splice(idx, 1);
-        resolve(false);
-      }, timeoutMs);
+      let timer: ReturnType<typeof setTimeout> | null = null;
 
       const wakeUp = (): void => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        if (timer !== null) clearTimeout(timer);
         resolve(true);
       };
 
-      this._resolvers.push(wakeUp);
+      void this._mutex.runExclusive(() => {
+        if (this._dataAvailable) {
+          wakeUp();
+          return;
+        }
+
+        this._resolvers.push(wakeUp);
+
+        timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          void this._mutex.runExclusive(() => {
+            const idx = this._resolvers.indexOf(wakeUp);
+            if (idx !== -1) this._resolvers.splice(idx, 1);
+          });
+          resolve(false);
+        }, timeoutMs);
+      });
     });
   }
 
