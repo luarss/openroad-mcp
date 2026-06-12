@@ -198,6 +198,19 @@ describe("PtyHandler", () => {
       expect(r1).toBe(42);
       expect(r2).toBe(42);
     });
+
+    it("cleanup() resolves pending waitForExit with null when process never exited", async () => {
+      await handler.createSession(["echo"]);
+
+      // Stub terminateProcess so cleanup() doesn't block for 5 s internally
+      vi.spyOn(handler, "terminateProcess").mockResolvedValue(undefined);
+
+      const waiter = handler.waitForExit(10000);
+      await handler.cleanup();
+
+      const result = await waiter;
+      expect(result).toBeNull();
+    });
   });
 
   describe("terminateProcess", () => {
