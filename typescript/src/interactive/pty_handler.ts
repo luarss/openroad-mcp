@@ -10,7 +10,7 @@ export class PtyHandler {
   private _alive = false;
   private _dataDisposable: IDisposable | null = null;
   private _exitDisposable: IDisposable | null = null;
-  private _exitResolvers: Array<(code: number) => void> = [];
+  private _exitResolvers: Array<(code: number | null) => void> = [];
   private _exitCode: number | null = null;
 
   constructor(private readonly _settings: Settings = defaultSettings) {}
@@ -66,7 +66,9 @@ export class PtyHandler {
       this.validateCommand(command);
 
       const processEnv: Record<string, string> = {
-        ...(process.env as Record<string, string>),
+        ...Object.fromEntries(
+          Object.entries(process.env).filter((e): e is [string, string] => e[1] !== undefined),
+        ),
         ...env,
         TERM: "xterm-256color",
         COLUMNS: "80",
@@ -123,7 +125,7 @@ export class PtyHandler {
     return new Promise<number | null>((resolve) => {
       let settled = false;
 
-      const onExit = (code: number): void => {
+      const onExit = (code: number | null): void => {
         if (settled) return;
         settled = true;
         if (timer !== null) clearTimeout(timer);
@@ -181,11 +183,13 @@ export class PtyHandler {
     try { this._dataDisposable?.dispose(); } catch { /* ignored */ }
     try { this._exitDisposable?.dispose(); } catch { /* ignored */ }
 
+    const pending = this._exitResolvers.splice(0);
+    for (const resolve of pending) resolve(this._exitCode);
+
     this._ptyProcess = null;
     this._alive = false;
     this._dataDisposable = null;
     this._exitDisposable = null;
-    this._exitResolvers = [];
     this._exitCode = null;
   }
 }
