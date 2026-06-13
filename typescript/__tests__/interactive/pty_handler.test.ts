@@ -225,11 +225,29 @@ describe("PtyHandler", () => {
       expect(mockPty.kill).not.toHaveBeenCalled();
     });
 
-    it("sends SIGKILL immediately when force=true", async () => {
+    it("sends SIGKILL and waits for exit when force=true", async () => {
       await handler.createSession(["echo"]);
+
+      setTimeout(() => mockPty._exit(137), 5);
       await handler.terminateProcess(true);
+
       expect(mockPty.kill).toHaveBeenCalledWith("SIGKILL");
       expect(mockPty.kill).not.toHaveBeenCalledWith("SIGTERM");
+      expect(handler.isProcessAlive()).toBe(false);
+    });
+
+    it("cleanup after force terminate does not resend SIGTERM (no 5-second hang)", async () => {
+      await handler.createSession(["echo"]);
+
+      // force=true: SIGKILL sent, process exits, _alive=false before terminateProcess returns
+      setTimeout(() => mockPty._exit(137), 5);
+      await handler.terminateProcess(true);
+
+      // cleanup() must see _alive=false and skip terminateProcess entirely
+      await handler.cleanup();
+
+      expect(mockPty.kill).toHaveBeenCalledTimes(1);
+      expect(mockPty.kill).toHaveBeenCalledWith("SIGKILL");
     });
 
     it("sends SIGTERM for graceful shutdown when force=false", async () => {
