@@ -8,7 +8,7 @@ export class CircularBuffer {
   private _totalSize = 0;
   private readonly _mutex = new Mutex();
   private _dataAvailable = false;
-  private _resolvers: Array<() => void> = [];
+  private _resolvers: Array<(available: boolean) => void> = [];
 
   constructor(maxSize: number = DEFAULT_MAX_SIZE) {
     this.maxSize = maxSize;
@@ -39,7 +39,7 @@ export class CircularBuffer {
 
       this._dataAvailable = true;
       const pending = this._resolvers.splice(0);
-      for (const resolve of pending) resolve();
+      for (const resolve of pending) resolve(true);
     } finally {
       release();
     }
@@ -71,16 +71,16 @@ export class CircularBuffer {
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
 
-      const wakeUp = (): void => {
+      const wakeUp = (available: boolean): void => {
         if (settled) return;
         settled = true;
-        if (timer !== null) clearTimeout(timer);
-        resolve(true);
+        clearTimeout(timer);
+        resolve(available);
       };
 
       void this._mutex.runExclusive(() => {
         if (this._dataAvailable) {
-          wakeUp();
+          wakeUp(true);
           return;
         }
 
@@ -105,6 +105,8 @@ export class CircularBuffer {
       this._chunks.splice(0);
       this._totalSize = 0;
       this._dataAvailable = false;
+      const pending = this._resolvers.splice(0);
+      for (const resolve of pending) resolve(false);
     } finally {
       release();
     }
