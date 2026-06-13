@@ -255,6 +255,19 @@ describe("InteractiveSession", () => {
       expect(session.state).toBe(SessionState.TERMINATED);
     });
 
+    it("calls _signalShutdown when process death is detected so writer task stops", async () => {
+      await session.start(["echo"]);
+      expect(session.isRunning()).toBe(true);
+
+      (mockPty.isProcessAlive as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      // getInfo() is the read-only health-check path described in the bug report
+      await session.getInfo();
+
+      expect(session.state).toBe(SessionState.TERMINATED);
+      expect(session.isRunning()).toBe(false);
+    });
+
     it("returns true in ACTIVE state with live process", () => {
       session.state = SessionState.ACTIVE;
       (mockPty.isProcessAlive as ReturnType<typeof vi.fn>).mockReturnValue(true);
