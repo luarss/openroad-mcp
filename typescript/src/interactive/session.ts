@@ -151,6 +151,9 @@ export class InteractiveSession {
       // next await boundary.  Node.js drains all microtasks before firing
       // onExit, so any preceding onData appends are already in the buffer.
       // Return whatever is buffered rather than discarding it.
+      // Also signal shutdown here so the writer task is guaranteed to stop
+      // even when readOutput() is the first caller to observe the dead state.
+      this._signalShutdown();
       const chunks = await this.outputBuffer.drainAll();
       if (chunks.length === 0) {
         throw new SessionTerminatedError(`Session ${this.sessionId} is not active`, this.sessionId);
