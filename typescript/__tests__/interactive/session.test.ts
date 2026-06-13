@@ -283,13 +283,14 @@ describe("InteractiveSession", () => {
   });
 
   describe("terminate", () => {
-    it("sets state to TERMINATED and calls pty.terminateProcess", async () => {
+    it("sets state to TERMINATED and calls pty.terminateProcess then pty.cleanup", async () => {
       session.state = SessionState.ACTIVE;
 
       await session.terminate(false);
 
       expect(session.state).toBe(SessionState.TERMINATED);
       expect(mockPty.terminateProcess).toHaveBeenCalledWith(false);
+      expect(mockPty.cleanup).toHaveBeenCalledOnce();
     });
 
     it("passes force=true through to pty.terminateProcess", async () => {
@@ -298,12 +299,26 @@ describe("InteractiveSession", () => {
       await session.terminate(true);
 
       expect(mockPty.terminateProcess).toHaveBeenCalledWith(true);
+      expect(mockPty.cleanup).toHaveBeenCalledOnce();
     });
 
     it("is a no-op when already terminated", async () => {
       session.state = SessionState.TERMINATED;
       await session.terminate();
       expect(mockPty.terminateProcess).not.toHaveBeenCalled();
+      expect(mockPty.cleanup).not.toHaveBeenCalled();
+    });
+
+    it("calls pty.cleanup() so listeners and pending resolvers are disposed without a subsequent session.cleanup()", async () => {
+      session.state = SessionState.ACTIVE;
+
+      // terminate() without any follow-up cleanup() call
+      await session.terminate(false);
+
+      // pty.cleanup() must have been called to dispose _dataDisposable,
+      // _exitDisposable, and drain _exitResolvers — otherwise post-kill
+      // data bursts keep appending and waitForExit() callers hang forever
+      expect(mockPty.cleanup).toHaveBeenCalledOnce();
     });
   });
 
