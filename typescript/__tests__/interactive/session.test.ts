@@ -424,6 +424,21 @@ describe("InteractiveSession", () => {
       expect(session.state).toBe(SessionState.TERMINATED);
     });
 
+    it("transitions to TERMINATED and signals shutdown when append() rejects in onData handler", async () => {
+      await session.start(["echo"]);
+      expect(session.state).toBe(SessionState.ACTIVE);
+
+      vi.spyOn(session.outputBuffer, "append").mockRejectedValue(new Error("mutex corrupted"));
+
+      capturedOnData?.("burst");
+
+      // Give the rejected promise's .catch() a tick to run
+      await new Promise<void>((r) => setTimeout(r, 5));
+
+      expect(session.state).toBe(SessionState.TERMINATED);
+      expect(session.isAlive()).toBe(false);
+    });
+
     it("onData data exactly at READ_CHUNK_SIZE is a single append, not sliced", async () => {
       const exactChunkSession = new InteractiveSession(
         "exact-chunk",
