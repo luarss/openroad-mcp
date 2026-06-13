@@ -224,6 +224,20 @@ describe("InteractiveSession", () => {
       expect(session.outputBuffer.size).toBe(0);
     });
 
+    it("signals shutdown when readOutput detects terminated session so writer task does not loop indefinitely", async () => {
+      // Spy on the private method to verify readOutput() calls it directly.
+      // Scenario: _state was flipped to TERMINATED externally (e.g. via the setter)
+      // without calling _signalShutdown() — the exact gap @luarss identified.
+      const signalShutdown = vi.spyOn(session as unknown as { _signalShutdown: () => void }, "_signalShutdown");
+
+      session.state = SessionState.TERMINATED;
+      await session.outputBuffer.append("last output");
+
+      await session.readOutput(100);
+
+      expect(signalShutdown).toHaveBeenCalled();
+    });
+
     it("throws SessionTerminatedError when session is terminated AND buffer is empty", async () => {
       session.state = SessionState.TERMINATED;
       await expect(session.readOutput()).rejects.toThrow(SessionTerminatedError);
