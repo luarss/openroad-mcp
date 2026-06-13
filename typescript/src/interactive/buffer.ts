@@ -67,9 +67,18 @@ export class CircularBuffer {
   }
 
   async waitForData(timeoutMs: number): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+    if (this._dataAvailable) return true;
+
+    return new Promise<boolean>((resolve, reject) => {
       let settled = false;
-      let timer: ReturnType<typeof setTimeout> | null = null;
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        const idx = this._resolvers.indexOf(wakeUp);
+        if (idx !== -1) this._resolvers.splice(idx, 1);
+        resolve(false);
+      }, timeoutMs);
 
       const wakeUp = (available: boolean): void => {
         if (settled) return;
@@ -78,23 +87,22 @@ export class CircularBuffer {
         resolve(available);
       };
 
-      void this._mutex.runExclusive(() => {
+      // Re-check _dataAvailable under the mutex: runExclusive is async, so
+      // append() can fire between the fast-path check above and the push below,
+      // set _dataAvailable = true, drain an empty _resolvers, and release —
+      // leaving wakeUp unnoticed and the caller waiting the full timeout.
+      this._mutex.runExclusive(() => {
         if (this._dataAvailable) {
           wakeUp(true);
-          return;
+        } else {
+          this._resolvers.push(wakeUp);
         }
-
-        this._resolvers.push(wakeUp);
-
-        timer = setTimeout(() => {
-          if (settled) return;
+      }).catch((err: unknown) => {
+        if (!settled) {
           settled = true;
-          void this._mutex.runExclusive(() => {
-            const idx = this._resolvers.indexOf(wakeUp);
-            if (idx !== -1) this._resolvers.splice(idx, 1);
-          });
-          resolve(false);
-        }, timeoutMs);
+          clearTimeout(timer);
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
       });
     });
   }
