@@ -226,6 +226,7 @@ export class InteractiveSession {
     this._signalShutdown();
 
     await this.pty.terminateProcess(force);
+    await this.pty.cleanup();
 
     if (this._writerTask !== null) {
       await this._writerTask;
