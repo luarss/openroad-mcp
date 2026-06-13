@@ -64,6 +64,7 @@ export class InteractiveSession {
     const processAlive = this.pty.isProcessAlive();
     if (!processAlive && this._state === SessionState.ACTIVE) {
       this._state = SessionState.TERMINATED;
+      this._signalShutdown();
       return false;
     }
 
