@@ -134,6 +134,22 @@ describe("CircularBuffer", () => {
       expect(result).toBe(true);
       await addTask;
     });
+
+    it("returns true when append fires between fast-path check and runExclusive callback (re-check prevents missed wakeup)", async () => {
+      const buf = new CircularBuffer(100);
+
+      // Start waitForData (fast-path sees _dataAvailable = false and enters the Promise)
+      const waiter = buf.waitForData(5000);
+
+      // append() fires here — before runExclusive's callback has a chance to push
+      // wakeUp into _resolvers. Without the re-check inside runExclusive, wakeUp
+      // would be pushed after append() already drained an empty _resolvers, and
+      // the caller would wait the full 5-second timeout.
+      await buf.append("raced data");
+
+      const result = await waiter;
+      expect(result).toBe(true);
+    });
   });
 
   describe("clear", () => {
