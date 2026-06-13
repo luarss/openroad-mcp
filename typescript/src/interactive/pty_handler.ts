@@ -151,12 +151,7 @@ export class PtyHandler {
     if (!this._ptyProcess || !this._alive) return;
 
     try {
-      if (force) {
-        this._ptyProcess.kill("SIGKILL");
-        return;
-      }
-
-      this._ptyProcess.kill("SIGTERM");
+      this._ptyProcess.kill(force ? "SIGKILL" : "SIGTERM");
     } catch {
       return;
     }
