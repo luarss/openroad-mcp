@@ -95,12 +95,20 @@ export class InteractiveSession {
           // node-pty delivers data in push-based bursts with no size limit.
           // Slicing large deliveries keeps individual buffer chunks small so the
           // circular buffer's eviction logic bounds memory correctly.
+          const appendChunk = (chunk: string): void => {
+            this.outputBuffer.append(chunk).catch(() => {
+              if (this._state === SessionState.ACTIVE) {
+                this._state = SessionState.TERMINATED;
+              }
+              this._signalShutdown();
+            });
+          };
           const chunkSize = Math.max(1, Math.min(this._settings.READ_CHUNK_SIZE, this.outputBuffer.maxSize));
           if (data.length <= chunkSize) {
-            void this.outputBuffer.append(data);
+            appendChunk(data);
           } else {
             for (let i = 0; i < data.length; i += chunkSize) {
-              void this.outputBuffer.append(data.slice(i, i + chunkSize));
+              appendChunk(data.slice(i, i + chunkSize));
             }
           }
         },
