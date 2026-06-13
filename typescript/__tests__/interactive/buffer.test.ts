@@ -146,6 +146,17 @@ describe("CircularBuffer", () => {
       expect(buf.size).toBe(0);
       expect(buf.chunkCount).toBe(0);
     });
+
+    it("wakes pending waitForData() immediately with false so callers do not hang", async () => {
+      const buf = new CircularBuffer(100);
+
+      // waitForData with a large timeout — clear() must unblock it before the timeout fires
+      const waiter = buf.waitForData(5000);
+      await buf.clear();
+
+      const result = await waiter;
+      expect(result).toBe(false);
+    });
   });
 
   describe("getStats", () => {
