@@ -317,27 +317,30 @@ export function createMcpServer(manager: OpenROADManager = defaultManager): McpS
     {
       description:
         "Read an ORFS design's per-stage metrics and the tagged errors/warnings from each stage " +
-        "log. It does not judge QoR: ORFS checks QoR against its dashboard in the `metadata` " +
-        "target, which run_orfs_stage can run. Prefer this " +
+        "log. Set `check_qor` to also send the selected stages' metrics to the public QoR " +
+        "dashboard and get its verdict against the latest master build (`qor_check`: status, " +
+        "baseline, totals, failing metrics). Use `stage: all` to send every stage's metrics. Platforms " +
+        "outside the public ORFS list are not sent and come back `inconclusive`; an unreachable dashboard is `unreachable`, not a " +
+        "failure. Prefer this " +
         "over shelling out to find/cat/jq/grep in the flow tree. `stage` accepts a step name " +
         "(cts, place, route, floorplan, synth, finish), an ORFS metric namespace " +
         "(globalroute, detailedroute, placeopt, detailedplace), an exact file stem (4_1_cts), or " +
         "`all` (the default). `platform` is inferred from `design` when unambiguous. Note that " +
         "ORFS records some metrics once per sub-run: any key listed in `repeated_metrics` has an " +
-        "array of values in file order rather than a scalar. Deprecated: `gates`, " +
-        "`unmatched_gates`, `gate_summary` and `rules_path` are always empty, because ORFS " +
-        "removed its per-design rules files; run the ORFS `metadata` target to check QoR.",
+        "array of values in file order rather than a scalar.",
       inputSchema: {
         design: z.string(),
         stage: z.string().optional(),
         platform: z.string().optional(),
         variant: z.string().optional(),
+        check_qor: z.boolean().optional(),
       },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
-        openWorldHint: false,
+        // check_qor sends the metrics to the QoR dashboard.
+        openWorldHint: true,
       },
     },
     async (args) =>
@@ -347,6 +350,7 @@ export function createMcpServer(manager: OpenROADManager = defaultManager): McpS
           args.stage,
           args.platform,
           args.variant,
+          args.check_qor,
         ),
       ),
   );
@@ -362,8 +366,8 @@ export function createMcpServer(manager: OpenROADManager = defaultManager): McpS
         "command-line assignments (e.g. {\"CTS_CLUSTER_SIZE\": \"20\"}), which take precedence " +
         "over both the environment and the Makefile. Poll with get_orfs_job for live progress, " +
         "and the parsed stage metrics once it finishes. Set dry_run to see what " +
-        "make would do without running it. Deprecated: `gates` and `gate_summary` in the " +
-        "result are always empty; run the ORFS `metadata` target to check QoR.",
+        "make would do without running it. For a QoR verdict, call read_orfs_metrics with " +
+        "check_qor.",
       inputSchema: {
         design: z.string(),
         stage: z.string(),
@@ -405,8 +409,8 @@ export function createMcpServer(manager: OpenROADManager = defaultManager): McpS
         "Poll a flow run started by run_orfs_stage: status, elapsed time, the ORFS stage currently " +
         "executing, detailed-route iteration and live DRC violation count, CPU and memory, and the " +
         "tail of the run log. Once the run succeeds it also carries the parsed stage metrics. " +
-        "Omit job_id to list every run. Deprecated: `gates` and `gate_summary` are always " +
-        "empty; run the ORFS `metadata` target to check QoR.",
+        "Omit job_id to list every run. For a QoR verdict, call read_orfs_metrics with " +
+        "check_qor.",
       inputSchema: {
         job_id: z.string().optional(),
         recent_lines: z.number().int().positive().optional(),

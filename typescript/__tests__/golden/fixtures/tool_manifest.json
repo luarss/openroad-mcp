@@ -232,13 +232,17 @@
       "variant": {
         "type": "string",
         "required": false
+      },
+      "check_qor": {
+        "type": "boolean",
+        "required": false
       }
     },
     "annotations": {
       "readOnlyHint": true,
       "destructiveHint": false,
       "idempotentHint": true,
-      "openWorldHint": false
+      "openWorldHint": true
     }
   },
   "read_report_image": {

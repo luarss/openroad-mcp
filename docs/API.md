@@ -666,10 +666,8 @@ Read a design's per-stage metrics and surface the tagged errors and warnings fro
 in one call. This replaces the `find` + `cat` + `jq` + `grep` sequence over the flow tree that
 accounted for roughly 39% of all shell usage in the capability study.
 
-This tool does not judge QoR. ORFS keeps no rule thresholds in the flow tree: its `metadata` target
-checks the run against the QoR dashboard and writes the verdict to
-`reports/<platform>/<design>/<variant>/metadata-check.log`. Use
-[run_orfs_stage](#run_orfs_stage) with `stage: "metadata"` to run that check.
+By default this tool judges nothing. Set `check_qor` to also get a QoR verdict from the public
+QoR dashboard (see [QoR check](#qor-check)). ORFS keeps no rule thresholds in the flow tree.
 
 | Parameter | Type | Required | Default |
 |-----------|------|----------|---------|
@@ -677,6 +675,7 @@ checks the run against the QoR dashboard and writes the verdict to
 | `stage` | string | no | `all` |
 | `platform` | string | no | inferred from `design` |
 | `variant` | string | no | `base` |
+| `check_qor` | boolean | no | `false` |
 
 `platform` is inferred when the design name is unique across platforms; if it is not, the error
 names the candidates. `design` and `variant` are validated as single path segments.
@@ -733,13 +732,7 @@ release still resolves. An unmatched stage returns `StageNotFound` listing the s
       "error": null
     }
   ],
-  "gates": [],
-  "unmatched_gates": [],
-  "gate_summary": {
-    "total": 0, "pass": 0, "fail": 0, "unknown": 0,
-    "failing_errors": 0, "failing_warnings": 0, "unmatched": 0
-  },
-  "rules_path": null,
+  "qor_check": null,
   "message": null,
   "error": null
 }
@@ -751,14 +744,63 @@ release still resolves. An unmatched stage returns `StageNotFound` listing the s
 | `stages[].metrics_path` | `null` when the stage produced a log but no metrics file (a crashed stage) |
 | `stages[].error` | `MalformedMetrics: ...` when the JSON is half-written; the stage is still returned |
 | `stages[].log.truncated` | `true` when more diagnostics existed than the 50-per-category listed |
-| `gates` | **Deprecated.** Always `[]` |
-| `unmatched_gates` | **Deprecated.** Always `[]` |
-| `gate_summary` | **Deprecated.** Every count is `0`; `null` when the call fails |
-| `rules_path` | **Deprecated.** Always `null` |
+| `qor_check` | `null` unless `check_qor` is set; see below |
 
-The four deprecated fields stay in the result so that existing callers do not break. ORFS removed
-its per-design rules files, so this tool has no rules to judge. Run the ORFS `metadata` target to
-check QoR.
+#### QoR check
+
+With `check_qor: true` the server sends the numeric metrics of the selected stages to the QoR
+dashboard (`POST /api/compare/check/inline`, the service that ORFS `make metadata-check` uses) and
+returns its verdict in `qor_check`:
+
+```json
+"qor_check": {
+  "status": "fail",
+  "message": null,
+  "baseline": {
+    "strategy": "latest-master",
+    "commit": "3692473e791a0b006e935f80d59ab1dbe2512a9f",
+    "build_url": "https://dashboard.precisioninno.com/builds/34400",
+    "pipeline": "OpenROAD-flow-scripts-Public"
+  },
+  "totals": { "passed": 4, "failed": 1, "missing_from_baseline": 0 },
+  "failing": [
+    {
+      "metric": "finish__design__instance__area",
+      "value": 6000,
+      "base_value": 937.118,
+      "delta_pct": 540.26,
+      "threshold_pct": 15,
+      "threshold_value": 1077.6857,
+      "comparison": "LowerIsBetter",
+      "rule_source": "rule_config"
+    }
+  ],
+  "checked": 6
+}
+```
+
+| `status` | Meaning |
+|----------|---------|
+| `pass` | Every judged metric is within its threshold |
+| `fail` | At least one metric is outside its threshold; `failing` lists them |
+| `inconclusive` | Nothing was judged: the platform is not on the public list (nothing was sent), or the design has no rules |
+| `no_baseline` | The dashboard has no master build with this platform and design |
+| `unreachable` | The dashboard gave no usable answer within about 30 s. This is **not** a QoR failure |
+
+- **Baseline.** The latest master build. The request names no commit, pipeline or branch, so the
+  dashboard reads it as a checkout and picks the baseline itself. `baseline` says which build.
+- **Public platforms only.** The server sends no credentials, and it sends only platforms of the
+  public ORFS repository: `asap7`, `gf180`, `gt2n`, `ihp-sg13g2`, `nangate45`, `sky130hd`,
+  `sky130hs`, `sky130io`, `sky130ram`. For any other platform it returns `inconclusive` and makes no
+  request, so private-platform metrics stay on the machine.
+- **What is judged.** Only the metrics sent. Use `stage: all` (the default) to send every stage's
+  metrics. A single stage gives a verdict for that stage's metrics alone. For a metric recorded
+  once per sub-run, the last value is sent. Metrics that ORFS adds to `metadata.json` from other
+  sources (the SDC clock count, some derived timing values) are not in the stage files, so they
+  are not sent and not judged.
+- **Rules.** The thresholds are whatever the dashboard holds. This server keeps none.
+- **Network.** This is the only call that leaves the machine. Set `OPENROAD_QOR_API_URL` to use
+  another dashboard. See [SECURITY.md](SECURITY.md).
 
 All paths are returned **relative to the ORFS flow root**, never as absolute host paths.
 
@@ -844,8 +886,6 @@ the `clean_*` targets delete results.
   "log_bytes": 48210934,
   "log_truncated": true,
   "stages": [],
-  "gates": [],
-  "gate_summary": null,
   "error": null
 }
 ```
@@ -853,10 +893,6 @@ the `clean_*` targets delete results.
 `status` is `running`, `succeeded`, `failed`, `cancelled` or `timed_out`, with `exit_code` always
 present once finished. **On success the result also carries `stages`** in the same shape
 [read_orfs_metrics](#read_orfs_metrics) returns — including repeated metrics as arrays.
-
-`gates` and `gate_summary` are **deprecated**. `gates` is always `[]`. `gate_summary` is `null`
-until the run succeeds, and then every count is `0`. ORFS removed its per-design rules files; run
-the ORFS `metadata` target to check QoR.
 
 `current_stage` comes from the newest `*.tmp.log` in the run's logs directory: ORFS writes each
 stage to `<stem>.tmp.log` and renames it to `<stem>.log` on success, so this tracks the flow without

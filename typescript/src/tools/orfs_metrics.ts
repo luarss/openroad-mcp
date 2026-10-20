@@ -10,6 +10,7 @@ import {
   validateSafePathContainment,
 } from "../utils/path_security.js";
 import { BaseTool } from "./base.js";
+import { checkQor } from "./qor_check.js";
 
 /**
  * Stage aliases, tried before a plain substring match.
@@ -272,71 +273,6 @@ export function resolveStages(stems: string[], stage: string): string[] {
   return stems.filter((s) => s.toLowerCase().includes(wanted));
 }
 
-/**
- * @deprecated ORFS removed its per-design rules files, so there are no rules
- * to judge. Run the ORFS `metadata` target to check QoR.
- */
-export interface GateRule {
-  value: unknown;
-  compare: string;
-  level?: string;
-}
-
-/** @deprecated See {@link GateRule}. */
-export interface GateVerdict {
-  metric: string;
-  stage: string;
-  value: unknown;
-  threshold: unknown;
-  compare: string;
-  level: string;
-  status: "pass" | "fail" | "unknown";
-  /** True when the metric was recorded more than once and the last was judged. */
-  ambiguous?: boolean;
-}
-
-/**
- * Compare a metric value against a threshold with an ORFS rule operator.
- *
- * @deprecated Nothing in this server calls it now. See {@link GateRule}.
- */
-export function compareGate(value: unknown, compare: string, threshold: unknown): boolean | null {
-  if (compare === "==") return value === threshold;
-  if (compare === "!=") return value !== threshold;
-  if (typeof value !== "number" || typeof threshold !== "number") return null;
-  if (compare === ">=") return value >= threshold;
-  if (compare === "<=") return value <= threshold;
-  if (compare === ">") return value > threshold;
-  if (compare === "<") return value < threshold;
-  return null;
-}
-
-/**
- * Kept so that existing imports still compile. It judges nothing.
- *
- * @deprecated Always returns no gates and no unmatched rules. See {@link GateRule}.
- */
-export function evaluateGates(
-  _stages: Array<{ stage: string; metrics: Record<string, MetricValue> }>,
-  _rules: Record<string, GateRule>,
-): { gates: GateVerdict[]; unmatched: Array<{ metric: string; threshold: unknown; compare: string; level: string }> } {
-  return { gates: [], unmatched: [] };
-}
-
-/**
- * The `gate_summary` that `read_orfs_metrics` returns on success.
- * Deprecated: every count is zero because no gates are judged.
- */
-const EMPTY_GATE_SUMMARY = {
-  total: 0,
-  pass: 0,
-  fail: 0,
-  unknown: 0,
-  failingErrors: 0,
-  failingWarnings: 0,
-  unmatched: 0,
-} as const;
-
 export interface LogDiagnostics {
   path: string;
   errors: string[];
@@ -391,11 +327,7 @@ function failure(error: string, message: string): string {
     logs_path: null,
     stages: [],
     available_stages: [],
-    // Deprecated fields, kept so that the result shape does not change.
-    gates: [],
-    unmatched_gates: [],
-    gate_summary: null,
-    rules_path: null,
+    qor_check: null,
     message,
     error,
   });
@@ -404,8 +336,9 @@ function failure(error: string, message: string): string {
 /**
  * Read ORFS per-stage metrics and the tagged diagnostics from each stage log.
  *
- * It does not judge QoR. ORFS checks a run against the QoR dashboard in
- * `make metadata` and keeps no rule thresholds in the flow tree.
+ * It judges QoR only when asked (`checkQor`): then it sends the selected stage
+ * metrics to the QoR dashboard and returns its verdict against the latest
+ * master build. ORFS keeps no rule thresholds in the flow tree.
  *
  * This exists because the capability study found ~39% of all shell calls were
  * agents doing exactly this by hand with find/cat/jq/grep -- the single
@@ -421,6 +354,7 @@ export class ReadOrfsMetricsTool extends BaseTool {
     stage = "all",
     platform?: string | null,
     variant = "base",
+    checkQorRequested = false,
   ): Promise<string> {
     let resolvedPlatform: string;
     try {
@@ -509,6 +443,13 @@ export class ReadOrfsMetricsTool extends BaseTool {
       });
     }
 
+    const qorCheck = checkQorRequested
+      ? await checkQor(
+          { platform: resolvedPlatform, design, variant, stages },
+          getSettings().QOR_API_URL,
+        )
+      : null;
+
     return this.formatResult(
       OrfsMetricsResult.parse({
         platform: resolvedPlatform,
@@ -518,11 +459,7 @@ export class ReadOrfsMetricsTool extends BaseTool {
         logsPath: relLogs,
         stages,
         availableStages: allStems,
-        // Deprecated fields, kept so that the result shape does not change.
-        gates: [],
-        unmatchedGates: [],
-        gateSummary: { ...EMPTY_GATE_SUMMARY },
-        rulesPath: null,
+        qorCheck,
       }) as unknown as Record<string, unknown>,
     );
   }

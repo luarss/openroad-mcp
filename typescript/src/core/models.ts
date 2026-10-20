@@ -250,6 +250,41 @@ export interface OrfsStageMetrics {
   error?: string | null;
 }
 
+/** One metric the dashboard judged as failing. */
+export interface QorMetricVerdict {
+  metric: string;
+  value: number;
+  baseValue: number | null;
+  deltaPct: number | null;
+  thresholdPct: number | null;
+  thresholdValue: number | null;
+  comparison: string | number | null;
+  /** Where the dashboard took the rule from, for example `rule_config`. */
+  ruleSource: string;
+}
+
+/**
+ * A QoR verdict from the dashboard.
+ *
+ * `unreachable` means the dashboard gave no answer. It is not a QoR failure.
+ */
+export interface QorCheck {
+  status: "pass" | "fail" | "inconclusive" | "no_baseline" | "unreachable";
+  message: string | null;
+  /** The master build the metrics were compared with. `null` when there is none. */
+  baseline: {
+    strategy: string | null;
+    commit: string | null;
+    buildUrl: string | null;
+    pipeline: string | null;
+  } | null;
+  totals: { passed: number; failed: number; missingFromBaseline: number } | null;
+  /** Only the failing metrics. The totals count the rest. */
+  failing: QorMetricVerdict[];
+  /** How many metrics were sent to the dashboard. */
+  checked: number;
+}
+
 export const OrfsMetricsResult = z.object({
   platform: z.string().nullable().default(null),
   design: z.string().nullable().default(null),
@@ -258,17 +293,8 @@ export const OrfsMetricsResult = z.object({
   logsPath: z.string().nullable().default(null),
   stages: z.array(z.custom<OrfsStageMetrics>()).default([]),
   availableStages: z.array(z.string()).default([]),
-  /**
-   * @deprecated Always empty. ORFS removed its per-design rules files. Run the
-   * ORFS `metadata` target to check QoR.
-   */
-  gates: z.array(z.custom<unknown>()).default([]),
-  /** @deprecated Always empty. See `gates`. */
-  unmatchedGates: z.array(z.custom<unknown>()).default([]),
-  /** @deprecated All counts are zero on success, and `null` on failure. See `gates`. */
-  gateSummary: z.custom<unknown>().nullable().default(null),
-  /** @deprecated Always `null`. See `gates`. */
-  rulesPath: z.string().nullable().default(null),
+  /** The dashboard's verdict. `null` unless the caller asked for a check. */
+  qorCheck: z.custom<QorCheck>().nullable().default(null),
   message: z.string().nullable().default(null),
   error: errorField,
 });
