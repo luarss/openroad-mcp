@@ -17,7 +17,7 @@
     "vscode": {
       "extensions": [
         "anthropic.claude-code",
-        "dbaeumer.vscode-eslint",
+        "oxc.oxc-vscode",
         "esbenp.prettier-vscode",
         "eamodio.gitlens"
       ],
@@ -25,7 +25,7 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
+          "source.fixAll.oxc": "explicit"
         },
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {
