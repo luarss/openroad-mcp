@@ -159,10 +159,6 @@ function describeJob(
     progress: view.progress,
     recentLines: view.recentLines,
     stages: results?.stages ?? [],
-    // Deprecated: ORFS removed its per-design rules files, so no gates are
-    // judged. Kept so that the result shape does not change.
-    gates: [],
-    gateSummary: results === null ? null : { total: 0, pass: 0, fail: 0, failingErrors: 0 },
     error: job.error,
   };
 }

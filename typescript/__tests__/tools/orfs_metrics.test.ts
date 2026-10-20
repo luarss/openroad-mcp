@@ -26,8 +26,6 @@ import {
   parseMetricsPreservingDuplicates,
   resolvePlatform,
   resolveStages,
-  evaluateGates,
-  compareGate,
 } from "../../src/tools/orfs_metrics.js";
 import type { OpenROADManager } from "../../src/core/manager.js";
 
@@ -46,6 +44,7 @@ function mockSettings(flowPath: string, designs: Record<string, string[]>): void
   (getSettings as ReturnType<typeof vi.fn>).mockReturnValue({
     flowPath,
     platforms: Object.keys(designs),
+    QOR_API_URL: "https://qor.example/api",
     designs: (p: string) => designs[p] ?? [],
   });
 }
@@ -199,25 +198,6 @@ describe("resolveStages", () => {
   });
 });
 
-describe("deprecated gate exports", () => {
-  it("evaluateGates judges nothing, even when given rules", () => {
-    expect(
-      evaluateGates(
-        [{ stage: "4_1_cts", metrics: { "cts__timing__setup__ws": -0.1 } }],
-        { "cts__timing__setup__ws": { value: -0.05, compare: ">=" } },
-      ),
-    ).toEqual({ gates: [], unmatched: [] });
-  });
-
-  it("compareGate still applies each operator", () => {
-    expect(compareGate(0, "<=", 0)).toBe(true);
-    expect(compareGate(-0.11, ">=", -0.05)).toBe(false);
-    expect(compareGate("abc", "==", "abc")).toBe(true);
-    expect(compareGate("x", ">=", 1)).toBeNull();
-    expect(compareGate(1, "??", 1)).toBeNull();
-  });
-});
-
 describe("resolvePlatform", () => {
   it("infers the platform when the design is unique", () => {
     createFlow();
@@ -266,31 +246,75 @@ describe("ReadOrfsMetricsTool", () => {
     expect(result.stages[0].repeated_metrics).toEqual(["cts__utilization__before__dpl"]);
   });
 
-  it("keeps the deprecated gate fields in the result, empty", async () => {
+  it("sends no request and returns no verdict unless check_qor is set", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
     createFlow({ metrics: { "4_1_cts": `{"cts__timing__setup__ws": -0.113089}` } });
 
     const result = await read(tool(), "gcd", "cts");
 
-    expect(result.gates).toEqual([]);
-    expect(result.unmatched_gates).toEqual([]);
-    expect(result.gate_summary).toEqual({
-      total: 0, pass: 0, fail: 0, unknown: 0,
-      failing_errors: 0, failing_warnings: 0, unmatched: 0,
-    });
-    expect(result.rules_path).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.qor_check).toBeNull();
     expect(result.message).toBeNull();
+    expect(result).not.toHaveProperty("gates");
+    vi.unstubAllGlobals();
   });
 
-  it("keeps the deprecated gate fields in a failure result, empty", async () => {
+  it("returns the dashboard's verdict for the selected stage when check_qor is set", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "fail",
+          baseCommitSha: "a".repeat(40),
+          baselineStrategy: "latest-master",
+          baseBuildUrl: "https://qor.example/builds/7",
+          baselinePipeline: "OpenROAD-flow-scripts-Public",
+          metrics: [
+            {
+              metricName: "cts__timing__setup__ws",
+              targetValue: -0.113089,
+              baseValue: -0.05,
+              deltaPct: -126.2,
+              thresholdPct: 10,
+              comparisonType: "GreaterOrEqual",
+              status: "fail",
+              ruleSource: "rule_config",
+            },
+          ],
+          totals: { passed: 0, failed: 1, missingFromBaseline: 0 },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    createFlow({ metrics: { "4_1_cts": `{"cts__timing__setup__ws": -0.113089}` } });
+
+    const result = await read(tool(), "gcd", "cts", undefined, undefined, true);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("https://qor.example/api/compare/check/inline");
+    expect(init.headers).not.toHaveProperty("X-Api-Key");
+    expect(JSON.parse(init.body)).toMatchObject({
+      PlatformName: "nangate45",
+      DesignName: "gcd",
+      VariantName: "base",
+      Metrics: { cts__timing__setup__ws: -0.113089 },
+    });
+    expect(result.qor_check.status).toBe("fail");
+    expect(result.qor_check.baseline.strategy).toBe("latest-master");
+    expect(result.qor_check.failing[0].metric).toBe("cts__timing__setup__ws");
+    expect(result.qor_check.totals).toEqual({ passed: 0, failed: 1, missing_from_baseline: 0 });
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps a failure result free of a qor_check verdict", async () => {
     createFlow({ stems: ["4_1_cts"] });
 
     const result = await read(tool(), "gcd", "nonsense");
 
     expect(result.error).toBe("StageNotFound");
-    expect(result.gates).toEqual([]);
-    expect(result.unmatched_gates).toEqual([]);
-    expect(result.gate_summary).toBeNull();
-    expect(result.rules_path).toBeNull();
+    expect(result.qor_check).toBeNull();
   });
 
   it("extracts ORFS's tagged diagnostics from the stage log", async () => {

@@ -48,6 +48,12 @@ export const FLOW_RUN_DEFAULTS = {
 } as const;
 
 /**
+ * The QoR dashboard (palantir) that `read_orfs_metrics` asks when `check_qor` is
+ * set. ORFS `make metadata-check` talks to the same service.
+ */
+export const DEFAULT_QOR_API_URL = "https://dashboard.precisioninno.com/api";
+
+/**
  * Report-image budget defaults.
  *
  * MAX_BASE64_KB is the payload ceiling in KB of base64. The previous 15 KB

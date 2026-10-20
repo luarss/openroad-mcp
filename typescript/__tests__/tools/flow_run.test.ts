@@ -152,9 +152,6 @@ describe("RunOrfsStageTool", () => {
 
     expect(result.status).toBe("running");
     expect(result.job_id).toHaveLength(8);
-    // Deprecated gate fields stay in the result, empty.
-    expect(result.gates).toEqual([]);
-    expect(result.gate_summary).toBeNull();
     await registry.shutdown();
   });
 
@@ -254,9 +251,6 @@ describe("RunOrfsStageTool", () => {
     // Repeated keys survive as arrays, exactly as read_orfs_metrics returns them.
     expect(result.stages[0].metrics.cts__utilization__before__dpl).toEqual([76.7787, 82.1146]);
     expect(result.stages[0].metrics.cts__timing__setup__ws).toBe(-0.113089);
-    // Deprecated gate fields stay in the result, empty: no gates are judged.
-    expect(result.gates).toEqual([]);
-    expect(result.gate_summary).toEqual({ total: 0, pass: 0, fail: 0, failing_errors: 0 });
   });
 });
 

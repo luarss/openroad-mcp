@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
-import { FLOW_RUN_DEFAULTS, IMAGE_DEFAULTS, OUTPUT_HISTORY_DEFAULTS } from "../constants.js";
+import { DEFAULT_QOR_API_URL, FLOW_RUN_DEFAULTS, IMAGE_DEFAULTS, OUTPUT_HISTORY_DEFAULTS } from "../constants.js";
 
 const TRUTHY_VALUES = ["true", "1", "yes"];
 const FALSY_VALUES = ["false", "0", "no"];
@@ -51,6 +51,8 @@ export class Settings {
   readonly ENABLE_COMMAND_VALIDATION: boolean;
   readonly WHITELIST_ENABLED: boolean;
   readonly ORFS_FLOW_PATH: string;
+  /** Base URL of the QoR dashboard that `read_orfs_metrics` asks when `check_qor` is set. */
+  readonly QOR_API_URL: string;
   /**
    * Budget for a report image, measured in KB of base64.
    *
@@ -93,6 +95,7 @@ export class Settings {
     this.ENABLE_COMMAND_VALIDATION = overrides.ENABLE_COMMAND_VALIDATION ?? true;
     this.WHITELIST_ENABLED = overrides.WHITELIST_ENABLED ?? true;
     this.ORFS_FLOW_PATH = overrides.ORFS_FLOW_PATH ?? path.join(os.homedir(), "OpenROAD-flow-scripts", "flow");
+    this.QOR_API_URL = overrides.QOR_API_URL ?? DEFAULT_QOR_API_URL;
     this.IMAGE_MAX_BASE64_KB = overrides.IMAGE_MAX_BASE64_KB ?? IMAGE_DEFAULTS.MAX_BASE64_KB;
     this.IMAGE_MAX_DIMENSION = overrides.IMAGE_MAX_DIMENSION ?? IMAGE_DEFAULTS.MAX_DIMENSION;
     this.IMAGE_MIN_DIMENSION = overrides.IMAGE_MIN_DIMENSION ?? IMAGE_DEFAULTS.MIN_DIMENSION;
@@ -156,6 +159,7 @@ export class Settings {
       ["LOG_LEVEL", "LOG_LEVEL"],
       ["LOG_FORMAT", "LOG_FORMAT"],
       ["ORFS_FLOW_PATH", "ORFS_FLOW_PATH"],
+      ["QOR_API_URL", "OPENROAD_QOR_API_URL"],
       ["RUN_LOG_DIR", "OPENROAD_RUN_LOG_DIR"],
     ];
 
