@@ -319,8 +319,8 @@ export function createMcpServer(manager: OpenROADManager = defaultManager): McpS
         "Read an ORFS design's per-stage metrics and the tagged errors/warnings from each stage " +
         "log. Set `check_qor` to also send the selected stages' metrics to the public QoR " +
         "dashboard and get its verdict against the latest master build (`qor_check`: status, " +
-        "baseline, totals, failing metrics). Use `stage: all` to send every stage's metrics. Private " +
-        "platforms come back `inconclusive`; an unreachable dashboard is `unreachable`, not a " +
+        "baseline, totals, failing metrics). Use `stage: all` to send every stage's metrics. Platforms " +
+        "outside the public ORFS list are not sent and come back `inconclusive`; an unreachable dashboard is `unreachable`, not a " +
         "failure. Prefer this " +
         "over shelling out to find/cat/jq/grep in the flow tree. `stage` accepts a step name " +
         "(cts, place, route, floorplan, synth, finish), an ORFS metric namespace " +

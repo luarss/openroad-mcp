@@ -40,6 +40,17 @@ describe("checkQor", () => {
     expect(result).toMatchObject({ status: "inconclusive", checked: 0 });
   });
 
+  it("sends nothing for a platform outside the public list", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await checkQor({ ...request, platform: "gf12" }, URL);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ status: "inconclusive", checked: 0 });
+    expect(result.message).toMatch(/gf12.*not on the public list/);
+  });
+
   it("asks for the latest master build: no commit, no pipeline, no key", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       respond(200, {

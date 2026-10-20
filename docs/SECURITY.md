@@ -168,7 +168,7 @@ All variables are read at startup by [`typescript/src/config/settings.ts`](../ty
 | `OPENROAD_MAX_FLOW_JOBS` | integer | `2` | Concurrent `run_orfs_stage` runs allowed |
 | `OPENROAD_FLOW_RUN_TIMEOUT` | float (seconds) | `21600` (6 h) | Default wall-clock budget for a flow run |
 | `OPENROAD_RUN_LOG_DIR` | path | `<tmpdir>/openroad-mcp-runs` | Where flow-run logs are streamed |
-| `OPENROAD_QOR_API_URL` | URL | `https://dashboard.precisioninno.com/api` | QoR dashboard that `read_orfs_metrics` asks when `check_qor` is set. The only outbound call this server makes. It sends no credentials |
+| `OPENROAD_QOR_API_URL` | URL | `https://dashboard.precisioninno.com/api` | QoR dashboard that `read_orfs_metrics` asks when `check_qor` is set. The only outbound call this server makes. It sends no credentials, and only for the public ORFS platforms |
 | `OPENROAD_ALLOWED_COMMANDS` | string (comma-separated) | `openroad` | PTY spawn executable allowlist |
 | `OPENROAD_ENABLE_COMMAND_VALIDATION` | bool | `true` | Enables/disables `PtyHandler.validateCommand` |
 | `OPENROAD_WHITELIST_ENABLED` | bool | `true` | Enables/disables the Tcl command whitelist |

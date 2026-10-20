@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { QorCheck, QorMetricVerdict } from "../core/models.js";
+import { PUBLIC_QOR_PLATFORMS } from "../constants.js";
 
 const CHECK_PATH = "/compare/check/inline";
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -86,12 +87,21 @@ function noVerdict(
 /**
  * Ask the dashboard to judge one design's metrics against the latest master build.
  *
- * The request carries no commit, no pipeline and no API key. The dashboard reads
- * that as a checkout and answers from public data, so a private platform comes
- * back `inconclusive`. This function never throws: a dashboard that cannot be
+ * Only a platform in `PUBLIC_QOR_PLATFORMS` is sent. Any other platform may carry
+ * private data, so it gets `inconclusive` and no request leaves the machine. The
+ * request carries no commit, no pipeline and no API key. The dashboard reads that
+ * as a checkout and compares with the latest master build. This function never throws: a dashboard that cannot be
  * reached is `unreachable`, which is not a QoR failure.
  */
 export async function checkQor(request: QorCheckRequest, baseUrl: string): Promise<QorCheck> {
+  if (!PUBLIC_QOR_PLATFORMS.includes(request.platform)) {
+    return noVerdict(
+      "inconclusive",
+      `Platform '${request.platform}' is not on the public list, so nothing was sent. ` +
+        `Public platforms: ${PUBLIC_QOR_PLATFORMS.join(", ")}.`,
+      0,
+    );
+  }
   const metrics = flattenStageMetrics(request.stages);
   const checked = Object.keys(metrics).length;
   if (checked === 0) {
@@ -165,7 +175,7 @@ function mapResponse(json: unknown, checked: number): QorCheck {
     r.status === "no_baseline"
       ? "The dashboard has no master build with this platform and design to compare against."
       : r.status === "inconclusive"
-        ? "No metric was judged: the platform may be private, or the design has no rules."
+        ? "No metric was judged: the design has no rules, or the platform has none."
         : null;
 
   return {

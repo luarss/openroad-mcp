@@ -783,15 +783,16 @@ returns its verdict in `qor_check`:
 |----------|---------|
 | `pass` | Every judged metric is within its threshold |
 | `fail` | At least one metric is outside its threshold; `failing` lists them |
-| `inconclusive` | No metric was judged: the platform is private, or the design has no rules |
+| `inconclusive` | Nothing was judged: the platform is not on the public list (nothing was sent), or the design has no rules |
 | `no_baseline` | The dashboard has no master build with this platform and design |
 | `unreachable` | The dashboard gave no usable answer within about 30 s. This is **not** a QoR failure |
 
 - **Baseline.** The latest master build. The request names no commit, pipeline or branch, so the
   dashboard reads it as a checkout and picks the baseline itself. `baseline` says which build.
-- **Public data only.** The server sends no credentials. A private platform returns `inconclusive`.
-  The metrics are still sent before the dashboard decides, so do not set `check_qor` for a design
-  whose data must not leave the machine.
+- **Public platforms only.** The server sends no credentials, and it sends only platforms of the
+  public ORFS repository: `asap7`, `gf180`, `gt2n`, `ihp-sg13g2`, `nangate45`, `sky130hd`,
+  `sky130hs`, `sky130io`, `sky130ram`. For any other platform it returns `inconclusive` and makes no
+  request, so private-platform metrics stay on the machine.
 - **What is judged.** Only the metrics sent. Use `stage: all` (the default) to send every stage's
   metrics. A single stage gives a verdict for that stage's metrics alone. For a metric recorded
   once per sub-run, the last value is sent. Metrics that ORFS adds to `metadata.json` from other

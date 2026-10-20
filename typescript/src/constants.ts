@@ -54,6 +54,24 @@ export const FLOW_RUN_DEFAULTS = {
 export const DEFAULT_QOR_API_URL = "https://dashboard.precisioninno.com/api";
 
 /**
+ * Platforms that `check_qor` may send to the QoR dashboard: the platform
+ * directories of the public ORFS repository (`flow/platforms`, without `common`).
+ * Any other platform may carry private PDK data, so its metrics stay local.
+ * Add a platform here when ORFS adds a public one.
+ */
+export const PUBLIC_QOR_PLATFORMS: readonly string[] = [
+  "asap7",
+  "gf180",
+  "gt2n",
+  "ihp-sg13g2",
+  "nangate45",
+  "sky130hd",
+  "sky130hs",
+  "sky130io",
+  "sky130ram",
+];
+
+/**
  * Report-image budget defaults.
  *
  * MAX_BASE64_KB is the payload ceiling in KB of base64. The previous 15 KB
