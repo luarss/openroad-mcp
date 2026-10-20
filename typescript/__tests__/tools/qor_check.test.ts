@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { checkQor, flattenStageMetrics } from "../../src/tools/qor_check.js";
+import { MAX_CHECK_MS, checkQor, flattenStageMetrics } from "../../src/tools/qor_check.js";
 
 const URL = "https://qor.example/api";
 const request = {
@@ -154,6 +154,24 @@ describe("checkQor", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(result.status).toBe("unreachable");
     expect(result.message).toContain("ECONNREFUSED");
+  });
+
+  it("stays under the default MCP client timeout of 60 s", () => {
+    expect(MAX_CHECK_MS).toBeLessThan(40_000);
+  });
+
+  it("rejects a status it does not know", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        respond(200, { status: "maybe", metrics: [], totals: { passed: 0, failed: 0, missingFromBaseline: 0 } }),
+      ),
+    );
+
+    const result = await checkQor(request, URL);
+
+    expect(result.status).toBe("unreachable");
+    expect(result.message).toMatch(/unknown status/);
   });
 
   it("rejects a response in an unknown shape", async () => {

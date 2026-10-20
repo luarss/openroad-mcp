@@ -785,14 +785,18 @@ returns its verdict in `qor_check`:
 | `fail` | At least one metric is outside its threshold; `failing` lists them |
 | `inconclusive` | No metric was judged: the platform is private, or the design has no rules |
 | `no_baseline` | The dashboard has no master build with this platform and design |
-| `unreachable` | The dashboard gave no usable answer after three tries. This is **not** a QoR failure |
+| `unreachable` | The dashboard gave no usable answer within about 30 s. This is **not** a QoR failure |
 
 - **Baseline.** The latest master build. The request names no commit, pipeline or branch, so the
   dashboard reads it as a checkout and picks the baseline itself. `baseline` says which build.
 - **Public data only.** The server sends no credentials. A private platform returns `inconclusive`.
-- **What is judged.** Only the metrics sent. Use `stage: all` (the default) for a full verdict. A
-  single stage gives a verdict for that stage's metrics alone. For a metric recorded once per
-  sub-run, the last value is sent.
+  The metrics are still sent before the dashboard decides, so do not set `check_qor` for a design
+  whose data must not leave the machine.
+- **What is judged.** Only the metrics sent. Use `stage: all` (the default) to send every stage's
+  metrics. A single stage gives a verdict for that stage's metrics alone. For a metric recorded
+  once per sub-run, the last value is sent. Metrics that ORFS adds to `metadata.json` from other
+  sources (the SDC clock count, some derived timing values) are not in the stage files, so they
+  are not sent and not judged.
 - **Rules.** The thresholds are whatever the dashboard holds. This server keeps none.
 - **Network.** This is the only call that leaves the machine. Set `OPENROAD_QOR_API_URL` to use
   another dashboard. See [SECURITY.md](SECURITY.md).

@@ -2,9 +2,17 @@ import { z } from "zod";
 import type { QorCheck, QorMetricVerdict } from "../core/models.js";
 
 const CHECK_PATH = "/compare/check/inline";
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 8_000;
 const RETRY_ATTEMPTS = 3;
 const RETRY_BACKOFF_MS = 1_000;
+/**
+ * Worst case for one check: every try times out, with a linear backoff between
+ * tries. It must stay well under the 60 s that the MCP SDK gives a client by
+ * default, or the caller sees a tool error instead of `unreachable`.
+ */
+export const MAX_CHECK_MS =
+  RETRY_ATTEMPTS * REQUEST_TIMEOUT_MS +
+  RETRY_BACKOFF_MS * ((RETRY_ATTEMPTS * (RETRY_ATTEMPTS - 1)) / 2);
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
 export interface QorCheckRequest {
@@ -19,9 +27,12 @@ export interface QorCheckRequest {
  * Flatten stage metrics into the name -> number map the dashboard takes.
  *
  * ORFS's own `metadata.json` is the merge of the same stage files, so the names
- * match. A later stage wins over an earlier one, and a metric recorded once per
- * sub-run (an array) counts as its last value. The dashboard evaluates only the
- * metrics it receives, so a single stage gives a verdict for that stage alone.
+ * match for the metrics those files hold. `metadata.json` adds a few more from
+ * other sources (the SDC clock count, some derived timing values), which this
+ * server does not send, so the dashboard does not judge them. A later stage wins
+ * over an earlier one, and a metric recorded once per sub-run (an array) counts
+ * as its last value. The dashboard judges only the metrics it receives, so a
+ * single stage gives a verdict for that stage alone.
  */
 export function flattenStageMetrics(
   stages: QorCheckRequest["stages"],
@@ -51,7 +62,7 @@ const MetricResponse = z.object({
   ruleSource: z.string(),
 });
 const CheckResponse = z.object({
-  status: z.string(),
+  status: z.enum(["pass", "fail", "inconclusive", "no_baseline"]),
   baseCommitSha: z.string().nullish(),
   baselineStrategy: z.string().nullish(),
   baseBuildUrl: z.string().nullish(),
@@ -123,7 +134,7 @@ export async function checkQor(request: QorCheckRequest, baseUrl: string): Promi
 function mapResponse(json: unknown, checked: number): QorCheck {
   const parsed = CheckResponse.safeParse(json);
   if (!parsed.success) {
-    return noVerdict("unreachable", "QoR dashboard sent a response in an unknown shape.", checked);
+    return noVerdict("unreachable", "QoR dashboard sent a response in an unknown shape or with an unknown status.", checked);
   }
   const r = parsed.data;
 
@@ -158,7 +169,7 @@ function mapResponse(json: unknown, checked: number): QorCheck {
         : null;
 
   return {
-    status: r.status as QorCheck["status"],
+    status: r.status,
     message,
     baseline,
     totals: r.totals,
