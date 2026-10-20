@@ -25,7 +25,11 @@
         "no-unused-expressions": "error",
         "no-unused-vars": [
           "error",
-          { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }
+          {
+            "varsIgnorePattern": "^_",
+            "argsIgnorePattern": "^_",
+            "reportVarsOnlyUsedAsTypes": true
+          }
         ],
         "typescript/no-wrapper-object-types": "error",
         "typescript/prefer-as-const": "error",
