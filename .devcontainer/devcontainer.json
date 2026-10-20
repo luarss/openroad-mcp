@@ -18,10 +18,12 @@
       "extensions": [
         "anthropic.claude-code",
         "oxc.oxc-vscode",
+        "TypeScriptTeam.native-preview",
         "esbenp.prettier-vscode",
         "eamodio.gitlens"
       ],
       "settings": {
+        "js/ts.experimental.useTsgo": true,
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.codeActionsOnSave": {
