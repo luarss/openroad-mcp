@@ -87,7 +87,7 @@ ENTRYPOINT ["node", "/app/dist/main.js"]
 # Stage 4: test — full dev deps + tests, runs unit and real-OpenROAD
 # integration suites against the binaries in this image.
 FROM builder AS test
-COPY typescript/vitest.config.ts typescript/vitest.config.integration.ts typescript/vitest.config.performance.ts typescript/eslint.config.ts ./
+COPY typescript/vitest.config.ts typescript/vitest.config.integration.ts typescript/vitest.config.performance.ts typescript/.oxlintrc.json ./
 COPY typescript/__tests__ ./__tests__
 # Golden fixtures are co-located at __tests__/golden/fixtures/ (committed TS
 # output) and are already present from the COPY above — no separate copy needed.

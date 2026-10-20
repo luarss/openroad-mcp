@@ -17,15 +17,17 @@
     "vscode": {
       "extensions": [
         "anthropic.claude-code",
-        "dbaeumer.vscode-eslint",
+        "oxc.oxc-vscode",
+        "TypeScriptTeam.native-preview",
         "esbenp.prettier-vscode",
         "eamodio.gitlens"
       ],
       "settings": {
+        "js/ts.experimental.useTsgo": true,
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.codeActionsOnSave": {
-          "source.fixAll.eslint": "explicit"
+          "source.fixAll.oxc": "explicit"
         },
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {

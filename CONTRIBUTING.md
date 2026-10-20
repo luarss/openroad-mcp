@@ -112,7 +112,7 @@ When reviewing OpenROAD MCP pull requests, follow the priority order above. Focu
 - **Check Wire Contract:** Ensure `make golden` diffs are intentional. If a tool schema changes, ensure it improves agent comprehension.
 - **Resource Leaks:** Look closely at PTY spawning, buffer allocation, and session cleanup.
 - **Ask Probing Questions:** "Does this accurately reflect the MCP spec?", "Will this strand PTY processes on termination?"
-- **Be Concise:** Provide one-sentence feedback where possible. Avoid stylistic nitpicks that `eslint` or `prettier` handle automatically.
+- **Be Concise:** Provide one-sentence feedback where possible. Avoid stylistic nitpicks that `oxlint` or `prettier` handle automatically.
 - **Don't generate summaries** of the PR unless asked. 
 
 ---
