@@ -136,7 +136,7 @@ jobs:
             typescript/package-lock.json \
             CHANGELOG.md
           if [ -f server.json ]; then git add server.json; fi
-          git commit -m "chore: release ${TAG}"
+          git commit -s -m "chore: release ${TAG}"
           git push -u origin "${BRANCH}"
 
       - name: Open release PR
